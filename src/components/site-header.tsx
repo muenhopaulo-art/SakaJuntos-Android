@@ -49,9 +49,11 @@ export function SiteHeader() {
             </Link>
             <div className="flex flex-col space-y-3">
                 {navLinks.map(link => (
-                    <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
-                        {link.label}
-                    </Link>
+                    <SheetTrigger asChild key={link.href}>
+                      <Link href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                          {link.label}
+                      </Link>
+                    </SheetTrigger>
                 ))}
             </div>
             </div>
