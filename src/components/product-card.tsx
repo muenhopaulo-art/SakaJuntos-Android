@@ -18,25 +18,22 @@ export function ProductCard({ product }: ProductCardProps) {
   const imageUrl = product.image || PLACEHOLDER_IMAGE;
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-      <CardHeader>
-        <CardTitle className="font-headline">{product.name}</CardTitle>
-        <CardDescription className="line-clamp-2">{product.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow space-y-4">
-        <div className="relative aspect-square w-full overflow-hidden rounded-lg">
+    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 bg-card">
+      <CardContent className="p-4 flex-grow flex flex-col">
+        <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4">
           <Image src={imageUrl} alt={product.name} fill className="object-cover" data-ai-hint={product.aiHint}/>
         </div>
-        <p className="text-2xl font-bold text-foreground">
+        <div className="flex-grow">
+          <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>
+        </div>
+        <p className="text-lg font-bold text-foreground mb-4">
           {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}
         </p>
-      </CardContent>
-      <CardFooter>
-        <Button className="w-full" onClick={() => addItem(product)}>
+        <Button className="w-full mt-auto" onClick={() => addItem(product)}>
           <ShoppingCart className="mr-2 h-4 w-4" />
-          Adicionar ao Carrinho
+          Adicionar
         </Button>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
 }
