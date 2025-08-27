@@ -40,7 +40,10 @@ export default async function HomePage() {
               <h3 className="text-xl font-semibold mb-4">Produtos Disponíveis</h3>
 
               {products.length > 0 ? (
-                 <Carousel opts={{ align: "start", loop: true, slidesToScroll: 'auto' }}>
+                 <Carousel 
+                    opts={{ align: "start", loop: true, slidesToScroll: 'auto' }}
+                    className="w-full"
+                    >
                     <CarouselContent className="-ml-4">
                         {products.map(product => (
                         <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4 pl-4">

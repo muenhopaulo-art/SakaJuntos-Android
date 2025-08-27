@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Autoplay from "embla-carousel-autoplay"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
@@ -63,7 +64,14 @@ const Carousel = React.forwardRef<
         ...opts,
         axis: orientation === "horizontal" ? "x" : "y",
       },
-      plugins
+      [
+        Autoplay({
+          delay: 3000,
+          stopOnInteraction: true,
+          stopOnMouseEnter: true,
+        }),
+        ...(plugins || []),
+      ]
     )
     const [canScrollPrev, setCanScrollPrev] = React.useState(false)
     const [canScrollNext, setCanScrollNext] = React.useState(false)
