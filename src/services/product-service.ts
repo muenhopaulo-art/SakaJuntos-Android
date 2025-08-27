@@ -2,14 +2,14 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentSnapshot } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentData } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation } from '@/lib/types';
 import { getUser } from './user-service';
 import { createFinalOrder } from './order-service';
 
 // Helper function to convert Firestore data to a plain object
-const convertDocToProduct = (doc: any): Product => {
+const convertDocToProduct = (doc: DocumentData): Product => {
   const data = doc.data();
   const product: Product = {
     id: doc.id,
@@ -44,21 +44,20 @@ async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: 
 }
 
 
-export async function convertDocToGroupPromotion(doc: DocumentSnapshot): Promise<GroupPromotion> {
-    const data = doc.data();
+export async function convertDocToGroupPromotion(id: string, data: DocumentData): Promise<GroupPromotion> {
     if (!data) {
         throw new Error("Document data not found");
     }
 
     const [members, joinRequests, groupCart, contributions] = await Promise.all([
-        getSubCollection<GroupMember>(doc.id, 'members'),
-        getSubCollection<JoinRequest>(doc.id, 'joinRequests'),
-        getSubCollection<CartItem>(doc.id, 'groupCart'),
-        getSubCollection<Contribution>(doc.id, 'contributions')
+        getSubCollection<GroupMember>(id, 'members'),
+        getSubCollection<JoinRequest>(id, 'joinRequests'),
+        getSubCollection<CartItem>(id, 'groupCart'),
+        getSubCollection<Contribution>(id, 'contributions')
     ]);
 
     const promotion: GroupPromotion = {
-        id: doc.id,
+        id: id,
         name: data.name,
         description: data.description,
         price: data.price,
@@ -89,7 +88,7 @@ export async function getProducts(): Promise<Product[]> {
 export async function getGroupPromotions(): Promise<GroupPromotion[]> {
     const promotionsCol = collection(db, 'groupPromotions');
     const promotionSnapshot = await getDocs(promotionsCol);
-    const promotionList = await Promise.all(promotionSnapshot.docs.map(convertDocToGroupPromotion));
+    const promotionList = await Promise.all(promotionSnapshot.docs.map(doc => convertDocToGroupPromotion(doc.id, doc.data())));
     return promotionList;
 }
 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -32,7 +33,7 @@ function listenToGroup(groupId: string, callback: (group: GroupPromotion) => voi
     const groupRef = doc(db, 'groupPromotions', groupId);
     return onSnapshot(groupRef, async (docSnap) => {
         if (docSnap.exists()) {
-            const groupData = await convertDocToGroupPromotion(docSnap);
+            const groupData = await convertDocToGroupPromotion(docSnap.id, docSnap.data());
             callback(groupData);
         }
     });
