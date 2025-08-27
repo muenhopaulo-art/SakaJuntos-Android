@@ -31,22 +31,22 @@ async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: 
     const snapshot = await getDocs(subCollectionRef);
     return snapshot.docs.map(doc => {
         const data = doc.data();
-        return {
-            ...data,
-            id: doc.id, // Ensure document ID is included
-            uid: doc.id, // For legacy compatibility with JoinRequest/GroupMember
-            // Convert Timestamps
-            ...(data.joinedAt && { joinedAt: (data.joinedAt as Timestamp).toMillis() }),
-            ...(data.requestedAt && { requestedAt: (data.requestedAt as Timestamp).toMillis() }),
-            ...(data.createdAt && { createdAt: (data.createdAt as Timestamp).toMillis() }),
-        } as T;
+        const plainData: any = { ...data, id: doc.id, uid: doc.id };
+
+        // Convert any Timestamps to numbers
+        for (const key in plainData) {
+            if (plainData[key] instanceof Timestamp) {
+                plainData[key] = plainData[key].toMillis();
+            }
+        }
+        return plainData as T;
     });
 }
 
 
 export async function convertDocToGroupPromotion(id: string, data: DocumentData): Promise<GroupPromotion> {
     if (!data) {
-        throw new Error("Document data not found");
+        throw new Error("Document data not found for ID: " + id);
     }
 
     const [members, joinRequests, groupCart, contributions] = await Promise.all([
@@ -128,6 +128,9 @@ export async function createGroupPromotion(
 export async function requestToJoinGroup(groupId: string, userId: string) {
     try {
         const user = await getUser(userId);
+        if (!user || !user.name) {
+             throw new Error("User profile not found or name is missing.");
+        }
         const requestRef = doc(db, 'groupPromotions', groupId, 'joinRequests', userId);
         await setDoc(requestRef, { name: user.name, requestedAt: serverTimestamp() });
         return { success: true };
@@ -241,16 +244,24 @@ export async function contributeToGroup(groupId: string, userId: string, locatio
             const groupData = groupSnap.data();
 
             const cartColRef = collection(db, 'groupPromotions', groupId, 'groupCart');
-            const cartSnapshot = await getDocs(cartColRef); // No transaction needed for reads
+            const cartSnapshot = await getDocs(query(cartColRef));
             const groupCart: CartItem[] = cartSnapshot.docs.map(d => d.data() as CartItem);
             
             if (groupCart.length === 0) throw new Error("Cannot contribute to an empty cart.");
 
-            const totalMembers = groupData.members?.length || groupData.participants;
+            const membersColRef = collection(db, 'groupPromotions', groupId, 'members');
+            const membersSnapshot = await getDocs(query(membersColRef));
+            const totalMembers = membersSnapshot.size;
+
+            if (totalMembers === 0) throw new Error("Group has no members to divide contribution.");
+
             const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
             const contributionAmount = groupCartTotal / totalMembers;
 
             const user = await getUser(userId);
+             if (!user || !user.name) {
+                throw new Error("User profile not found or name is missing.");
+            }
             const contributionRef = doc(db, 'groupPromotions', groupId, 'contributions', userId);
             transaction.set(contributionRef, {
                 userId,
@@ -260,13 +271,7 @@ export async function contributeToGroup(groupId: string, userId: string, locatio
                 createdAt: serverTimestamp(),
             });
 
-            // Return necessary data for post-transaction logic
-            return {
-                groupData: groupData,
-                cart: groupCart,
-                totalAmount: groupCartTotal,
-                membersCount: totalMembers,
-            };
+            // This part of the logic doesn't need to return anything for the transaction itself.
         });
 
         // Post-transaction: check if the order is complete
@@ -288,9 +293,14 @@ async function checkAndFinalizeOrder(groupId: string) {
     const contributions = await getSubCollection<Contribution>(groupId, 'contributions');
     const members = await getSubCollection<GroupMember>(groupId, 'members');
 
-    if (contributions.length > 0 && contributions.length === members.length) {
+    if (members.length > 0 && contributions.length === members.length) {
         const cart = await getSubCollection<CartItem>(groupId, 'groupCart');
         const totalAmount = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+        
+        if (cart.length === 0) {
+             console.log("Finalization check: Cart is empty, skipping order creation.");
+             return { success: true, orderCreated: false };
+        }
 
         const orderResult = await createFinalOrder({
             groupId: groupId,
@@ -302,6 +312,7 @@ async function checkAndFinalizeOrder(groupId: string) {
         if (orderResult.success) {
             // Clean up the group's cart and contributions for the next purchase
             const batch = writeBatch(db);
+            
             const cartCol = collection(db, 'groupPromotions', groupId, 'groupCart');
             const cartDocs = await getDocs(cartCol);
             cartDocs.forEach(doc => batch.delete(doc.ref));
@@ -345,3 +356,5 @@ export async function seedDatabase() {
     return { success: false, message: `Ocorreu um erro: ${(error as Error).message}` };
   }
 }
+
+    
