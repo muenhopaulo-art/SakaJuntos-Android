@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentData } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentData, serverTimestamp } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation } from '@/lib/types';
 import { getUser } from './user-service';
