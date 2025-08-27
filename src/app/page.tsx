@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { getProducts } from '@/services/product-service';
 import type { Product } from '@/lib/types';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { ProductCard } from '@/components/product-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
@@ -26,15 +25,6 @@ export default async function Home() {
     <div className="flex flex-col items-center">
       <section className="w-full py-12 md:py-24 lg:py-32 text-center">
         <div className="container px-4 md:px-6">
-          <div className="space-y-4 mb-12">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-              SakaJuntos: O seu ponto de encontro para compras.
-            </h1>
-            <p className="max-w-[700px] text-muted-foreground md:text-xl mx-auto">
-              Descubra uma nova forma de comprar. Sozinho ou em grupo, encontre tudo o que precisa com a facilidade de um clique.
-            </p>
-          </div>
-
           {error ? (
             <Alert variant="destructive" className="text-left">
               <AlertTriangle className="h-4 w-4" />
