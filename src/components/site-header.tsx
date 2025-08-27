@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getUser, type User as AppUser } from '@/services/user-service';
+import { CartSheet } from './cart-sheet';
 
 export function SiteHeader() {
   const { totalItems } = useCart();
