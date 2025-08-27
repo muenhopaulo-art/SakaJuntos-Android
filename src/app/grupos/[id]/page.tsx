@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -337,10 +336,38 @@ export default function GroupDetailPage() {
   if (loading || authLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-         <div className="space-y-4 mb-8">  <Skeleton className="h-6 w-1/2" /> </div>
+         <div className="space-y-4 mb-8">
+            <Skeleton className="h-10 w-1/4" />
+            <Skeleton className="h-8 w-1/2" />
+         </div>
         <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-8">  </div>
-            <div className="md:col-span-1 space-y-6">   </div>
+            <div className="md:col-span-2 space-y-8">
+                <Card>
+                    <CardHeader><Skeleton className="h-8 w-3/4" /></CardHeader>
+                    <CardContent><Skeleton className="h-6 w-1/2" /></CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <Skeleton className="h-64 w-full" />
+                        <Skeleton className="h-64 w-full" />
+                        <Skeleton className="h-64 w-full" />
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="md:col-span-1 space-y-6">
+                 <Card>
+                    <CardHeader><Skeleton className="h-8 w-3/4" /></CardHeader>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-20 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </CardContent>
+                    <CardFooter>
+                        <Skeleton className="h-12 w-full" />
+                    </CardFooter>
+                 </Card>
+            </div>
         </div>
       </div>
     );
@@ -349,8 +376,17 @@ export default function GroupDetailPage() {
   if (!group) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <div className='mb-4'>  Voltar  </div>
-         Aceder Restrito  Não é membro deste grupo e não pode ver os seus detalhes. 
+        <div className='mb-4'>
+            <Button variant="ghost" onClick={() => router.back()}><ArrowLeft/> Voltar</Button>
+        </div>
+        <Card className="max-w-md mx-auto">
+            <CardHeader>
+                <CardTitle>Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p>O grupo que está a tentar aceder não foi encontrado ou foi eliminado.</p>
+            </CardContent>
+        </Card>
       </div>
     )
   }
@@ -635,3 +671,5 @@ export default function GroupDetailPage() {
         </div>
     );
 }
+
+    
