@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -29,9 +28,14 @@ export default function LoginPage() {
     event.preventDefault();
     setIsLoading(true);
 
+    // Generate a dummy email from the phone number
+    const email = `+${phone.replace(/\D/g, '')}@sakajuntos.web`;
+    // Use the phone number as the password
+    const password = phone;
+
     try {
       // First, try to sign in
-      await signInWithEmailAndPassword(auth, email, phone);
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: "Login bem-sucedido!",
         description: "Bem-vindo de volta.",
@@ -39,9 +43,9 @@ export default function LoginPage() {
       router.push("/");
     } catch (error: any) {
       // If sign in fails because user not found, try to create an account
-      if (error.code === AuthErrorCodes.USER_DELETED) {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
-          await createUserWithEmailAndPassword(auth, email, phone);
+          await createUserWithEmailAndPassword(auth, email, password);
           toast({
             title: "Conta criada com sucesso!",
             description: "O seu login foi efetuado.",
@@ -80,27 +84,15 @@ export default function LoginPage() {
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold font-headline">Entrar ou Criar Conta</CardTitle>
             <CardDescription>
-              Use o seu email e telefone para aceder ou criar a sua conta.
+              Use o seu número de telefone para aceder ou criar a sua conta.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="seuemail@exemplo.com" 
-                required 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone (Palavra-passe)</Label>
+              <Label htmlFor="phone">Telefone</Label>
               <Input 
                 id="phone" 
-                type="password"
+                type="tel"
                 placeholder="O seu número de telefone" 
                 required 
                 value={phone}
