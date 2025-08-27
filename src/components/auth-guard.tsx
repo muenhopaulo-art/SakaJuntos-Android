@@ -8,7 +8,7 @@ import { Loader } from 'lucide-react';
 import { Logo } from './Logo';
 
 // Allow access to the main page for the auth logic to handle roles
-const publicPaths = ['/login'];
+const publicPaths = ['/login', '/seed'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth);
@@ -20,7 +20,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       const pathIsPublic = publicPaths.includes(pathname);
 
       // If user is not logged in and not on a public path, redirect to login
-      if (!user && !pathIsPublic && pathname !== '/') {
+      if (!user && !pathIsPublic) {
         router.push('/login');
       }
       
@@ -33,7 +33,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Show a loading screen while auth state is being determined,
   // but allow access to public paths and the home page immediately if not loading.
-  if (loading && !publicPaths.includes(pathname) && pathname !== '/') {
+  if (loading && !publicPaths.includes(pathname)) {
     return (
        <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <div className="relative flex items-center justify-center w-32 h-32">

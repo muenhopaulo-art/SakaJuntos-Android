@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetClose } from './ui/sheet';
-import { Menu, ShoppingCart, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, ShoppingCart, User, LogOut, LayoutDashboard, HelpCircle } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -18,11 +18,22 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { getUser, type User as AppUser } from '@/services/user-service';
 
 export function SiteHeader() {
   const { totalItems } = useCart();
   const [user, loading] = useAuthState(auth);
+  const [appUser, setAppUser] = useState<AppUser | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      getUser(user.uid).then(setAppUser);
+    } else {
+      setAppUser(null);
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -38,8 +49,6 @@ export function SiteHeader() {
 
   const navLinks = [
     { href: '/', label: 'Início' },
-    { href: '/minishopping', label: 'MiniShopping' },
-    { href: '/grupos', label: 'Grupos' },
     { href: '/cart', label: 'Carrinho' },
   ];
 
@@ -95,21 +104,21 @@ export function SiteHeader() {
           <nav className="hidden md:flex items-center gap-4">
              {loading ? (
                 <div className='h-8 w-20 bg-muted animate-pulse rounded-md' />
-             ) : user ? (
+             ) : user && appUser ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                        <Avatar className="h-8 w-8">
-                         <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
+                         <AvatarFallback>{getInitials(appUser.name || '')}</AvatarFallback>
                        </Avatar>
                      </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                      <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                        <p className="text-sm font-medium leading-none">{appUser.name}</p>
                         <p className="text-xs leading-none text-muted-foreground">
-                          {user.email}
+                          {appUser.email}
                         </p>
                       </div>
                     </DropdownMenuLabel>
@@ -135,6 +144,10 @@ export function SiteHeader() {
                     </Link>
                 </Button>
              )}
+             <Button variant="ghost" size="icon">
+                <HelpCircle className="h-5 w-5" />
+                <span className="sr-only">Ajuda</span>
+             </Button>
           </nav>
         </div>
       </div>
