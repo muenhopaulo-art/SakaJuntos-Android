@@ -1,15 +1,12 @@
 import { getGroupPromotions, getProducts } from '@/services/product-service';
-import { ProductCard } from '@/components/product-card';
 import type { GroupPromotion, Product } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { CartSheet } from '@/components/cart-sheet';
-import { Skeleton } from '@/components/ui/skeleton';
 import { HomePageClient } from '@/components/home-page-client';
-import Autoplay from "embla-carousel-autoplay"
+import { ProductsCarousel } from '@/components/products-carousel';
 
 
 export default async function HomePage() {
@@ -55,29 +52,7 @@ export default async function HomePage() {
               {error ? (
                 <div className="text-center py-10 text-destructive">{error}</div>
               ) : products.length > 0 ? (
-                 <Carousel
-                    opts={{ align: "start", loop: true, watchDrag: false }}
-                    plugins={[
-                        Autoplay({
-                          delay: 4000,
-                          stopOnInteraction: false,
-                          stopOnMouseEnter: true,
-                        }),
-                    ]}
-                    className="w-full"
-                    >
-                    <CarouselContent className="-ml-4">
-                        {products.map(product => (
-                        <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4 pl-4">
-                            <div className="p-1 h-full">
-                            <ProductCard product={product} />
-                            </div>
-                        </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="hidden md:flex" />
-                    <CarouselNext className="hidden md:flex" />
-                </Carousel>
+                 <ProductsCarousel products={products} />
               ): (
                 <div className="text-center py-10 border-2 border-dashed rounded-lg">
                     <p className="text-lg font-semibold text-muted-foreground">Nenhum produto encontrado.</p>
