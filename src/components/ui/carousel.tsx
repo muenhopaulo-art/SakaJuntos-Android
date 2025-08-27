@@ -66,8 +66,8 @@ const Carousel = React.forwardRef<
       },
       [
         Autoplay({
-          delay: 3000,
-          stopOnInteraction: true,
+          delay: 5000,
+          stopOnInteraction: false,
           stopOnMouseEnter: true,
         }),
         ...(plugins || []),
