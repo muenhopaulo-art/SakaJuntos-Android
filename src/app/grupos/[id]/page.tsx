@@ -166,12 +166,19 @@ export default function GroupDetailPage() {
     if (!groupId) return;
 
     setLoading(true);
+    let initialCreatorFetched = false;
 
     const groupUnsub = listenToGroup(groupId, async (newGroupData) => {
         setGroup(newGroupData);
-        if (newGroupData.creatorId && (!group || newGroupData.creatorId !== group.creatorId)) {
-            const creator = await getUser(newGroupData.creatorId);
-            setCreatorName(creator.name);
+        if (newGroupData.creatorId && !initialCreatorFetched) {
+            initialCreatorFetched = true;
+            try {
+                const creator = await getUser(newGroupData.creatorId);
+                setCreatorName(creator.name);
+            } catch (error) {
+                console.error("Error fetching creator name:", error);
+                setCreatorName("Desconhecido");
+            }
         }
         setLoading(false);
     });
@@ -185,7 +192,7 @@ export default function GroupDetailPage() {
       groupUnsub();
       messagesUnsub();
     };
-  }, [groupId, group]);
+  }, [groupId]);
 
   useEffect(() => {
     if (chatAreaRef.current) {
