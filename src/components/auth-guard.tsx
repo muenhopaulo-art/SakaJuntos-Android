@@ -5,7 +5,9 @@ import { auth } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader } from 'lucide-react';
+import { Logo } from './Logo';
 
+// Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -17,26 +19,31 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!loading) {
       const pathIsPublic = publicPaths.includes(pathname);
 
-      // If the user is not logged in and the path is not public, redirect to login
-      if (!user && !pathIsPublic) {
+      // If user is not logged in and not on a public path, redirect to login
+      if (!user && !pathIsPublic && pathname !== '/') {
         router.push('/login');
       }
       
-      // If the user is logged in and tries to access login page, redirect to home
+      // If user is logged in and on the login page, redirect to home
       if (user && pathIsPublic) {
         router.push('/');
       }
     }
   }, [user, loading, router, pathname]);
 
-  if (loading || (!user && !publicPaths.includes(pathname))) {
+  // Show a loading screen while auth state is being determined,
+  // but allow access to public paths and the home page immediately if not loading.
+  if (loading && !publicPaths.includes(pathname) && pathname !== '/') {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader className="h-10 w-10 animate-spin" />
+       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <div className="relative flex items-center justify-center w-32 h-32">
+          <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse"></div>
+          <Logo className="w-20 h-20 text-primary animate-pulse" />
+        </div>
+        <p className="mt-6 text-lg font-semibold text-muted-foreground animate-pulse">A carregar...</p>
       </div>
     );
   }
   
-  // if user is logged in, or the path is public, show the children
   return <>{children}</>;
 }

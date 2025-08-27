@@ -6,8 +6,6 @@ import { CartProvider } from '@/contexts/cart-context';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import AuthGuard from '@/components/auth-guard';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
 
 
 const ptSans = PT_Sans({
