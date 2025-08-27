@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import type { GroupPromotion } from '@/lib/types';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
@@ -12,12 +11,9 @@ interface PromotionCardProps {
   promotion: GroupPromotion;
 }
 
-const PLACEHOLDER_IMAGE = "https://picsum.photos/400/400";
-
 export function PromotionCard({ promotion }: PromotionCardProps) {
   const { addItem } = useCart();
   const progress = (promotion.participants / promotion.target) * 100;
-  const imageUrl = promotion.image || PLACEHOLDER_IMAGE;
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 bg-card">
@@ -26,8 +22,8 @@ export function PromotionCard({ promotion }: PromotionCardProps) {
         <CardDescription className="line-clamp-2">{promotion.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-          <Image src={imageUrl} alt={promotion.name} fill className="object-cover" data-ai-hint={promotion.aiHint} />
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
+          <Users className="w-16 h-16 text-muted-foreground" />
         </div>
         <div className="space-y-2">
             <p className="text-2xl font-bold text-foreground">
