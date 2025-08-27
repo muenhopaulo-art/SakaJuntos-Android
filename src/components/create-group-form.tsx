@@ -64,11 +64,11 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   });
 
   const onSubmit = async (data: CreateGroupFormValues) => {
-    if (!user) {
+    if (!user || !user.displayName) {
         toast({
             variant: "destructive",
             title: "Erro de Autenticação",
-            description: "Precisa de estar autenticado para criar um grupo.",
+            description: "Precisa de estar autenticado e ter um nome de exibição para criar um grupo.",
         });
         return;
     }
@@ -79,6 +79,7 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
         name: data.name,
         target: data.members,
         creatorId: user.uid,
+        creatorName: user.displayName,
         // Using placeholder product data for now
         description: placeholderProduct.description,
         price: placeholderProduct.price,

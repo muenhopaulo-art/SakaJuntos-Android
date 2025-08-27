@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CirclePlus, Users, Globe, Info } from 'lucide-react';
 import { CreateGroupForm } from '@/components/create-group-form';
 import { Skeleton } from '@/components/ui/skeleton';
+import { requestToJoinGroup } from '@/services/product-service';
+import { useToast } from '@/hooks/use-toast';
 
 interface HomePageClientProps {
     allPromotions: GroupPromotion[];
@@ -22,11 +24,14 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
   const [exploreGroups, setExploreGroups] = useState<GroupPromotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [user] = useAuthState(auth);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
-      const userGroups = allPromotions.filter(p => p.creatorId === user.uid);
-      const otherGroups = allPromotions.filter(p => p.creatorId !== user.uid);
+      // My Groups: I am a member.
+      const userGroups = allPromotions.filter(p => p.members.some(m => m.uid === user.uid));
+      // Explore Groups: I am NOT a member.
+      const otherGroups = allPromotions.filter(p => !p.members.some(m => m.uid === user.uid));
       setMyGroups(userGroups);
       setExploreGroups(otherGroups);
     } else {
@@ -35,6 +40,19 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
     }
     setLoading(false);
   }, [user, allPromotions]);
+
+  const handleJoinRequest = async (groupId: string) => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Utilizador não autenticado.'});
+        return;
+    }
+    const result = await requestToJoinGroup(groupId, user.uid);
+    if (result.success) {
+        toast({ title: 'Pedido enviado!', description: 'O seu pedido para aderir ao grupo foi enviado.' });
+    } else {
+        toast({ variant: 'destructive', title: 'Erro ao enviar pedido.', description: result.message });
+    }
+  }
 
   return (
     <section>
@@ -50,9 +68,9 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
                 Criar Novo Grupo
                 </Button>
             </CreateGroupForm>
-            <Button variant="outline">
-            <Users className="mr-2 h-4 w-4" />
-            Aderir com ID
+            <Button variant="outline" onClick={() => alert('Funcionalidade de aderir com ID a ser implementada.')}>
+                <Users className="mr-2 h-4 w-4" />
+                Aderir com ID
             </Button>
         </div>
         </div>
@@ -71,7 +89,7 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
             ) : myGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myGroups.map(promo => (
-                    <PromotionCard key={promo.id} promotion={promo} />
+                    <PromotionCard key={promo.id} promotion={promo} showJoinButton={false} onJoin={() => {}} />
                 ))}
             </div>
             ) : (
@@ -95,7 +113,7 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
             ) : exploreGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {exploreGroups.map(promo => (
-                <PromotionCard key={promo.id} promotion={promo} />
+                    <PromotionCard key={promo.id} promotion={promo} showJoinButton={true} onJoin={handleJoinRequest} />
                 ))}
             </div>
             ) : (

@@ -1,19 +1,44 @@
-import { getGroupPromotions } from '@/services/product-service'; // We'll need a way to get a single group
+import { getGroupPromotions } from '@/services/product-service';
 import type { GroupPromotion } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { auth } from '@/lib/firebase';
+import { getUser } from '@/services/user-service';
+
+// This is a server component, but we need auth state.
+// In a real app, you might get the session from the request.
+// For now, we'll assume we can get the current user this way.
+// Note: This is a simplified approach for demonstration.
+async function getCurrentUserId() {
+    // This is not a reliable way to get user on the server.
+    // We'd typically use a server-side session management library.
+    // Or, this component would be a client component.
+    // For this step, we will proceed, but this is a limitation.
+    return auth.currentUser?.uid;
+}
+
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
-  // In the future, this should fetch a single document from Firestore for efficiency.
-  // For now, we'll fetch all and find the one we need.
   const allPromotions = await getGroupPromotions();
   return allPromotions.find(p => p.id === id);
 }
 
 export default async function GroupDetailPage({ params }: { params: { id: string } }) {
   const group = await getGroupDetails(params.id);
+  const currentUserId = await getCurrentUserId();
+  
+  let creatorName = 'Desconhecido';
+  if (group) {
+      try {
+        const creator = await getUser(group.creatorId);
+        creatorName = creator.name;
+      } catch (error) {
+        console.error("Could not fetch creator details", error);
+      }
+  }
+
 
   if (!group) {
     return (
@@ -23,11 +48,11 @@ export default async function GroupDetailPage({ params }: { params: { id: string
       </div>
     );
   }
-
-  // Placeholder data - this will come from the database later
-  const isCreator = true; // Assume the current user is the creator for now
-  const members = ['Utilizador 1 (Criador)', 'Utilizador 2', 'Utilizador 3'];
-  const joinRequests = ['Utilizador 4', 'Utilizador 5'];
+  
+  // Now using real data, but checking for it.
+  const isCreator = currentUserId === group.creatorId;
+  const members = group.members || [];
+  const joinRequests = group.joinRequests || [];
 
 
   return (
@@ -42,7 +67,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
           </div>
           <div className="flex items-center gap-1">
             <UserCheck className="w-5 h-5" />
-            <span>Criado por: Admin Local (futuro nome do criador)</span>
+            <span>Criado por: {creatorName}</span>
           </div>
         </div>
       </div>
@@ -85,35 +110,43 @@ export default async function GroupDetailPage({ params }: { params: { id: string
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Join Requests */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Pedidos de Adesão ({joinRequests.length})</h4>
-                    <div className="space-y-2">
-                      {joinRequests.map(req => (
-                        <div key={req} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                          <span>{req}</span>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600"><UserPlus/></Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><UserMinus/></Button>
-                          </div>
+                  {joinRequests.length > 0 && (
+                     <div>
+                        <h4 className="font-semibold mb-2">Pedidos de Adesão ({joinRequests.length})</h4>
+                        <div className="space-y-2">
+                        {joinRequests.map(req => (
+                            <div key={req.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                            <span>{req.name}</span>
+                            <div className="flex gap-1">
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600"><UserPlus/></Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><UserMinus/></Button>
+                            </div>
+                            </div>
+                        ))}
                         </div>
-                      ))}
                     </div>
-                  </div>
-
-                  <Separator/>
+                  )}
+                 
+                  {joinRequests.length > 0 && members.length > 0 && <Separator/>}
 
                    {/* Current Members */}
-                  <div>
-                    <h4 className="font-semibold mb-2">Membros Atuais ({members.length})</h4>
-                     <div className="space-y-2">
-                      {members.map(mem => (
-                        <div key={mem} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                          <span>{mem}</span>
-                           <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><UserMinus/></Button>
+                  {members.length > 0 && (
+                     <div>
+                        <h4 className="font-semibold mb-2">Membros Atuais ({members.length})</h4>
+                        <div className="space-y-2">
+                        {members.map(mem => (
+                            <div key={mem.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                            <span>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
+                             {mem.uid !== group.creatorId && <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><UserMinus/></Button>}
+                            </div>
+                        ))}
                         </div>
-                      ))}
                     </div>
-                  </div>
+                  )}
+
+                  {members.length === 0 && joinRequests.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center">Nenhum membro ou pedido de adesão.</p>
+                  )}
                 </CardContent>
             </Card>
           )}

@@ -8,10 +8,25 @@ export interface Product {
   createdAt?: number;
 }
 
+export interface GroupMember {
+    uid: string;
+    name: string;
+    joinedAt: number;
+}
+
+export interface JoinRequest {
+    uid: string;
+    name: string;
+    requestedAt: number;
+}
+
+
 export interface GroupPromotion extends Product {
   participants: number;
   target: number;
   creatorId: string;
+  members: GroupMember[];
+  joinRequests: JoinRequest[];
 }
 
 export interface CartItem {
