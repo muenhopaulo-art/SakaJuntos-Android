@@ -3,8 +3,9 @@
 import { db } from '@/lib/firebase';
 import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
-import type { Product, GroupPromotion, GroupMember, JoinRequest } from '@/lib/types';
+import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation } from '@/lib/types';
 import { getUser } from './user-service';
+import { createFinalOrder } from './order-service';
 
 // Helper function to convert Firestore data to a plain object
 const convertDocToProduct = (doc: any): Product => {
@@ -18,9 +19,7 @@ const convertDocToProduct = (doc: any): Product => {
     aiHint: data.aiHint,
   };
 
-  // Convert Timestamp to string if it exists
   if (data.createdAt && data.createdAt instanceof Timestamp) {
-    // You can also use .toDate().toISOString() or just send seconds
     product.createdAt = data.createdAt.toMillis();
   }
 
@@ -34,10 +33,12 @@ async function getSubCollection<T extends {uid: string}>(groupId: string, subCol
         const data = doc.data();
         return {
             ...data,
-            uid: doc.id,
+            id: doc.id, // Ensure document ID is included
+            uid: doc.id, // For legacy compatibility with JoinRequest/GroupMember
             // Convert Timestamps
             ...(data.joinedAt && { joinedAt: (data.joinedAt as Timestamp).toMillis() }),
             ...(data.requestedAt && { requestedAt: (data.requestedAt as Timestamp).toMillis() }),
+            ...(data.createdAt && { createdAt: (data.createdAt as Timestamp).toMillis() }),
         } as T;
     });
 }
@@ -46,10 +47,12 @@ async function getSubCollection<T extends {uid: string}>(groupId: string, subCol
 const convertDocToGroupPromotion = async (doc: any): Promise<GroupPromotion> => {
     const data = doc.data();
 
-    // Fetch subcollections
-    const members = await getSubCollection<GroupMember>(doc.id, 'members');
-    const joinRequests = await getSubCollection<JoinRequest>(doc.id, 'joinRequests');
-
+    const [members, joinRequests, groupCart, contributions] = await Promise.all([
+        getSubCollection<GroupMember>(doc.id, 'members'),
+        getSubCollection<JoinRequest>(doc.id, 'joinRequests'),
+        getSubCollection<CartItem>(doc.id, 'groupCart'),
+        getSubCollection<Contribution>(doc.id, 'contributions')
+    ]);
 
     const promotion: GroupPromotion = {
         id: doc.id,
@@ -63,6 +66,8 @@ const convertDocToGroupPromotion = async (doc: any): Promise<GroupPromotion> => 
         creatorId: data.creatorId,
         members,
         joinRequests,
+        groupCart,
+        contributions
     };
 
     if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -82,35 +87,29 @@ export async function getProducts(): Promise<Product[]> {
 export async function getGroupPromotions(): Promise<GroupPromotion[]> {
     const promotionsCol = collection(db, 'groupPromotions');
     const promotionSnapshot = await getDocs(promotionsCol);
-    // Use Promise.all to handle asynchronous conversion
     const promotionList = await Promise.all(promotionSnapshot.docs.map(convertDocToGroupPromotion));
     return promotionList;
 }
 
 export async function createGroupPromotion(
-    groupData: Omit<GroupPromotion, 'id' | 'createdAt' | 'participants' | 'members' | 'joinRequests'> & { creatorName: string }
+    groupData: Omit<GroupPromotion, 'id' | 'createdAt' | 'participants' | 'members' | 'joinRequests' | 'groupCart' | 'contributions'> & { creatorName: string }
 ): Promise<{ success: boolean; id?: string; message?: string }> {
     try {
         const { creatorName, ...restOfGroupData } = groupData;
         const promotionsCol = collection(db, 'groupPromotions');
         const docRef = await addDoc(promotionsCol, {
             ...restOfGroupData,
-            participants: 1, // The creator is the first participant
-            createdAt: new Date(),
+            participants: 1, 
+            createdAt: serverTimestamp(),
         });
 
-        // Add the creator as the first member in the 'members' subcollection
         const memberRef = doc(db, 'groupPromotions', docRef.id, 'members', groupData.creatorId);
-        await setDoc(memberRef, {
-            name: creatorName,
-            joinedAt: new Date(),
-        });
+        await setDoc(memberRef, { name: creatorName, joinedAt: serverTimestamp() });
 
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Error creating group promotion:", error);
-        const message = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
-        return { success: false, message };
+        return { success: false, message: (error as Error).message };
     }
 }
 
@@ -118,10 +117,7 @@ export async function requestToJoinGroup(groupId: string, userId: string) {
     try {
         const user = await getUser(userId);
         const requestRef = doc(db, 'groupPromotions', groupId, 'joinRequests', userId);
-        await setDoc(requestRef, {
-            name: user.name,
-            requestedAt: new Date(),
-        });
+        await setDoc(requestRef, { name: user.name, requestedAt: serverTimestamp() });
         return { success: true };
     } catch (error) {
         console.error("Error requesting to join group:", error);
@@ -135,30 +131,14 @@ export async function approveJoinRequest(groupId: string, userId: string) {
             const groupRef = doc(db, 'groupPromotions', groupId);
             const requestRef = doc(db, 'groupPromotions', groupId, 'joinRequests', userId);
             const memberRef = doc(db, 'groupPromotions', groupId, 'members', userId);
-
             const requestSnap = await transaction.get(requestRef);
-            if (!requestSnap.exists()) {
-                throw new Error("Join request does not exist.");
-            }
-
+            if (!requestSnap.exists()) throw new Error("Join request does not exist.");
             const groupSnap = await transaction.get(groupRef);
-             if (!groupSnap.exists()) {
-                throw new Error("Group does not exist.");
-            }
-
-            // Add to members
-            transaction.set(memberRef, {
-                name: requestSnap.data().name,
-                joinedAt: new Date(),
-            });
-
-            // Remove from joinRequests
+            if (!groupSnap.exists()) throw new Error("Group does not exist.");
+            transaction.set(memberRef, { name: requestSnap.data().name, joinedAt: serverTimestamp() });
             transaction.delete(requestRef);
-
-            // Increment participant count
             const newParticipantCount = (groupSnap.data().participants || 0) + 1;
             transaction.update(groupRef, { participants: newParticipantCount });
-
         });
         return { success: true };
     } catch (error) {
@@ -168,61 +148,42 @@ export async function approveJoinRequest(groupId: string, userId: string) {
 }
 
 export async function removeMember(groupId: string, userId: string, isCreator: boolean) {
-    if (isCreator) {
-        return { success: false, message: "Cannot remove the creator of the group." };
-    }
+    if (isCreator) return { success: false, message: "Cannot remove the creator of the group." };
     try {
         await runTransaction(db, async (transaction) => {
             const groupRef = doc(db, 'groupPromotions', groupId);
             const memberRef = doc(db, 'groupPromotions', groupId, 'members', userId);
-
             const memberSnap = await transaction.get(memberRef);
-             if (!memberSnap.exists()) {
-                // To be safe, let's still decrement the count if the user is not in the subcollection for some reason
-                console.warn("Attempted to remove a member that doesn't exist in subcollection, but proceeding to decrement count.");
-            } else {
-                 transaction.delete(memberRef);
-            }
-
+            if (memberSnap.exists()) transaction.delete(memberRef);
             const groupSnap = await transaction.get(groupRef);
-             if (!groupSnap.exists()) {
-                throw new Error("Group does not exist.");
-            }
-           
+            if (!groupSnap.exists()) throw new Error("Group does not exist.");
             const newParticipantCount = Math.max(0, (groupSnap.data().participants || 0) - 1);
             transaction.update(groupRef, { participants: newParticipantCount });
         });
         return { success: true };
-
     } catch (error) {
         console.error("Error removing member:", error);
         return { success: false, message: (error as Error).message };
     }
 }
 
-async function deleteSubcollection(d: typeof db, collectionPath: string) {
-    const q = query(collection(d, collectionPath));
+async function deleteSubcollection(collectionPath: string) {
+    const q = query(collection(db, collectionPath));
     const snapshot = await getDocs(q);
-    const batch = writeBatch(d);
-    snapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-    });
+    const batch = writeBatch(db);
+    snapshot.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
 }
-
 
 export async function deleteGroup(groupId: string) {
     try {
         const groupRef = doc(db, 'groupPromotions', groupId);
-
-        // Delete all subcollections first
-        await deleteSubcollection(db, `groupPromotions/${groupId}/members`);
-        await deleteSubcollection(db, `groupPromotions/${groupId}/joinRequests`);
-        await deleteSubcollection(db, `groupPromotions/${groupId}/messages`);
-        
-        // Finally, delete the group document itself
+        await deleteSubcollection(`groupPromotions/${groupId}/members`);
+        await deleteSubcollection(`groupPromotions/${groupId}/joinRequests`);
+        await deleteSubcollection(`groupPromotions/${groupId}/messages`);
+        await deleteSubcollection(`groupPromotions/${groupId}/groupCart`);
+        await deleteSubcollection(`groupPromotions/${groupId}/contributions`);
         await deleteDoc(groupRef);
-
         return { success: true };
     } catch (error) {
         console.error("Error deleting group:", error);
@@ -230,34 +191,145 @@ export async function deleteGroup(groupId: string) {
     }
 }
 
+export async function updateGroupCart(groupId: string, product: Product, change: 'add' | 'remove' | 'update', newQuantity?: number) {
+    const cartItemRef = doc(db, 'groupPromotions', groupId, 'groupCart', product.id);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const itemSnap = await transaction.get(cartItemRef);
+            if (change === 'add') {
+                if (itemSnap.exists()) {
+                    const currentQuantity = itemSnap.data().quantity || 0;
+                    transaction.update(cartItemRef, { quantity: currentQuantity + 1 });
+                } else {
+                    transaction.set(cartItemRef, { product, quantity: 1 });
+                }
+            } else if (change === 'remove') {
+                transaction.delete(cartItemRef);
+            } else if (change === 'update' && newQuantity !== undefined) {
+                if (newQuantity > 0) {
+                    transaction.update(cartItemRef, { quantity: newQuantity });
+                } else {
+                    transaction.delete(cartItemRef);
+                }
+            }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating group cart:", error);
+        return { success: false, message: (error as Error).message };
+    }
+}
+
+export async function contributeToGroup(groupId: string, userId: string, location: Geolocation) {
+    try {
+        const result = await runTransaction(db, async (transaction) => {
+            const groupRef = doc(db, 'groupPromotions', groupId);
+            const groupSnap = await transaction.get(groupRef);
+            if (!groupSnap.exists()) throw new Error("Group does not exist.");
+            const groupData = groupSnap.data();
+
+            const cartColRef = collection(db, 'groupPromotions', groupId, 'groupCart');
+            const cartSnapshot = await getDocs(cartColRef); // No transaction needed for reads
+            const groupCart: CartItem[] = cartSnapshot.docs.map(d => d.data() as CartItem);
+            
+            if (groupCart.length === 0) throw new Error("Cannot contribute to an empty cart.");
+
+            const totalMembers = groupData.members?.length || groupData.participants;
+            const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+            const contributionAmount = groupCartTotal / totalMembers;
+
+            const user = await getUser(userId);
+            const contributionRef = doc(db, 'groupPromotions', groupId, 'contributions', userId);
+            transaction.set(contributionRef, {
+                userId,
+                userName: user.name,
+                amount: contributionAmount,
+                location,
+                createdAt: serverTimestamp(),
+            });
+
+            // Return necessary data for post-transaction logic
+            return {
+                groupData: groupData,
+                cart: groupCart,
+                totalAmount: groupCartTotal,
+                membersCount: totalMembers,
+            };
+        });
+
+        // Post-transaction: check if the order is complete
+        const finalizationResult = await checkAndFinalizeOrder(groupId);
+
+        return { success: true, orderFinalized: finalizationResult.orderCreated };
+
+    } catch (error) {
+        console.error("Error making contribution:", error);
+        return { success: false, message: (error as Error).message };
+    }
+}
+
+async function checkAndFinalizeOrder(groupId: string) {
+    const groupRef = doc(db, 'groupPromotions', groupId);
+    const groupSnap = await getDoc(groupRef);
+    if (!groupSnap.exists()) throw new Error("Group not found for finalization check.");
+    
+    const contributions = await getSubCollection<Contribution>(groupId, 'contributions');
+    const members = await getSubCollection<GroupMember>(groupId, 'members');
+
+    if (contributions.length > 0 && contributions.length === members.length) {
+        const cart = await getSubCollection<CartItem>(groupId, 'groupCart');
+        const totalAmount = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+
+        const orderResult = await createFinalOrder({
+            groupId: groupId,
+            groupName: groupSnap.data().name,
+            items: cart,
+            totalAmount: totalAmount,
+        }, contributions);
+
+        if (orderResult.success) {
+            // Clean up the group's cart and contributions for the next purchase
+            const batch = writeBatch(db);
+            const cartCol = collection(db, 'groupPromotions', groupId, 'groupCart');
+            const cartDocs = await getDocs(cartCol);
+            cartDocs.forEach(doc => batch.delete(doc.ref));
+
+            const contribCol = collection(db, 'groupPromotions', groupId, 'contributions');
+            const contribDocs = await getDocs(contribCol);
+            contribDocs.forEach(doc => batch.delete(doc.ref));
+            
+            await batch.commit();
+            return { success: true, orderCreated: true };
+        } else {
+            // Handle failure to create order
+            console.error("Failed to create final order:", orderResult.message);
+            return { success: false, orderCreated: false, message: orderResult.message };
+        }
+    }
+    return { success: true, orderCreated: false };
+}
 
 export async function seedDatabase() {
   try {
     const batch = writeBatch(db);
-
-    // Seed products
     const productsCol = collection(db, 'products');
     mockProducts.forEach(product => {
       const { id, ...data } = product;
       const docRef = doc(productsCol, id);
-      batch.set(docRef, { ...data, createdAt: new Date() });
+      batch.set(docRef, { ...data, createdAt: serverTimestamp() });
     });
 
-    // Seed group promotions
     const promotionsCol = collection(db, 'groupPromotions');
     mockGroupPromotions.forEach(promotion => {
         const { id, ...data } = promotion;
         const docRef = doc(promotionsCol, id);
-        batch.set(docRef, { ...data, createdAt: new Date() });
+        batch.set(docRef, { ...data, createdAt: serverTimestamp() });
     });
 
     await batch.commit();
     return { success: true, message: 'Base de dados populada com sucesso!' };
   } catch (error) {
     console.error("Error seeding database:", error);
-    if (error instanceof Error) {
-        return { success: false, message: `Ocorreu um erro: ${error.message}` };
-    }
-    return { success: false, message: 'Ocorreu um erro desconhecido.' };
+    return { success: false, message: `Ocorreu um erro: ${(error as Error).message}` };
   }
 }

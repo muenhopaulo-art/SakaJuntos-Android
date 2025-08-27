@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requestToJoinGroup, deleteGroup } from '@/services/product-service';
+import { approveJoinRequest, removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup } from '@/services/product-service';
 import { sendMessage } from '@/services/chat-service';
-import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash } from 'lucide-react';
+import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -20,20 +20,24 @@ import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, Timestamp, doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { createOrder } from '@/services/order-service';
 
 
-async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
-  const allPromotions = await getGroupPromotions();
-  return allPromotions.find(p => p.id === id);
+// Real-time listeners
+function listenToGroup(groupId: string, callback: (group: GroupPromotion) => void) {
+    const groupRef = doc(db, 'groupPromotions', groupId);
+    return onSnapshot(groupRef, async (docSnap) => {
+        if (docSnap.exists()) {
+            const groupData = await convertDocToGroupPromotion(docSnap);
+            callback(groupData);
+        }
+    });
 }
 
-// Moved from chat-service to be a client-side function
 function listenToMessages(groupId: string, callback: (messages: ChatMessage[]) => void) {
     const messagesCol = collection(db, 'groupPromotions', groupId, 'messages');
     const q = query(messagesCol, orderBy('createdAt', 'asc'));
@@ -56,7 +60,6 @@ function listenToMessages(groupId: string, callback: (messages: ChatMessage[]) =
         console.error("Error listening to messages:", error);
         callback([]);
     });
-
     return unsubscribe;
 }
 
@@ -66,7 +69,6 @@ const formatTime = (seconds: number) => {
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
-
 
 const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -135,7 +137,6 @@ const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
     );
 };
 
-
 export default function GroupDetailPage() {
   const params = useParams();
   const groupId = params.id as string;
@@ -148,7 +149,6 @@ export default function GroupDetailPage() {
   const [user, authLoading] = useAuthState(auth);
   const { toast } = useToast();
   
-  const [groupCart, setGroupCart] = useState<CartItem[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -159,92 +159,46 @@ export default function GroupDetailPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-
-  // Effect to load cart from localStorage
-  useEffect(() => {
-    if (!groupId) return;
-    try {
-      const storedCart = localStorage.getItem(`groupCart_${groupId}`);
-      if (storedCart) {
-        setGroupCart(JSON.parse(storedCart));
-      }
-    } catch (error) {
-        console.error("Failed to load group cart from localStorage", error);
-    }
-  }, [groupId]);
-
-  // Effect to save cart to localStorage
-  useEffect(() => {
-    if (!groupId) return;
-    try {
-        localStorage.setItem(`groupCart_${groupId}`, JSON.stringify(groupCart));
-    } catch (error) {
-        console.error("Failed to save group cart to localStorage", error);
-    }
-  }, [groupCart, groupId]);
-
-   // Effect to listen for messages
+  // Use a single, unified effect for all real-time listeners
   useEffect(() => {
     if (!groupId) return;
 
-    const unsubscribe = listenToMessages(groupId, (newMessages) => {
-        setMessages(newMessages);
-    });
-
-    // Cleanup listener on component unmount
-    return () => unsubscribe();
-  }, [groupId]);
-
-
-  const fetchGroupData = useCallback(async () => {
-    if (!groupId) return;
     setLoading(true);
-    try {
-      const [groupData, productData] = await Promise.all([
-        getGroupDetails(groupId),
-        getProducts()
-      ]);
-      
-      if (groupData) {
-        setGroup(groupData);
-        if (groupData.creatorId) {
-            const creator = await getUser(groupData.creatorId);
+
+    const groupUnsub = listenToGroup(groupId, async (newGroupData) => {
+        setGroup(newGroupData);
+        if (newGroupData.creatorId && (!group || newGroupData.creatorId !== group.creatorId)) {
+            const creator = await getUser(newGroupData.creatorId);
             setCreatorName(creator.name);
         }
-      }
-      setProducts(productData);
+        setLoading(false);
+    });
 
-    } catch (error) {
-      console.error("Failed to fetch group data:", error);
-      toast({ variant: 'destructive', title: 'Erro ao carregar os dados.' });
-    } finally {
-      setLoading(false);
-    }
-  }, [groupId, toast]);
+    const messagesUnsub = listenToMessages(groupId, setMessages);
+
+    // Fetch static products data
+    import('@/services/product-service').then(service => service.getProducts()).then(setProducts);
+
+    return () => {
+      groupUnsub();
+      messagesUnsub();
+    };
+  }, [groupId]);
 
   useEffect(() => {
-    fetchGroupData();
-  }, [fetchGroupData]);
-
-  useEffect(() => {
-    // Scroll to the bottom of the chat area when new messages arrive
     if (chatAreaRef.current) {
         chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isChatOpen]);
 
   const handleAction = async (userId: string, action: 'approve' | 'remove') => {
-    if (!group || user?.uid !== group.creatorId) {
+    if (!group || !user || user.uid !== group.creatorId) {
         toast({ variant: 'destructive', title: 'Ação não permitida.' });
         return;
     }
-
     setActionLoading(prev => ({ ...prev, [userId]: true }));
-
     let result;
     if (action === 'approve') {
       result = await approveJoinRequest(group.id, userId);
@@ -252,19 +206,16 @@ export default function GroupDetailPage() {
       const isCreator = userId === group.creatorId;
       result = await removeMember(group.id, userId, isCreator);
     }
-
     if (result.success) {
       toast({ title: 'Sucesso!', description: `Ação executada com sucesso.` });
-      await fetchGroupData(); // Re-fetch data to update the UI
     } else {
       toast({ variant: 'destructive', title: 'Erro!', description: result.message });
     }
-
     setActionLoading(prev => ({ ...prev, [userId]: false }));
   };
 
   const handleDeleteGroup = async () => {
-    if (!group || user?.uid !== group.creatorId) return;
+    if (!group || !user || user.uid !== group.creatorId) return;
     setActionLoading(prev => ({...prev, delete: true}));
     const result = await deleteGroup(group.id);
      if (result.success) {
@@ -276,49 +227,24 @@ export default function GroupDetailPage() {
      setActionLoading(prev => ({...prev, delete: false}));
   };
 
-  const handleAddToGroupCart = (product: Product) => {
-    setGroupCart(prevCart => {
-        const existingItem = prevCart.find(item => item.product.id === product.id);
-        if (existingItem) {
-            return prevCart.map(item =>
-                item.product.id === product.id
-                    ? { ...item, quantity: item.quantity + 1 }
-                    : item
-            );
-        }
-        return [...prevCart, { product, quantity: 1 }];
-    });
-    toast({
-      title: "Adicionado ao Grupo!",
-      description: `${product.name} foi adicionado ao carrinho do grupo.`,
-    });
-  };
-
-  const handleRemoveFromGroupCart = (productId: string) => {
-    setGroupCart(prevCart => prevCart.filter(item => item.product.id !== productId));
-     toast({
-      title: "Removido do Grupo!",
-      description: `O produto foi removido do carrinho do grupo.`,
-      variant: 'destructive'
-    });
-  }
-
-  const handleUpdateGroupCartQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-        handleRemoveFromGroupCart(productId);
+  const handleUpdateGroupCart = async (product: Product, change: 'add' | 'remove' | 'update', newQuantity?: number) => {
+    if (!group || !user || user.uid !== group.creatorId) {
+        toast({variant: "destructive", title: "Apenas o criador do grupo pode modificar o carrinho."});
         return;
     }
-    setGroupCart(prevCart => prevCart.map(item =>
-        item.product.id === productId ? { ...item, quantity: newQuantity } : item
-    ));
-  }
+    await updateGroupCart(group.id, product, change, newQuantity);
+    if(change === 'add') {
+         toast({
+          title: "Adicionado ao Grupo!",
+          description: `${product.name} foi adicionado ao carrinho do grupo.`,
+        });
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !group) return;
-
     setSendingMessage(true);
     const result = await sendMessage(group.id, user.uid, { text: newMessage });
-
     if (result.success) {
         setNewMessage('');
     } else {
@@ -332,13 +258,9 @@ export default function GroupDetailPage() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorderRef.current = new MediaRecorder(stream);
         audioChunksRef.current = [];
-
-        mediaRecorderRef.current.ondataavailable = event => {
-            audioChunksRef.current.push(event.data);
-        };
-
+        mediaRecorderRef.current.ondataavailable = event => audioChunksRef.current.push(event.data);
         mediaRecorderRef.current.onstop = async () => {
-            if (audioChunksRef.current.length === 0) return; // Don't send if cancelled
+            if (audioChunksRef.current.length === 0) return;
             const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
@@ -351,13 +273,10 @@ export default function GroupDetailPage() {
                 }
             };
         };
-
         mediaRecorderRef.current.start();
         setIsRecording(true);
         setRecordingTime(0);
-        recordingIntervalRef.current = setInterval(() => {
-            setRecordingTime(prev => prev + 1);
-        }, 1000);
+        recordingIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
         toast({ title: "Gravação iniciada", description: "Clique no botão parar para enviar." });
     } catch (error) {
         console.error("Error accessing microphone:", error);
@@ -368,101 +287,52 @@ export default function GroupDetailPage() {
   const stopRecording = (send: boolean) => {
       if (mediaRecorderRef.current && isRecording) {
           mediaRecorderRef.current.stop();
-          if (!send) {
-             audioChunksRef.current = []; // Clear chunks if cancelling
-          }
+          if (!send) audioChunksRef.current = [];
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
           setIsRecording(false);
-          if (recordingIntervalRef.current) {
-            clearInterval(recordingIntervalRef.current);
-          }
+          if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
           setRecordingTime(0);
-          if (send) {
-            toast({ title: "Gravação terminada", description: "A enviar a sua mensagem de voz..." });
-          } else {
-            toast({ title: "Gravação cancelada" });
-          }
+          if (send) toast({ title: "Gravação terminada", description: "A enviar a sua mensagem de voz..." });
+          else toast({ title: "Gravação cancelada" });
       }
   };
 
   const handleContribution = () => {
     if (!user || !group) return;
-
-    toast({
-        title: "A obter localização...",
-        description: "Por favor, autorize o acesso à sua localização para a entrega.",
-    });
-
+    toast({ title: "A obter localização...", description: "Por favor, autorize o acesso à sua localização." });
     navigator.geolocation.getCurrentPosition(
         async (position) => {
-            const location: Geolocation = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-            };
-
-            toast({
-                title: "Localização obtida!",
-                description: "A registar a sua contribuição...",
-            });
-
+            const location: Geolocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+            toast({ title: "Localização obtida!", description: "A registar a sua contribuição..." });
             try {
-                const appUser = await getUser(user.uid);
-                const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
-
-                await createOrder({
-                    userId: user.uid,
-                    userName: appUser.name,
-                    groupId: group.id,
-                    groupName: group.name,
-                    items: groupCart,
-                    totalAmount: groupCartTotal,
-                    location: location,
-                });
-                
-                toast({
-                    title: "Contribuição Registada com Sucesso!",
-                    description: "O seu pedido foi enviado para o administrador.",
-                });
-                setGroupCart([]); // Clear cart on success
-
+                const result = await contributeToGroup(group.id, user.uid, location);
+                if (result.success) {
+                    toast({ title: "Contribuição Registada!", description: "Obrigado por contribuir." });
+                    if (result.orderFinalized) {
+                         toast({ title: "GRUPO COMPLETO!", description: "Todas as contribuições foram feitas. O pedido foi enviado ao administrador." });
+                    }
+                } else {
+                   throw new Error(result.message);
+                }
             } catch (error) {
-                 toast({
-                    variant: "destructive",
-                    title: "Erro ao registar pedido",
-                    description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido.",
-                });
+                 toast({ variant: "destructive", title: "Erro ao Contribuir", description: error instanceof Error ? error.message : "Ocorreu um erro." });
             }
-
         },
         (error) => {
             console.error("Geolocation error:", error);
-            toast({
-                variant: "destructive",
-                title: "Erro de Localização",
-                description: "Não foi possível obter a sua localização. Por favor, verifique as permissões no seu navegador e tente novamente.",
-            });
+            toast({ variant: "destructive", title: "Erro de Localização", description: "Não foi possível obter a sua localização." });
         },
         { enableHighAccuracy: true }
     );
   };
 
-
   if (loading || authLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-         <div className="space-y-4 mb-8">
-            <Skeleton className="h-10 w-3/4" />
-            <Skeleton className="h-6 w-1/2" />
-        </div>
+         <div className="space-y-4 mb-8"> <Skeleton className="h-10 w-3/4" /> <Skeleton className="h-6 w-1/2" /> </div>
         <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-8">
-                <Skeleton className="h-64 w-full" />
-                <Skeleton className="h-48 w-full" />
-            </div>
-            <div className="md:col-span-1 space-y-6">
-                <Skeleton className="h-80 w-full" />
-                <Skeleton className="h-40 w-full" />
-            </div>
+            <div className="md:col-span-2 space-y-8"> <Skeleton className="h-64 w-full" /> <Skeleton className="h-48 w-full" /> </div>
+            <div className="md:col-span-1 space-y-6"> <Skeleton className="h-80 w-full" /> <Skeleton className="h-40 w-full" /> </div>
         </div>
       </div>
     );
@@ -471,42 +341,31 @@ export default function GroupDetailPage() {
   if (!group) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <div className='mb-4'>
-            <Button variant="outline" onClick={() => router.back()}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
-            </Button>
-        </div>
-        <h1 className="text-2xl font-bold">Grupo não encontrado</h1>
-        <p>O grupo que está a tentar aceder não existe ou foi removido.</p>
+        <div className='mb-4'> <Button variant="outline" onClick={() => router.back()}> <ArrowLeft className="mr-2 h-4 w-4" /> Voltar </Button> </div>
+        <h1 className="text-2xl font-bold">Grupo não encontrado</h1> <p>O grupo que está a tentar aceder não existe ou foi removido.</p>
       </div>
     );
   }
 
   const isCreator = user?.uid === group.creatorId;
   const isMember = group.members.some(m => m.uid === user?.uid);
-  const members = group.members || [];
-  const joinRequests = group.joinRequests || [];
-  const totalMembers = members.length > 0 ? members.length : 1;
-  const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
-  const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
-  
   if (!isMember) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <div className='mb-4'>
-            <Button variant="outline" onClick={() => router.back()}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
-            </Button>
-        </div>
+        <div className='mb-4'> <Button variant="outline" onClick={() => router.back()}> <ArrowLeft className="mr-2 h-4 w-4" /> Voltar </Button> </div>
         <ShieldAlert className="mx-auto h-16 w-16 text-destructive mb-4"/>
-        <h1 className="text-2xl font-bold">Acesso Restrito</h1>
-        <p className="text-muted-foreground">Não é membro deste grupo e não pode ver os seus detalhes.</p>
+        <h1 className="text-2xl font-bold">Acesso Restrito</h1> <p className="text-muted-foreground">Não é membro deste grupo e não pode ver os seus detalhes.</p>
       </div>
     )
   }
-
+  
+  const groupCart = group.groupCart || [];
+  const contributions = group.contributions || [];
+  const hasContributed = user ? contributions.some(c => c.userId === user.uid) : false;
+  const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+  const totalMembers = group.members.length > 0 ? group.members.length : 1;
+  const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
+  
   const ChatContent = () => (
     <div className="flex flex-col h-full">
         <SheetHeader className="px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-2">
@@ -520,66 +379,31 @@ export default function GroupDetailPage() {
                         const isSender = msg.senderId === user?.uid;
                         return (
                         <div key={msg.id} className={cn("flex items-end gap-2.5", isSender ? "justify-end" : "justify-start")}>
-                            {!isSender && (
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                                   {msg.senderName.substring(0, 2).toUpperCase()}
-                                </div>
-                            )}
-                            <div className={cn(
-                                "rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md flex flex-col",
-                                isSender ? "bg-primary text-primary-foreground" : "bg-muted",
-                                { 'items-end': isSender, 'items-start': !isSender }
-                                )}>
+                            {!isSender && (<div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">{msg.senderName.substring(0, 2).toUpperCase()}</div>)}
+                            <div className={cn("rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md flex flex-col", isSender ? "bg-primary text-primary-foreground" : "bg-muted", { 'items-end': isSender, 'items-start': !isSender })}>
                                 {!isSender && <p className="text-xs font-bold mb-1">{msg.senderName}</p>}
-                                
                                 {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
-                                
-                                {msg.audioSrc && (
-                                    <AudioPlayer src={msg.audioSrc} isSender={isSender} />
-                                )}
-
-                                <p className="text-xs opacity-70 mt-1.5 text-right">
-                                    {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}
-                                </p>
+                                {msg.audioSrc && <AudioPlayer src={msg.audioSrc} isSender={isSender} />}
+                                <p className="text-xs opacity-70 mt-1.5 text-right">{formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}</p>
                             </div>
                         </div>
                         )
-                    }) : (
-                        <div className="text-center text-muted-foreground pt-10">
-                            <p>Nenhuma mensagem ainda. Seja o primeiro a dizer olá!</p>
-                        </div>
-                    )}
+                    }) : (<div className="text-center text-muted-foreground pt-10"><p>Nenhuma mensagem ainda. Seja o primeiro a dizer olá!</p></div>)}
                 </div>
             </ScrollArea>
         </div>
         <div className="px-4 sm:px-6 py-4 border-t bg-background">
              {isRecording ? (
                 <div className="flex items-center gap-2">
-                    <Button type="button" size="icon" variant="destructive" onClick={() => stopRecording(true)}>
-                      <Send className="h-4 w-4"/>
-                    </Button>
-                    <div className="flex-1 text-center bg-muted rounded-md px-3 py-2 text-sm">
-                        <span className="text-red-500 animate-pulse mr-2">•</span> Gravando: {formatTime(recordingTime)}
-                    </div>
-                    <Button type="button" size="icon" variant="ghost" onClick={() => stopRecording(false)}>
-                        <X className="h-5 w-5"/>
-                    </Button>
+                    <Button type="button" size="icon" variant="destructive" onClick={() => stopRecording(true)}><Send className="h-4 w-4"/></Button>
+                    <div className="flex-1 text-center bg-muted rounded-md px-3 py-2 text-sm"><span className="text-red-500 animate-pulse mr-2">•</span> Gravando: {formatTime(recordingTime)}</div>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => stopRecording(false)}><X className="h-5 w-5"/></Button>
                 </div>
              ) : (
                 <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
-                    <Input 
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Escreva uma mensagem..." 
-                        disabled={!user || sendingMessage}
-                        className="flex-1"
-                    />
-                    <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage}>
-                        <Send className="h-4 w-4"/>
-                    </Button>
-                    <Button type="button" size="icon" variant="outline" onClick={startRecording} disabled={sendingMessage}>
-                        <Mic className="h-4 w-4"/>
-                    </Button>
+                    <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Escreva uma mensagem..." disabled={!user || sendingMessage} className="flex-1"/>
+                    <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage}><Send className="h-4 w-4"/></Button>
+                    <Button type="button" size="icon" variant="outline" onClick={startRecording} disabled={sendingMessage}><Mic className="h-4 w-4"/></Button>
                 </form>
              )}
         </div>
@@ -589,63 +413,44 @@ export default function GroupDetailPage() {
   return (
     <div className="container mx-auto px-4 py-8">
        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-        <Button variant="outline" size="icon" onClick={() => router.back()} className="flex-shrink-0">
-          <ArrowLeft className="h-4 w-4" />
-          <span className="sr-only">Voltar</span>
-        </Button>
+        <Button variant="outline" size="icon" onClick={() => router.back()} className="flex-shrink-0"><ArrowLeft className="h-4 w-4" /><span className="sr-only">Voltar</span></Button>
         <div className="flex-grow">
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">{group.name}</h1>
           <p className="text-lg text-muted-foreground">{group.description}</p>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-muted-foreground mt-2 text-sm">
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              <span>{group.participants} / {group.target} membros</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <UserCheck className="w-4 h-4" />
-              <span>Criado por: {creatorName}</span>
-            </div>
+            <div className="flex items-center gap-1"><Users className="w-4 h-4" /><span>{group.participants} / {group.target} membros</span></div>
+            <div className="flex items-center gap-1"><UserCheck className="w-4 h-4" /><span>Criado por: {creatorName}</span></div>
           </div>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-           {/* Products Section */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ListChecks/> Produtos</CardTitle>
-              <CardDescription>Adicione produtos ao carrinho do grupo. A contribuição será dividida por todos os membros.</CardDescription>
+              <CardTitle className="flex items-center gap-2"><ListChecks/> Produtos para o Grupo</CardTitle>
+              <CardDescription>O criador do grupo seleciona os produtos. As contribuições são divididas por todos.</CardDescription>
             </CardHeader>
             <CardContent>
                 {products.length > 0 ? (
-                    <ScrollArea className="h-96 w-full pr-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                            {products.map(product => (
-                                <ProductCard key={product.id} product={product} onAddToCart={handleAddToGroupCart} />
-                            ))}
+                    <ScrollArea className={cn(isCreator ? "h-96" : "h-[450px]")}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pr-4">
+                            {products.map(product => (<ProductCard key={product.id} product={product} onAddToCart={isCreator ? (p) => handleUpdateGroupCart(p, 'add') : undefined} />))}
                         </div>
                     </ScrollArea>
-                ) : (
-                    <div className="h-40 bg-muted rounded-md flex items-center justify-center">
-                        <p className="text-muted-foreground">Nenhum produto disponível para contribuição.</p>
-                    </div>
-                )}
+                ) : (<div className="h-40 bg-muted rounded-md flex items-center justify-center"><p className="text-muted-foreground">Nenhum produto disponível.</p></div>)}
             </CardContent>
           </Card>
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-            {/* Group Cart & Contributions */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><ShoppingCart/> Carrinho do Grupo</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><ShoppingCart/> Carrinho e Contribuições</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    {groupCart.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">O carrinho do grupo está vazio.</p>
-                    ) : (
-                        <ScrollArea className="h-48 pr-3">
+                <CardContent>
+                    {groupCart.length === 0 ? (<p className="text-muted-foreground text-center py-4">O carrinho do grupo está vazio.</p>) : (
+                        <ScrollArea className="h-48 pr-3 mb-4">
                             <div className="space-y-4">
                                 {groupCart.map(item => (
                                     <div key={item.product.id} className="flex items-start justify-between">
@@ -656,51 +461,57 @@ export default function GroupDetailPage() {
                                                 <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
                                             </div>
                                         </div>
+                                        {isCreator && (
                                         <div className="flex items-center gap-1 flex-shrink-0">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCartQuantity(item.product.id, item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
                                             <span className="text-sm w-4 text-center">{item.quantity}</span>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCartQuantity(item.product.id, item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoveFromGroupCart(item.product.id)}><Trash2 className="h-3 w-3"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleUpdateGroupCart(item.product, 'remove')}><Trash2 className="h-3 w-3"/></Button>
                                         </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         </ScrollArea>
                     )}
-                    
                     <Separator/>
-
-                    <div className="flex justify-between font-bold text-lg">
-                        <span>Total:</span>
-                        <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
+                    <div className="space-y-4 my-4">
+                        <div className="flex justify-between font-bold text-lg"><span>Total:</span><span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span></div>
+                        <div className="flex justify-between text-primary font-semibold"><span>Valor por membro:</span><span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span></div>
                     </div>
                      <Separator/>
-                    <div className="space-y-2">
-                        <h4 className="font-semibold">Divisão da Contribuição</h4>
-                        <div className="flex justify-between text-muted-foreground">
-                            <span>Membros no grupo:</span>
-                            <span>{totalMembers}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold text-primary">
-                            <span>Valor por membro:</span>
-                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
-                        </div>
+                     <div className="mt-4">
+                        <h4 className="font-semibold mb-2">Progresso das Contribuições ({contributions.length}/{totalMembers})</h4>
+                        <Progress value={(contributions.length / totalMembers) * 100} className="h-2" />
+                        <ScrollArea className="h-24 mt-2">
+                           <div className="space-y-2 pr-2">
+                                {group.members.map(member => {
+                                    const hasPaid = contributions.some(c => c.userId === member.uid);
+                                    return (
+                                        <div key={member.uid} className={cn("flex items-center justify-between p-1.5 rounded text-sm", hasPaid ? "bg-green-100 text-green-800" : "bg-muted/60")}>
+                                            <span>{member.name}</span>
+                                            {hasPaid ? <CheckCircle className="h-4 w-4 text-green-600"/> : <Loader2 className="h-4 w-4 animate-spin text-muted-foreground"/>}
+                                        </div>
+                                    )
+                                })}
+                           </div>
+                        </ScrollArea>
                     </div>
+                </CardContent>
+                <CardFooter>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button className="w-full" disabled={groupCartTotal === 0}>Contribuir</Button>
+                           <Button className="w-full" disabled={groupCartTotal === 0 || hasContributed}>
+                             {hasContributed ? 'Já Contribuiu' : 'Contribuir'}
+                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     <div>
-                                        <p>
-                                        A sua localização será solicitada para a entrega. Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span> para este grupo?
-                                        </p>
-                                        <p className="text-xs text-muted-foreground mt-2">
-                                            (Nota: Isto é uma simulação. Nenhum pagamento real será processado.)
-                                        </p>
+                                    A sua localização será solicitada para a entrega. Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>?
+                                    <p className="text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</p>
                                     </div>
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
@@ -710,23 +521,18 @@ export default function GroupDetailPage() {
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                </CardContent>
+                </CardFooter>
             </Card>
 
-
-          {/* Members Management Section */}
           {isCreator && (
              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Users/> Gestão de Membros</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Users/> Gestão de Membros</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Join Requests */}
-                  {joinRequests.length > 0 && (
+                  {group.joinRequests.length > 0 && (
                      <div>
-                        <h4 className="font-semibold mb-2">Pedidos de Adesão ({joinRequests.length})</h4>
+                        <h4 className="font-semibold mb-2">Pedidos de Adesão ({group.joinRequests.length})</h4>
                         <div className="space-y-2">
-                        {joinRequests.map(req => (
+                        {group.joinRequests.map(req => (
                             <div key={req.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                             <span className="truncate">{req.name}</span>
                              {actionLoading[req.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (
@@ -741,87 +547,82 @@ export default function GroupDetailPage() {
                     </div>
                   )}
                  
-                  {joinRequests.length > 0 && members.length > 0 && <Separator/>}
+                  {group.joinRequests.length > 0 && group.members.length > 0 && <Separator/>}
 
-                   {/* Current Members */}
-                  {members.length > 0 && (
+                   {group.members.length > 0 && (
                      <div>
-                        <h4 className="font-semibold mb-2">Membros Atuais ({members.length})</h4>
+                        <h4 className="font-semibold mb-2">Membros Atuais ({group.members.length})</h4>
                         <div className="space-y-2">
-                        {members.map(mem => (
+                        {group.members.map(mem => (
                             <div key={mem.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                             <span className='truncate'>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
-                             {actionLoading[mem.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                                <>
-                                {mem.uid !== group.creatorId && <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleAction(mem.uid, 'remove')}><UserMinus/></Button>}
-                                </>
-                             )}
+                             {actionLoading[mem.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (<>{mem.uid !== group.creatorId && <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleAction(mem.uid, 'remove')}><UserMinus/></Button>}</>)}
                             </div>
                         ))}
                         </div>
                     </div>
                   )}
-
-                  {members.length === 0 && joinRequests.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center">Nenhum membro ou pedido de adesão.</p>
-                  )}
+                  {group.members.length === 0 && group.joinRequests.length === 0 && (<p className="text-sm text-muted-foreground text-center">Nenhum membro ou pedido de adesão.</p>)}
                   <Separator/>
-                   {/* Delete Group */}
                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                         <Button variant="destructive" className="w-full" disabled={actionLoading['delete']}>
-                            {actionLoading['delete'] ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash className="mr-2 h-4 w-4"/>}
-                            Eliminar Grupo
-                        </Button>
-                      </AlertDialogTrigger>
+                      <AlertDialogTrigger asChild><Button variant="destructive" className="w-full" disabled={actionLoading['delete']}>{actionLoading['delete'] ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash className="mr-2 h-4 w-4"/>} Eliminar Grupo</Button></AlertDialogTrigger>
                       <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. Isto irá eliminar permanentemente o grupo, incluindo todos os membros, pedidos e mensagens.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeleteGroup} className={cn(buttonVariants({ variant: "destructive" }))}>Eliminar</AlertDialogAction>
-                        </AlertDialogFooter>
+                        <AlertDialogHeader><AlertDialogTitle>Tem a certeza?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. Isto irá eliminar permanentemente o grupo, incluindo todos os dados.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteGroup} className={cn(buttonVariants({ variant: "destructive" }))}>Eliminar</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                 </CardContent>
             </Card>
           )}
-
-           {/* Location Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><MapPin/> Localização</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm mb-4">Após a contribuição, a sua localização será solicitada para a entrega.</p>
-              <Button variant="outline" className="w-full" disabled>Definir Localização</Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
       
-        {/* Chat FAB and Sheet */}
         <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
             <SheetTrigger asChild>
-                <Button 
-                    size="icon" 
-                    className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-accent hover:bg-accent/90 text-accent-foreground"
-                    aria-label="Abrir chat"
-                >
-                    <MessageCircle className="h-7 w-7" />
-                </Button>
+                <Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-accent hover:bg-accent/90 text-accent-foreground" aria-label="Abrir chat"><MessageCircle className="h-7 w-7" /></Button>
             </SheetTrigger>
-            <SheetContent 
-                side="bottom" 
-                className="h-[85vh] w-full max-w-3xl mx-auto p-0 rounded-t-2xl border-t-4 border-primary flex flex-col"
-            >
+            <SheetContent side="bottom" className="h-[85vh] w-full max-w-3xl mx-auto p-0 rounded-t-2xl border-t-4 border-primary flex flex-col">
                 <ChatContent />
             </SheetContent>
         </Sheet>
     </div>
   );
+}
+
+// Client-side helper to convert doc snapshot to GroupPromotion
+// This is needed because onSnapshot provides a DocumentSnapshot, not raw data.
+async function convertDocToGroupPromotion(doc: any): Promise<GroupPromotion> {
+    const data = doc.data();
+
+    // Helper to fetch subcollections
+    const getSubCollection = async <T,>(subCollectionName: string): Promise<T[]> => {
+        const subColRef = collection(db, 'groupPromotions', doc.id, subCollectionName);
+        const snapshot = await getDocs(subColRef);
+        return snapshot.docs.map(d => ({ ...(d.data() as any), id: d.id, uid: d.id, createdAt: (d.data().createdAt as Timestamp)?.toMillis(), joinedAt: (d.data().joinedAt as Timestamp)?.toMillis(), requestedAt: (d.data().requestedAt as Timestamp)?.toMillis() } as T));
+    };
+
+    const [members, joinRequests, groupCart, contributions] = await Promise.all([
+        getSubCollection<any>('members'),
+        getSubCollection<any>('joinRequests'),
+        getSubCollection<CartItem>('groupCart'),
+        getSubCollection<Contribution>('contributions'),
+    ]);
+
+    const promotion: GroupPromotion = {
+        id: doc.id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        image: data.image,
+        aiHint: data.aiHint,
+        participants: data.participants,
+        target: data.target,
+        creatorId: data.creatorId,
+        createdAt: (data.createdAt as Timestamp)?.toMillis(),
+        members,
+        joinRequests,
+        groupCart,
+        contributions,
+    };
+    return promotion;
 }

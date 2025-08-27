@@ -16,7 +16,7 @@ export interface GroupMember {
 
 export interface JoinRequest {
     uid: string;
-    name: string;
+    name:string;
     requestedAt: number;
 }
 
@@ -36,10 +36,12 @@ export interface GroupPromotion extends Product {
   creatorId: string;
   members: GroupMember[];
   joinRequests: JoinRequest[];
+  groupCart: CartItem[];
+  contributions: Contribution[];
 }
 
 export interface CartItem {
-  product: Product | GroupPromotion;
+  product: Product; // Keep it simple: always a Product
   quantity: number;
 }
 
@@ -48,15 +50,21 @@ export interface Geolocation {
   longitude: number;
 }
 
+export interface Contribution {
+    userId: string;
+    userName: string;
+    amount: number;
+    location: Geolocation;
+    createdAt: number;
+}
+
 export interface Order {
   id: string;
-  userId: string;
-  userName: string;
   groupId: string;
   groupName: string;
   items: CartItem[];
   totalAmount: number;
-  location: Geolocation;
   status: 'Pendente' | 'A caminho' | 'Entregue';
   createdAt?: number;
+  contributions?: Contribution[];
 }

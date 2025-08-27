@@ -38,9 +38,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         <p className="text-lg font-bold text-foreground mb-4">
           {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}
         </p>
-        <Button className="w-full mt-auto" onClick={handleAddToCart}>
+        <Button className="w-full mt-auto" onClick={handleAddToCart} disabled={!onAddToCart}>
           <ShoppingCart className="mr-2 h-4 w-4" />
-          Adicionar
+          {onAddToCart ? 'Adicionar ao Grupo' : 'Adicionar'}
         </Button>
       </CardContent>
     </Card>
