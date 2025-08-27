@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Product } from '@/lib/types';
@@ -15,8 +16,12 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const { addItem: addPersonalItem } = useCart();
 
   const handleAddToCart = () => {
+    // When onAddToCart is provided, it means we are in the context of a group.
     if (onAddToCart) {
-      onAddToCart(product);
+      // Create a plain object without the createdAt timestamp to avoid serialization issues
+      // when passing the object to a server action.
+      const { createdAt, ...plainProduct } = product;
+      onAddToCart(plainProduct);
     } else {
       addPersonalItem(product);
     }
@@ -34,7 +39,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         <p className="text-lg font-bold text-foreground mb-4">
           {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}
         </p>
-        <Button className="w-full mt-auto" onClick={handleAddToCart} disabled={!onAddToCart}>
+        <Button className="w-full mt-auto" onClick={handleAddToCart}>
           <ShoppingCart className="mr-2 h-4 w-4" />
           {onAddToCart ? 'Adicionar ao Grupo' : 'Adicionar'}
         </Button>
