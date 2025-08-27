@@ -36,17 +36,17 @@ const prompt = ai.definePrompt({
   name: 'orderSummarizerPrompt',
   input: {schema: OrderSummarizerInputSchema},
   output: {schema: OrderSummarizerOutputSchema},
-  prompt: `You are an AI assistant helping customers confirm their order details.
+  prompt: `You are an AI assistant helping customers confirm their order details in Portuguese (Angola).
 
   Please provide a summarized version of the order, including the items, quantities, and total amount.
+  Format the currency as Angolan Kwanza (AOA), for example: 1.500,00 AOA.
 
   Order Items:
   {{#each items}}
-  - {{quantity}} x {{name}} at 
-  {{price}}
+  - {{quantity}} x {{name}} at {{price}} AOA each
   {{/each}}
 
-  Total Amount: {{totalAmount}}
+  Total Amount: {{totalAmount}} AOA
 
   Summary:`,
 });
