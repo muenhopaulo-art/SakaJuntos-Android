@@ -15,7 +15,6 @@ const convertDocToProduct = (doc: any): Product => {
     name: data.name,
     description: data.description,
     price: data.price,
-    image: data.image,
     aiHint: data.aiHint,
   };
 
@@ -59,7 +58,6 @@ const convertDocToGroupPromotion = async (doc: any): Promise<GroupPromotion> => 
         name: data.name,
         description: data.description,
         price: data.price,
-        image: data.image,
         aiHint: data.aiHint,
         participants: data.participants,
         target: data.target,

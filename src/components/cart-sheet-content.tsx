@@ -5,8 +5,7 @@ import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription, SheetClose } from './ui/sheet';
 import { Separator } from './ui/separator';
-import { Minus, Plus, Trash2 } from 'lucide-react';
-import Image from 'next/image';
+import { Minus, Plus, Trash2, Package } from 'lucide-react';
 import Link from 'next/link';
 
 interface CartSheetContentProps {
@@ -15,8 +14,6 @@ interface CartSheetContentProps {
     children?: React.ReactNode;
     isSheet?: boolean;
 }
-
-const PLACEHOLDER_IMAGE = "https://picsum.photos/400/400";
 
 export function CartSheetContent({ side = 'right', className, children, isSheet = false }: CartSheetContentProps) {
   const { items, removeItem, updateItemQuantity, totalPrice, isInitialized } = useCart();
@@ -45,15 +42,8 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
               {items.map(item => (
                 <div key={item.product.id} className="flex items-center justify-between space-x-4">
                   <div className="flex items-center space-x-4">
-                    <div className="relative h-16 w-16 overflow-hidden rounded">
-                      <Image
-                        src={item.product.image || PLACEHOLDER_IMAGE}
-                        alt={item.product.name}
-                        sizes="10vw"
-                        fill
-                        className="object-cover"
-                        data-ai-hint={item.product.aiHint}
-                      />
+                    <div className="relative h-16 w-16 overflow-hidden rounded bg-muted flex items-center justify-center">
+                      <Package className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <div>
                       <h3 className="font-medium">{item.product.name}</h3>

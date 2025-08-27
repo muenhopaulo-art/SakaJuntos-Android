@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Minus, Plus, ShoppingCart, Sparkles, Trash2 } from 'lucide-react';
-import Image from 'next/image';
+import { Minus, Plus, ShoppingCart, Sparkles, Trash2, Package } from 'lucide-react';
 import Link from 'next/link';
 import { getOrderSummary } from './actions';
 
@@ -67,7 +66,9 @@ export function CartView() {
                   {items.map(item => (
                     <TableRow key={item.product.id}>
                       <TableCell>
-                        <Image src={item.product.image} alt={item.product.name} width={64} height={64} className="rounded-md object-cover" data-ai-hint={item.product.aiHint} />
+                        <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center">
+                          <Package className="h-8 w-8 text-muted-foreground" />
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{item.product.name}</TableCell>
                       <TableCell>

@@ -6,7 +6,6 @@ export const products: Product[] = [
     name: 'Café de Angola',
     description: 'Grãos de café arábica de alta qualidade, cultivados nas terras altas de Angola.',
     price: 1500,
-    image: 'https://picsum.photos/400/400',
     aiHint: 'coffee beans',
   },
   {
@@ -14,7 +13,6 @@ export const products: Product[] = [
     name: 'Ginguba Torrada',
     description: 'Amendoim torrado e salgado, um snack perfeito para qualquer hora do dia.',
     price: 500,
-    image: 'https://picsum.photos/400/401',
     aiHint: 'roasted peanuts',
   },
   {
@@ -22,7 +20,6 @@ export const products: Product[] = [
     name: 'Sabão Azul',
     description: 'Tradicional sabão azul para lavagem de roupa, eficaz e económico.',
     price: 300,
-    image: 'https://picsum.photos/400/402',
     aiHint: 'soap bar',
   },
   {
@@ -30,7 +27,6 @@ export const products: Product[] = [
     name: 'Óleo de Palma',
     description: 'Óleo de palma puro, essencial na culinária angolana.',
     price: 2500,
-    image: 'https://picsum.photos/400/403',
     aiHint: 'palm oil',
   },
   {
@@ -38,7 +34,6 @@ export const products: Product[] = [
     name: 'Farinha de Milho',
     description: 'Farinha de milho amarela para um funge perfeito.',
     price: 800,
-    image: 'https://picsum.photos/400/404',
     aiHint: 'corn flour',
   },
   {
@@ -46,18 +41,16 @@ export const products: Product[] = [
     name: 'Pano Samakaka',
     description: 'Tecido tradicional com padrões vibrantes.',
     price: 5000,
-    image: 'https://picsum.photos/400/405',
     aiHint: 'african fabric',
   },
 ];
 
-export const groupPromotions: GroupPromotion[] = [
+export const groupPromotions: Omit<GroupPromotion, 'members' | 'joinRequests' | 'groupCart' | 'contributions'>[] = [
   {
     id: 'promo_001',
     name: 'Caixa de Sumos Compal',
     description: 'Compre uma caixa com 24 unidades de sumo Compal (sabores variados) a um preço reduzido.',
     price: 4500,
-    image: 'https://picsum.photos/400/406',
     aiHint: 'juice box',
     participants: 7,
     target: 10,
@@ -68,7 +61,6 @@ export const groupPromotions: GroupPromotion[] = [
     name: 'Saco de Arroz 25kg',
     description: 'Garanta o arroz para a família com este saco de 25kg de alta qualidade.',
     price: 18000,
-    image: 'https://picsum.photos/400/407',
     aiHint: 'rice sack',
     participants: 3,
     target: 5,
@@ -79,7 +71,6 @@ export const groupPromotions: GroupPromotion[] = [
     name: 'Kit de Limpeza',
     description: 'Um kit completo com lava-loiça, lixívia, e multi-usos para a sua casa.',
     price: 3500,
-    image: 'https://picsum.photos/400/408',
     aiHint: 'cleaning supplies',
     participants: 12,
     target: 20,

@@ -44,7 +44,6 @@ const placeholderProduct = {
   name: "Saco de Arroz 25kg",
   description: "Arroz de alta qualidade para as suas refeições em família.",
   price: 22000,
-  image: "", // Image is no longer used for group promotions display
   aiHint: "rice sack large",
 };
 
@@ -90,7 +89,6 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
             // Using placeholder product data for now
             description: placeholderProduct.description,
             price: placeholderProduct.price,
-            image: placeholderProduct.image,
             aiHint: placeholderProduct.aiHint,
         });
 

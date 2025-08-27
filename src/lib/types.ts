@@ -3,7 +3,6 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  image: string;
   aiHint?: string;
   createdAt?: number;
 }
@@ -30,7 +29,7 @@ export interface ChatMessage {
 }
 
 
-export interface GroupPromotion extends Product {
+export interface GroupPromotion extends Omit<Product, 'image'> {
   participants: number;
   target: number;
   creatorId: string;

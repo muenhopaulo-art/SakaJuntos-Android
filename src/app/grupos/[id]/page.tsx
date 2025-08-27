@@ -7,7 +7,7 @@ import { approveJoinRequest, removeMember, requestToJoinGroup, deleteGroup, upda
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -17,7 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProductCard } from '@/components/product-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -471,7 +470,9 @@ export default function GroupDetailPage() {
                                     {groupCart.map(item => (
                                         <div key={item.product.id} className="flex justify-between items-center">
                                             <div className="flex items-center gap-3">
-                                                <Image src={item.product.image} alt={item.product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint={item.product.aiHint}/>
+                                                <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
+                                                    <Package className="h-6 w-6 text-muted-foreground" />
+                                                </div>
                                                 <div>
                                                     <p className="font-medium text-sm">{item.product.name}</p>
                                                     <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
@@ -651,7 +652,6 @@ async function convertDocToGroupPromotion(doc: any): Promise<GroupPromotion> {
         name: data.name,
         description: data.description,
         price: data.price,
-        image: data.image,
         aiHint: data.aiHint,
         participants: data.participants,
         target: data.target,
@@ -664,9 +664,3 @@ async function convertDocToGroupPromotion(doc: any): Promise<GroupPromotion> {
     };
     return promotion;
 }
-
-    
-
-    
-
-    
