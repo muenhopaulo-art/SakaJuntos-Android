@@ -81,7 +81,10 @@ const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
         audioRef.current = audio;
 
         const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-        const handleEnded = () => setIsPlaying(false);
+        const handleEnded = () => {
+            setIsPlaying(false);
+            setCurrentTime(0); // Reset on end
+        }
 
         audio.addEventListener('timeupdate', handleTimeUpdate);
         audio.addEventListener('ended', handleEnded);
@@ -105,23 +108,22 @@ const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
-        <div className="flex items-center gap-3 w-full max-w-[250px]">
+        <div className="flex items-center gap-3 w-full max-w-[250px] sm:max-w-[300px]">
             <Button
                 size="icon"
                 variant="ghost"
                 onClick={togglePlayPause}
                 className={cn(
-                    "rounded-full h-9 w-9 flex-shrink-0",
-                    isSender ? "text-primary-foreground hover:bg-white/20 hover:text-primary-foreground" : "text-foreground hover:bg-black/10"
+                    "rounded-full h-10 w-10 flex-shrink-0",
+                    isSender ? "text-primary-foreground bg-white/30 hover:bg-white/40" : "text-primary bg-primary/20 hover:bg-primary/30"
                 )}
             >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-current" />}
             </Button>
-            <div className="w-full space-y-1">
-                <Progress value={progress} className={cn("h-1.5", isSender ? "bg-white/30" : "bg-muted-foreground/30")} indicatorClassName={isSender ? "bg-primary-foreground" : "bg-foreground"}/>
-                <div className="flex justify-between text-xs opacity-80">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
+            <div className="w-full space-y-1.5">
+                <Progress value={progress} className={cn("h-1.5", isSender ? "bg-white/30" : "bg-muted-foreground/30")} indicatorClassName={isSender ? "bg-primary-foreground" : "bg-primary"}/>
+                <div className="text-xs opacity-80 text-right w-full">
+                    <span>{isPlaying ? formatTime(currentTime) : formatTime(duration)}</span>
                 </div>
             </div>
         </div>
@@ -622,3 +624,5 @@ export default function GroupDetailPage() {
     </div>
   );
 }
+
+    
