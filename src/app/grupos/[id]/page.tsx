@@ -1,54 +1,95 @@
-import { getGroupPromotions } from '@/services/product-service';
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { getGroupPromotions, approveJoinRequest, removeMember } from '@/services/product-service';
 import type { GroupPromotion } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus } from 'lucide-react';
+import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
-import { getAuth } from 'firebase/auth';
-
-// This is a server component, but we need auth state.
-// In a real app, you might get the session from the request.
-// For now, we'll assume we can get the current user this way.
-// Note: This is a simplified approach for demonstration.
-async function getCurrentUserId() {
-    // This is not a reliable way to get user on the server.
-    // We'd typically use a server-side session management library.
-    // Or, this component would be a client component.
-    // For this step, we will proceed, but this is a limitation.
-    // The following line can cause issues in server components, a more robust solution is needed
-    // For now, we will try to make it work, but it might require client side logic.
-    try {
-      const user = getAuth().currentUser;
-      return user?.uid;
-    } catch(e) {
-      // This will fail on the server, as there's no "current user"
-      // console.error("Could not get current user on server", e);
-      return null;
-    }
-}
-
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
   const allPromotions = await getGroupPromotions();
   return allPromotions.find(p => p.id === id);
 }
 
-export default async function GroupDetailPage({ params }: { params: { id:string } }) {
-  const group = await getGroupDetails(params.id);
-  const currentUserId = await getCurrentUserId();
-  
-  let creatorName = 'Desconhecido';
-  if (group) {
-      try {
-        const creator = await getUser(group.creatorId);
-        creatorName = creator.name;
-      } catch (error) {
-        console.error("Could not fetch creator details", error);
-      }
-  }
+export default function GroupDetailPage({ params }: { params: { id: string } }) {
+  const [group, setGroup] = useState<GroupPromotion | null>(null);
+  const [creatorName, setCreatorName] = useState<string>('Desconhecido');
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [user, authLoading] = useAuthState(auth);
+  const { toast } = useToast();
 
+  const fetchGroupData = useCallback(async () => {
+    try {
+      const groupData = await getGroupDetails(params.id);
+      if (groupData) {
+        setGroup(groupData);
+        const creator = await getUser(groupData.creatorId);
+        setCreatorName(creator.name);
+      }
+    } catch (error) {
+      console.error("Failed to fetch group data:", error);
+      toast({ variant: 'destructive', title: 'Erro ao carregar o grupo.' });
+    } finally {
+      setLoading(false);
+    }
+  }, [params.id, toast]);
+
+  useEffect(() => {
+    fetchGroupData();
+  }, [fetchGroupData]);
+
+  const handleAction = async (userId: string, action: 'approve' | 'remove') => {
+    if (!group) return;
+
+    setActionLoading(prev => ({ ...prev, [userId]: true }));
+
+    let result;
+    if (action === 'approve') {
+      result = await approveJoinRequest(group.id, userId);
+    } else {
+      const isCreator = userId === group.creatorId;
+      result = await removeMember(group.id, userId, isCreator);
+    }
+
+    if (result.success) {
+      toast({ title: 'Sucesso!', description: `Ação executada com sucesso.` });
+      await fetchGroupData(); // Re-fetch data to update the UI
+    } else {
+      toast({ variant: 'destructive', title: 'Erro!', description: result.message });
+    }
+
+    setActionLoading(prev => ({ ...prev, [userId]: false }));
+  };
+
+
+  if (loading || authLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+         <div className="space-y-4 mb-8">
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-6 w-1/2" />
+        </div>
+        <div className="grid md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-8">
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-48 w-full" />
+            </div>
+            <div className="md:col-span-1 space-y-6">
+                <Skeleton className="h-80 w-full" />
+                <Skeleton className="h-40 w-full" />
+            </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!group) {
     return (
@@ -58,12 +99,10 @@ export default async function GroupDetailPage({ params }: { params: { id:string 
       </div>
     );
   }
-  
-  // Now using real data, but checking for it.
-  const isCreator = currentUserId === group.creatorId;
+
+  const isCreator = user?.uid === group.creatorId;
   const members = group.members || [];
   const joinRequests = group.joinRequests || [];
-
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -127,10 +166,12 @@ export default async function GroupDetailPage({ params }: { params: { id:string 
                         {joinRequests.map(req => (
                             <div key={req.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                             <span>{req.name}</span>
-                            <div className="flex gap-1">
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600"><UserPlus/></Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><UserMinus/></Button>
-                            </div>
+                             {actionLoading[req.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                                <div className="flex gap-1">
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => handleAction(req.uid, 'approve')}><UserPlus/></Button>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleAction(req.uid, 'remove')}><UserMinus/></Button>
+                                </div>
+                             )}
                             </div>
                         ))}
                         </div>
@@ -147,7 +188,11 @@ export default async function GroupDetailPage({ params }: { params: { id:string 
                         {members.map(mem => (
                             <div key={mem.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                             <span>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
-                             {mem.uid !== group.creatorId && <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"><UserMinus/></Button>}
+                             {actionLoading[mem.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                                <>
+                                {mem.uid !== group.creatorId && <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleAction(mem.uid, 'remove')}><UserMinus/></Button>}
+                                </>
+                             )}
                             </div>
                         ))}
                         </div>
