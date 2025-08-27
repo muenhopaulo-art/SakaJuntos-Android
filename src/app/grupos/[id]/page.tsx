@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requestToJoinGroup } from '@/services/product-service';
-import { listenToMessages, sendMessage } from '@/services/chat-service';
+import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,12 +20,41 @@ import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
   const allPromotions = await getGroupPromotions();
   return allPromotions.find(p => p.id === id);
 }
+
+// Moved from chat-service to be a client-side function
+function listenToMessages(groupId: string, callback: (messages: ChatMessage[]) => void) {
+    const messagesCol = collection(db, 'groupPromotions', groupId, 'messages');
+    const q = query(messagesCol, orderBy('createdAt', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const messages: ChatMessage[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            messages.push({
+                id: doc.id,
+                text: data.text,
+                senderId: data.senderId,
+                senderName: data.senderName,
+                createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
+            });
+        });
+        callback(messages);
+    }, (error) => {
+        console.error("Error listening to messages:", error);
+        callback([]);
+    });
+
+    return unsubscribe;
+}
+
 
 export default function GroupDetailPage() {
   const params = useParams();
@@ -43,6 +72,8 @@ export default function GroupDetailPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const chatAreaRef = useRef<HTMLDivElement>(null);
+
 
   // Effect to load cart from localStorage
   useEffect(() => {
@@ -109,6 +140,13 @@ export default function GroupDetailPage() {
   useEffect(() => {
     fetchGroupData();
   }, [fetchGroupData]);
+
+  useEffect(() => {
+    // Scroll to the bottom of the chat area when new messages arrive
+    if (chatAreaRef.current) {
+        chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleAction = async (userId: string, action: 'approve' | 'remove') => {
     if (!group) return;
@@ -227,15 +265,7 @@ export default function GroupDetailPage() {
   const totalMembers = members.length > 0 ? members.length : 1;
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
-  const chatAreaRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Scroll to the bottom of the chat area when new messages arrive
-    if (chatAreaRef.current) {
-        chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
-    }
-  }, [messages]);
-
+  
   return (
     <div className="container mx-auto px-4 py-8">
        <div className="flex items-center gap-4 mb-8">
