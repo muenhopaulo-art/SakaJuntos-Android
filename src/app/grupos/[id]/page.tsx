@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { getGroupPromotions, approveJoinRequest, removeMember, getProducts } from '@/services/product-service';
 import type { GroupPromotion, Product, CartItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -25,6 +25,7 @@ async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> 
 
 export default function GroupDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [group, setGroup] = useState<GroupPromotion | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [creatorName, setCreatorName] = useState<string>('Desconhecido');
@@ -147,6 +148,12 @@ export default function GroupDetailPage() {
   if (!group) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
+        <div className='mb-4'>
+            <Button variant="outline" onClick={() => router.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+            </Button>
+        </div>
         <h1 className="text-2xl font-bold">Grupo não encontrado</h1>
         <p>O grupo que está a tentar aceder não existe ou foi removido.</p>
       </div>
@@ -162,17 +169,23 @@ export default function GroupDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="space-y-4 mb-8">
-        <h1 className="text-4xl font-bold tracking-tight font-headline">{group.name}</h1>
-        <p className="text-xl text-muted-foreground">{group.description}</p>
-        <div className="flex items-center gap-4 text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Users className="w-5 h-5" />
-            <span>{group.participants} / {group.target} membros</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <UserCheck className="w-5 h-5" />
-            <span>Criado por: {creatorName}</span>
+       <div className="flex items-center gap-4 mb-8">
+        <Button variant="outline" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+          <span className="sr-only">Voltar</span>
+        </Button>
+        <div className="flex-grow">
+          <h1 className="text-4xl font-bold tracking-tight font-headline">{group.name}</h1>
+          <p className="text-xl text-muted-foreground">{group.description}</p>
+          <div className="flex items-center gap-4 text-muted-foreground mt-2">
+            <div className="flex items-center gap-1">
+              <Users className="w-5 h-5" />
+              <span>{group.participants} / {group.target} membros</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <UserCheck className="w-5 h-5" />
+              <span>Criado por: {creatorName}</span>
+            </div>
           </div>
         </div>
       </div>
