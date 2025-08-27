@@ -12,13 +12,13 @@ import { ProductCard } from '@/components/product-card';
 
 function getErrorMessage(error: any): string {
   if (error && typeof error.message === 'string') {
-      if (error.message.includes('not-found')) {
-          return "O banco de dados Firestore não foi encontrado. Por favor, crie um no seu projeto Firebase.";
-      }
-      if (error.message.includes('permission-denied')) {
-          return "A API do Firestore não está habilitada. Por favor, habilite-a no seu projeto Google Cloud.";
-      }
-      return error.message;
+    if (error.message.includes('not-found')) {
+      return "O banco de dados Firestore não foi encontrado. Por favor, crie um no seu projeto Firebase.";
+    }
+    if (error.message.includes('permission-denied')) {
+      return "A API do Firestore não está habilitada. Por favor, habilite-a no seu projeto Google Cloud.";
+    }
+    return error.message;
   }
   return "Ocorreu um erro desconhecido ao buscar os produtos.";
 }
