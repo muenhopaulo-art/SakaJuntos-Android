@@ -639,7 +639,12 @@ export default function GroupDetailPage() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
                                 <AlertDialogDescription>
+                                    <p>
                                     Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span> para este grupo?
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                        (Nota: Isto é uma simulação. Nenhum pagamento real será processado.)
+                                    </p>
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
