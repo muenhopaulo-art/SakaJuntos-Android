@@ -37,6 +37,7 @@ const convertDocToGroupPromotion = (doc: any): GroupPromotion => {
         aiHint: data.aiHint,
         participants: data.participants,
         target: data.target,
+        creatorId: data.creatorId,
     };
 
     if (data.createdAt && data.createdAt instanceof Timestamp) {

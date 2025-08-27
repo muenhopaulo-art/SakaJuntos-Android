@@ -61,6 +61,7 @@ export const groupPromotions: GroupPromotion[] = [
     aiHint: 'juice box',
     participants: 7,
     target: 10,
+    creatorId: 'user_abc', // Example creator
   },
   {
     id: 'promo_002',
@@ -71,6 +72,7 @@ export const groupPromotions: GroupPromotion[] = [
     aiHint: 'rice sack',
     participants: 3,
     target: 5,
+    creatorId: 'user_def', // Example creator
   },
   {
     id: 'promo_003',
@@ -81,5 +83,6 @@ export const groupPromotions: GroupPromotion[] = [
     aiHint: 'cleaning supplies',
     participants: 12,
     target: 20,
+    creatorId: 'user_abc', // Example creator
   },
 ];

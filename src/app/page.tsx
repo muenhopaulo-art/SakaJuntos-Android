@@ -1,3 +1,8 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
 import { getGroupPromotions, getProducts } from '@/services/product-service';
 import { ProductCard } from '@/components/product-card';
 import { PromotionCard } from '@/components/promotion-card';
@@ -6,14 +11,45 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { CirclePlus, Search, ShoppingCart, Users, Globe, Info } from 'lucide-react';
+import { CirclePlus, Search, Users, Globe, Info } from 'lucide-react';
 import Link from 'next/link';
 import { CartSheet } from '@/components/cart-sheet';
 import { CreateGroupForm } from '@/components/create-group-form';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function HomePage() {
-  const products: Product[] = await getProducts();
-  const groupPromotions: GroupPromotion[] = await getGroupPromotions();
+export default function HomePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [groupPromotions, setGroupPromotions] = useState<GroupPromotion[]>([]);
+  const [myGroups, setMyGroups] = useState<GroupPromotion[]>([]);
+  const [exploreGroups, setExploreGroups] = useState<GroupPromotion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user] = useAuthState(auth);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const [productsData, promotionsData] = await Promise.all([
+        getProducts(),
+        getGroupPromotions(),
+      ]);
+      setProducts(productsData);
+      setGroupPromotions(promotionsData);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (user && groupPromotions.length > 0) {
+      const userGroups = groupPromotions.filter(p => p.creatorId === user.uid);
+      const otherGroups = groupPromotions.filter(p => p.creatorId !== user.uid);
+      setMyGroups(userGroups);
+      setExploreGroups(otherGroups);
+    } else {
+      setMyGroups([]);
+      setExploreGroups(groupPromotions);
+    }
+  }, [user, groupPromotions]);
 
   return (
     <div className="bg-muted/40">
@@ -40,9 +76,21 @@ export default async function HomePage() {
 
               <h3 className="text-xl font-semibold mb-4">Produtos Disponíveis</h3>
 
-              {products.length > 0 ? (
-                 <Carousel 
-                    opts={{ align: "start", loop: true, slidesToScroll: 'auto' }}
+              {loading ? (
+                 <Carousel className="w-full">
+                    <CarouselContent className="-ml-4">
+                        {Array.from({ length: 4 }).map((_, index) => (
+                            <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/4 pl-4">
+                                <div className="p-1 h-full">
+                                    <Skeleton className="h-full aspect-square w-full" />
+                                </div>
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                 </Carousel>
+              ) : products.length > 0 ? (
+                 <Carousel
+                    opts={{ align: "start", loop: false }}
                     className="w-full"
                     >
                     <CarouselContent className="-ml-4">
@@ -59,7 +107,7 @@ export default async function HomePage() {
                 </Carousel>
               ): (
                 <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                    <p className="text-lg fontsemibold text-muted-foreground">Nenhum produto encontrado.</p>
+                    <p className="text-lg font-semibold text-muted-foreground">Nenhum produto encontrado.</p>
                     <p className="text-muted-foreground mt-2">Parece que a base de dados está vazia.</p>
                     <Button asChild className="mt-4">
                     <a href="/seed">Popular a Base de Dados</a>
@@ -93,24 +141,40 @@ export default async function HomePage() {
 
           <Tabs defaultValue="explorar">
             <TabsList className="grid w-full grid-cols-2 md:w-auto md:inline-flex">
-              <TabsTrigger value="meus-grupos"><Users className="mr-2"/>Meus Grupos ({groupPromotions.filter(p => p.participants > 10).length})</TabsTrigger>
-              <TabsTrigger value="explorar"><Globe className="mr-2"/>Explorar Grupos ({groupPromotions.length})</TabsTrigger>
+              <TabsTrigger value="meus-grupos"><Users className="mr-2"/>Meus Grupos ({myGroups.length})</TabsTrigger>
+              <TabsTrigger value="explorar"><Globe className="mr-2"/>Explorar Grupos ({exploreGroups.length})</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="meus-grupos">
+              {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-96 w-full" />)}
+                  </div>
+              ) : myGroups.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {myGroups.map(promo => (
+                        <PromotionCard key={promo.id} promotion={promo} />
+                    ))}
+                </div>
+              ) : (
                  <Card>
                     <CardContent className="p-6 text-center text-muted-foreground">
                        <Info className="mx-auto h-12 w-12 mb-4" />
-                       <h3 className="text-lg font-semibold">Ainda não aderiu a nenhum grupo.</h3>
-                       <p>Explore os grupos disponíveis para começar a poupar!</p>
+                       <h3 className="text-lg font-semibold">Ainda não criou ou aderiu a nenhum grupo.</h3>
+                       <p>Explore os grupos disponíveis ou crie o seu para começar a poupar!</p>
                     </CardContent>
                 </Card>
+              )}
             </TabsContent>
-            
+
             <TabsContent value="explorar">
-              {groupPromotions.length > 0 ? (
+               {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-96 w-full" />)}
+                  </div>
+              ) : exploreGroups.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {groupPromotions.map(promo => (
+                  {exploreGroups.map(promo => (
                     <PromotionCard key={promo.id} promotion={promo} />
                   ))}
                 </div>
