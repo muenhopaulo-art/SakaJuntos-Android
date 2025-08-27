@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -38,14 +39,6 @@ const createGroupSchema = z.object({
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
 
-// TODO: This should come from a product selection step in the future
-const placeholderProduct = {
-  id: 'promo_saco_arroz_25kg',
-  name: "Saco de Arroz 25kg",
-  description: "Arroz de alta qualidade para as suas refeições em família.",
-  price: 22000,
-  aiHint: "rice sack large",
-};
 
 export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -86,10 +79,9 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
             target: data.members,
             creatorId: user.uid,
             creatorName: appUser.name,
-            // Using placeholder product data for now
-            description: placeholderProduct.description,
-            price: placeholderProduct.price,
-            aiHint: placeholderProduct.aiHint,
+            description: "Arroz de alta qualidade para as suas refeições em família.",
+            price: 22000,
+            aiHint: "rice sack large",
         });
 
         if (result.success) {
