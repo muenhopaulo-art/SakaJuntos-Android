@@ -42,3 +42,21 @@ export interface CartItem {
   product: Product | GroupPromotion;
   quantity: number;
 }
+
+export interface Geolocation {
+  latitude: number;
+  longitude: number;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  userName: string;
+  groupId: string;
+  groupName: string;
+  items: CartItem[];
+  totalAmount: number;
+  location: Geolocation;
+  status: 'Pendente' | 'A caminho' | 'Entregue';
+  createdAt?: number;
+}

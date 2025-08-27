@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requestToJoinGroup, deleteGroup } from '@/services/product-service';
 import { sendMessage } from '@/services/chat-service';
-import type { GroupPromotion, Product, CartItem, ChatMessage } from '@/lib/types';
+import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { createOrder } from '@/services/order-service';
 
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
@@ -237,7 +238,10 @@ export default function GroupDetailPage() {
   }, [messages]);
 
   const handleAction = async (userId: string, action: 'approve' | 'remove') => {
-    if (!group) return;
+    if (!group || user?.uid !== group.creatorId) {
+        toast({ variant: 'destructive', title: 'Ação não permitida.' });
+        return;
+    }
 
     setActionLoading(prev => ({ ...prev, [userId]: true }));
 
@@ -260,7 +264,7 @@ export default function GroupDetailPage() {
   };
 
   const handleDeleteGroup = async () => {
-    if (!group) return;
+    if (!group || user?.uid !== group.creatorId) return;
     setActionLoading(prev => ({...prev, delete: true}));
     const result = await deleteGroup(group.id);
      if (result.success) {
@@ -382,14 +386,65 @@ export default function GroupDetailPage() {
   };
 
   const handleContribution = () => {
-    // Here you would typically integrate a payment gateway.
-    // For this demo, we'll just show a success message and clear the cart.
+    if (!user || !group) return;
+
     toast({
-        title: "Contribuição Registada!",
-        description: "Obrigado por contribuir para o grupo!",
+        title: "A obter localização...",
+        description: "Por favor, autorize o acesso à sua localização para a entrega.",
     });
-    setGroupCart([]);
-  }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const location: Geolocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            };
+
+            toast({
+                title: "Localização obtida!",
+                description: "A registar a sua contribuição...",
+            });
+
+            try {
+                const appUser = await getUser(user.uid);
+                const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+
+                await createOrder({
+                    userId: user.uid,
+                    userName: appUser.name,
+                    groupId: group.id,
+                    groupName: group.name,
+                    items: groupCart,
+                    totalAmount: groupCartTotal,
+                    location: location,
+                });
+                
+                toast({
+                    title: "Contribuição Registada com Sucesso!",
+                    description: "O seu pedido foi enviado para o administrador.",
+                });
+                setGroupCart([]); // Clear cart on success
+
+            } catch (error) {
+                 toast({
+                    variant: "destructive",
+                    title: "Erro ao registar pedido",
+                    description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido.",
+                });
+            }
+
+        },
+        (error) => {
+            console.error("Geolocation error:", error);
+            toast({
+                variant: "destructive",
+                title: "Erro de Localização",
+                description: "Não foi possível obter a sua localização. Por favor, verifique as permissões no seu navegador e tente novamente.",
+            });
+        },
+        { enableHighAccuracy: true }
+    );
+  };
 
 
   if (loading || authLoading) {
@@ -640,7 +695,7 @@ export default function GroupDetailPage() {
                                 <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     <p>
-                                    Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span> para este grupo?
+                                    A sua localização será solicitada para a entrega. Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span> para este grupo?
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-2">
                                         (Nota: Isto é uma simulação. Nenhum pagamento real será processado.)
