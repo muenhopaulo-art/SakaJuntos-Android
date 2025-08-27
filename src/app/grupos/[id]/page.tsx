@@ -6,7 +6,7 @@ import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requ
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -23,6 +23,7 @@ import { pt } from 'date-fns/locale';
 import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
@@ -152,6 +153,8 @@ export default function GroupDetailPage() {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
 
   // Effect to load cart from localStorage
@@ -388,6 +391,71 @@ export default function GroupDetailPage() {
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
   
+  const ChatContent = () => (
+    <div className="flex flex-col h-full">
+        <SheetHeader className="px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-2">
+            <SheetTitle className="flex items-center gap-2"><MessagesSquare/> Chat do Grupo</SheetTitle>
+            <SheetDescription>Comunicação em tempo real com os membros do grupo.</SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto px-4 sm:px-6 py-4">
+            <ScrollArea className="flex-1 -mx-4 sm:-mx-6" ref={chatAreaRef}>
+                <div className="space-y-4 px-4 sm:px-6">
+                    {messages.length > 0 ? messages.map(msg => {
+                        const isSender = msg.senderId === user?.uid;
+                        return (
+                        <div key={msg.id} className={cn("flex items-end gap-2.5", isSender ? "justify-end" : "justify-start")}>
+                            {!isSender && (
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                                   {msg.senderName.substring(0, 2).toUpperCase()}
+                                </div>
+                            )}
+                            <div className={cn(
+                                "rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md flex flex-col",
+                                isSender ? "bg-primary text-primary-foreground" : "bg-muted",
+                                { 'items-end': isSender, 'items-start': !isSender }
+                                )}>
+                                {!isSender && <p className="text-xs font-bold mb-1">{msg.senderName}</p>}
+                                
+                                {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
+                                
+                                {msg.audioSrc && (
+                                    <AudioPlayer src={msg.audioSrc} isSender={isSender} />
+                                )}
+
+                                <p className="text-xs opacity-70 mt-1.5 text-right">
+                                    {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}
+                                </p>
+                            </div>
+                        </div>
+                        )
+                    }) : (
+                        <div className="text-center text-muted-foreground pt-10">
+                            <p>Nenhuma mensagem ainda. Seja o primeiro a dizer olá!</p>
+                        </div>
+                    )}
+                </div>
+            </ScrollArea>
+        </div>
+        <div className="px-4 sm:px-6 py-4 border-t bg-background">
+             <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
+                <Input 
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Escreva uma mensagem..." 
+                    disabled={!user || sendingMessage || isRecording}
+                    className="flex-1"
+                />
+                <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage || isRecording}>
+                    <Send className="h-4 w-4"/>
+                </Button>
+                 <Button type="button" size="icon" variant={isRecording ? "destructive" : "outline"} onClick={isRecording ? stopRecording : startRecording} disabled={sendingMessage}>
+                    {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4"/>}
+                </Button>
+            </form>
+        </div>
+    </div>
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
@@ -433,67 +501,6 @@ export default function GroupDetailPage() {
                         <p className="text-muted-foreground">Nenhum produto disponível para contribuição.</p>
                     </div>
                 )}
-            </CardContent>
-          </Card>
-          
-          {/* Chat Section */}
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><MessagesSquare/> Chat do Grupo</CardTitle>
-              <CardDescription>Comunicação em tempo real com os membros do grupo.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col gap-4">
-                <ScrollArea className="h-64 pr-4 -mr-4" ref={chatAreaRef}>
-                    <div className="space-y-4">
-                        {messages.length > 0 ? messages.map(msg => {
-                            const isSender = msg.senderId === user?.uid;
-                            return (
-                            <div key={msg.id} className={cn("flex items-end gap-2.5", isSender ? "justify-end" : "justify-start")}>
-                                {!isSender && (
-                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                                       {msg.senderName.substring(0, 2).toUpperCase()}
-                                    </div>
-                                )}
-                                <div className={cn(
-                                    "rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md flex flex-col",
-                                    isSender ? "bg-primary text-primary-foreground" : "bg-muted",
-                                    { 'items-end': isSender, 'items-start': !isSender }
-                                    )}>
-                                    {!isSender && <p className="text-xs font-bold mb-1">{msg.senderName}</p>}
-                                    
-                                    {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
-                                    
-                                    {msg.audioSrc && (
-                                        <AudioPlayer src={msg.audioSrc} isSender={isSender} />
-                                    )}
-
-                                    <p className="text-xs opacity-70 mt-1.5 text-right">
-                                        {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}
-                                    </p>
-                                </div>
-                            </div>
-                            )
-                        }) : (
-                            <div className="text-center text-muted-foreground pt-10">
-                                <p>Nenhuma mensagem ainda. Seja o primeiro a dizer olá!</p>
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
-                 <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2 pt-2 border-t">
-                    <Input 
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Escreva uma mensagem..." 
-                        disabled={!user || sendingMessage || isRecording}
-                    />
-                    <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage || isRecording}>
-                        <Send className="h-4 w-4"/>
-                    </Button>
-                     <Button type="button" size="icon" variant={isRecording ? "destructive" : "outline"} onClick={isRecording ? stopRecording : startRecording} disabled={sendingMessage}>
-                        {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4"/>}
-                    </Button>
-                </form>
             </CardContent>
           </Card>
         </div>
@@ -621,8 +628,25 @@ export default function GroupDetailPage() {
           </Card>
         </div>
       </div>
+      
+        {/* Chat FAB and Sheet */}
+        <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
+            <SheetTrigger asChild>
+                <Button 
+                    size="icon" 
+                    className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-accent hover:bg-accent/90 text-accent-foreground"
+                    aria-label="Abrir chat"
+                >
+                    <MessageCircle className="h-7 w-7" />
+                </Button>
+            </SheetTrigger>
+            <SheetContent 
+                side="bottom" 
+                className="h-[85vh] w-full max-w-3xl mx-auto p-0 rounded-t-2xl border-t-4 border-primary flex flex-col"
+            >
+                <ChatContent />
+            </SheetContent>
+        </Sheet>
     </div>
   );
 }
-
-    
