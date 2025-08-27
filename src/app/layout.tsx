@@ -5,6 +5,10 @@ import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/contexts/cart-context';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
+import AuthGuard from '@/components/auth-guard';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+
 
 const ptSans = PT_Sans({
   subsets: ['latin'],
@@ -26,14 +30,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={`light ${ptSans.variable}`}>
       <body className="font-body antialiased">
-        <CartProvider>
-          <div className="relative flex min-h-screen flex-col">
-            <SiteHeader />
-            <main className="flex-1">{children}</main>
-            <SiteFooter />
-          </div>
-          <Toaster />
-        </CartProvider>
+        <AuthGuard>
+          <CartProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <SiteHeader />
+              <main className="flex-1">{children}</main>
+              <SiteFooter />
+            </div>
+            <Toaster />
+          </CartProvider>
+        </AuthGuard>
       </body>
     </html>
   );
