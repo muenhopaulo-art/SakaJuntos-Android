@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { getGroupPromotions, approveJoinRequest, removeMember, getProducts } from '@/services/product-service';
 import type { GroupPromotion, Product, CartItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart } from 'lucide-react';
+import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProductCard } from '@/components/product-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import Image from 'next/image';
+
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
   const allPromotions = await getGroupPromotions();
@@ -100,6 +102,26 @@ export default function GroupDetailPage() {
       description: `${product.name} foi adicionado ao carrinho do grupo.`,
     });
   };
+
+  const handleRemoveFromGroupCart = (productId: string) => {
+    setGroupCart(prevCart => prevCart.filter(item => item.product.id !== productId));
+     toast({
+      title: "Removido do Grupo!",
+      description: `O produto foi removido do carrinho do grupo.`,
+      variant: 'destructive'
+    });
+  }
+
+  const handleUpdateGroupCartQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+        handleRemoveFromGroupCart(productId);
+        return;
+    }
+    setGroupCart(prevCart => prevCart.map(item =>
+        item.product.id === productId ? { ...item, quantity: newQuantity } : item
+    ));
+  }
+
 
   if (loading || authLoading) {
     return (
@@ -201,8 +223,36 @@ export default function GroupDetailPage() {
                     <CardTitle className="flex items-center gap-2"><ShoppingCart/> Carrinho do Grupo</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {groupCart.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-4">O carrinho do grupo está vazio.</p>
+                    ) : (
+                        <ScrollArea className="h-48 pr-3">
+                            <div className="space-y-4">
+                                {groupCart.map(item => (
+                                    <div key={item.product.id} className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Image src={item.product.image} alt={item.product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint={item.product.aiHint}/>
+                                            <div>
+                                                <p className="font-semibold text-sm leading-tight">{item.product.name}</p>
+                                                <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCartQuantity(item.product.id, item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
+                                            <span className="text-sm w-4 text-center">{item.quantity}</span>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCartQuantity(item.product.id, item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoveFromGroupCart(item.product.id)}><Trash2 className="h-3 w-3"/></Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    )}
+                    
+                    <Separator/>
+
                     <div className="flex justify-between font-bold text-lg">
-                        <span>Total do Carrinho:</span>
+                        <span>Total:</span>
                         <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
                     </div>
                      <Separator/>
