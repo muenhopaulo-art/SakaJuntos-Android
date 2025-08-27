@@ -16,6 +16,8 @@ interface CartSheetContentProps {
     isSheet?: boolean;
 }
 
+const PLACEHOLDER_IMAGE = "https://picsum.photos/400/400";
+
 export function CartSheetContent({ side = 'right', className, children, isSheet = false }: CartSheetContentProps) {
   const { items, removeItem, updateItemQuantity, totalPrice, isInitialized } = useCart();
 
@@ -45,7 +47,7 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
                   <div className="flex items-center space-x-4">
                     <div className="relative h-16 w-16 overflow-hidden rounded">
                       <Image
-                        src={item.product.image}
+                        src={item.product.image || PLACEHOLDER_IMAGE}
                         alt={item.product.name}
                         sizes="10vw"
                         fill
