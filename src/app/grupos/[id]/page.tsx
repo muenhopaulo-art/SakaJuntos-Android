@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getGroupPromotions, approveJoinRequest, removeMember, getProducts } from '@/services/product-service';
+import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requestToJoinGroup } from '@/services/product-service';
 import type { GroupPromotion, Product, CartItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
@@ -24,7 +24,8 @@ async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> 
 }
 
 export default function GroupDetailPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams();
+  const groupId = params.id as string;
   const router = useRouter();
   const [group, setGroup] = useState<GroupPromotion | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -36,18 +37,45 @@ export default function GroupDetailPage() {
   
   const [groupCart, setGroupCart] = useState<CartItem[]>([]);
 
+  // Effect to load cart from localStorage
+  useEffect(() => {
+    if (!groupId) return;
+    try {
+      const storedCart = localStorage.getItem(`groupCart_${groupId}`);
+      if (storedCart) {
+        setGroupCart(JSON.parse(storedCart));
+      }
+    } catch (error) {
+        console.error("Failed to load group cart from localStorage", error);
+    }
+  }, [groupId]);
+
+  // Effect to save cart to localStorage
+  useEffect(() => {
+    if (!groupId) return;
+    try {
+        localStorage.setItem(`groupCart_${groupId}`, JSON.stringify(groupCart));
+    } catch (error) {
+        console.error("Failed to save group cart to localStorage", error);
+    }
+  }, [groupCart, groupId]);
+
+
   const fetchGroupData = useCallback(async () => {
-    if (!params.id) return;
+    if (!groupId) return;
+    setLoading(true);
     try {
       const [groupData, productData] = await Promise.all([
-        getGroupDetails(params.id),
+        getGroupDetails(groupId),
         getProducts()
       ]);
       
       if (groupData) {
         setGroup(groupData);
-        const creator = await getUser(groupData.creatorId);
-        setCreatorName(creator.name);
+        if (groupData.creatorId) {
+            const creator = await getUser(groupData.creatorId);
+            setCreatorName(creator.name);
+        }
       }
       setProducts(productData);
 
@@ -57,7 +85,7 @@ export default function GroupDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [params.id, toast]);
+  }, [groupId, toast]);
 
   useEffect(() => {
     fetchGroupData();
