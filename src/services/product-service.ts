@@ -1,7 +1,8 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentSnapshot } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation } from '@/lib/types';
 import { getUser } from './user-service';
@@ -25,7 +26,7 @@ const convertDocToProduct = (doc: any): Product => {
   return product;
 }
 
-async function getSubCollection<T extends {uid: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
+async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
     const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
     const snapshot = await getDocs(subCollectionRef);
     return snapshot.docs.map(doc => {
@@ -43,8 +44,11 @@ async function getSubCollection<T extends {uid: string}>(groupId: string, subCol
 }
 
 
-const convertDocToGroupPromotion = async (doc: any): Promise<GroupPromotion> => {
+export async function convertDocToGroupPromotion(doc: DocumentSnapshot): Promise<GroupPromotion> {
     const data = doc.data();
+    if (!data) {
+        throw new Error("Document data not found");
+    }
 
     const [members, joinRequests, groupCart, contributions] = await Promise.all([
         getSubCollection<GroupMember>(doc.id, 'members'),

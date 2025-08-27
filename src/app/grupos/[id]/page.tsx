@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { approveJoinRequest, removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup } from '@/services/product-service';
+import { approveJoinRequest, removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, convertDocToGroupPromotion } from '@/services/product-service';
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -186,7 +186,7 @@ export default function GroupDetailPage() {
     const messagesUnsub = listenToMessages(groupId, setMessages);
 
     // Fetch static products data
-    import('@/services/product-service').then(service => service.getProducts()).then(setProducts);
+    getProducts().then(setProducts);
 
     return () => {
       groupUnsub();
@@ -633,41 +633,4 @@ export default function GroupDetailPage() {
             </Sheet>
         </div>
     );
-}
-
-// Client-side helper to convert doc snapshot to GroupPromotion
-// This is needed because onSnapshot provides a DocumentSnapshot, not raw data.
-async function convertDocToGroupPromotion(doc: any): Promise<GroupPromotion> {
-    const data = doc.data();
-
-    // Helper to fetch subcollections
-    const getSubCollection = async <T,>(subCollectionName: string): Promise<T[]> => {
-        const subColRef = collection(db, 'groupPromotions', doc.id, subCollectionName);
-        const snapshot = await getDocs(subColRef);
-        return snapshot.docs.map(d => ({ ...(d.data() as any), id: d.id, uid: d.id, createdAt: (d.data().createdAt as Timestamp)?.toMillis(), joinedAt: (d.data().joinedAt as Timestamp)?.toMillis(), requestedAt: (d.data().requestedAt as Timestamp)?.toMillis() } as T));
-    };
-
-    const [members, joinRequests, groupCart, contributions] = await Promise.all([
-        getSubCollection<GroupMember>('members'),
-        getSubCollection<JoinRequest>('joinRequests'),
-        getSubCollection<CartItem>('groupCart'),
-        getSubCollection<Contribution>('contributions'),
-    ]);
-
-    const promotion: GroupPromotion = {
-        id: doc.id,
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        aiHint: data.aiHint,
-        participants: data.participants,
-        target: data.target,
-        creatorId: data.creatorId,
-        createdAt: (data.createdAt as Timestamp)?.toMillis(),
-        members,
-        joinRequests,
-        groupCart,
-        contributions,
-    };
-    return promotion;
 }
