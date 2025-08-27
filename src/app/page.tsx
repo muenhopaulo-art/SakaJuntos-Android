@@ -9,6 +9,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { CirclePlus, Search, ShoppingCart, Users, Globe, Info } from 'lucide-react';
 import Link from 'next/link';
 import { CartSheet } from '@/components/cart-sheet';
+import { CreateGroupForm } from '@/components/create-group-form';
 
 export default async function HomePage() {
   const products: Product[] = await getProducts();
@@ -77,10 +78,12 @@ export default async function HomePage() {
               <p className="text-muted-foreground">Junte-se a outros para poupar em compras em grupo.</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <CirclePlus className="mr-2 h-4 w-4" />
-                Criar Novo Grupo
-              </Button>
+                <CreateGroupForm>
+                  <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                    <CirclePlus className="mr-2 h-4 w-4" />
+                    Criar Novo Grupo
+                  </Button>
+                </CreateGroupForm>
               <Button variant="outline">
                 <Users className="mr-2 h-4 w-4" />
                 Aderir com ID
@@ -115,7 +118,7 @@ export default async function HomePage() {
                 <Card>
                     <CardContent className="p-6 text-center text-muted-foreground">
                        <Info className="mx-auto h-12 w-12 mb-4" />
-                       <h3 className="text-lg font-semibold">Nenhum grupo de compra disponível.</h3>
+                       <h3 className="text-lg font-semibold">Nenhuma promoção de grupo disponível.</h3>
                        <p>Volte mais tarde ou crie o seu próprio grupo!</p>
                     </CardContent>
                 </Card>
