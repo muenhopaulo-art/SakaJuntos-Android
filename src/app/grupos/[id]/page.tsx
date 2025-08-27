@@ -324,13 +324,16 @@ export default function GroupDetailPage() {
                 <ScrollArea className="h-64 pr-4 -mr-4" ref={chatAreaRef}>
                     <div className="space-y-4">
                         {messages.length > 0 ? messages.map(msg => (
-                            <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? "justify-end" : "justify-start")}>
+                            <div key={msg.id} className={cn("flex items-start gap-2", msg.senderId === user?.uid ? "justify-end" : "justify-start")}>
                                 {msg.senderId !== user?.uid && (
                                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
                                        {msg.senderName.substring(0, 2).toUpperCase()}
                                     </div>
                                 )}
-                                <div className={cn("rounded-lg px-4 py-2 max-w-xs md:max-w-md", msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                                <div className={cn("rounded-lg px-3 py-2 max-w-xs md:max-w-md", msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                                    {msg.senderId !== user?.uid && (
+                                        <p className="text-xs font-bold mb-1">{msg.senderName}</p>
+                                    )}
                                     <p className="text-sm">{msg.text}</p>
                                     <p className="text-xs opacity-70 mt-1 text-right">
                                         {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}
