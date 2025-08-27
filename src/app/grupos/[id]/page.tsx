@@ -20,7 +20,7 @@ import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { collection, query, orderBy, onSnapshot, Timestamp, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, Timestamp, doc, getDocs } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
@@ -568,7 +568,10 @@ export default function GroupDetailPage() {
                       <AlertDialogTrigger asChild><Button variant="destructive" className="w-full" disabled={actionLoading['delete']}>{actionLoading['delete'] ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash className="mr-2 h-4 w-4"/>} Eliminar Grupo</Button></AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>Tem a certeza?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. Isto irá eliminar permanentemente o grupo, incluindo todos os dados.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteGroup} className={cn(buttonVariants({ variant: "destructive" }))}>Eliminar</AlertDialogAction></AlertDialogFooter>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteGroup} className={cn(buttonVariants({ variant: "destructive" }))}>Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                 </CardContent>
@@ -626,3 +629,5 @@ async function convertDocToGroupPromotion(doc: any): Promise<GroupPromotion> {
     };
     return promotion;
 }
+
+    
