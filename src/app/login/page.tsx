@@ -42,7 +42,7 @@ export default function LoginPage() {
       });
       router.push("/");
     } catch (error: any) {
-      // If sign in fails because user not found, try to create an account
+      // If sign in fails because user not found or creds are invalid, try to create an account
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
           await createUserWithEmailAndPassword(auth, email, password);
