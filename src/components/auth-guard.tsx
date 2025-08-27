@@ -6,6 +6,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader } from 'lucide-react';
 import { Logo } from './Logo';
+import { SiteHeader } from './site-header';
+import { SiteFooter } from './site-footer';
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
@@ -24,7 +26,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         router.push('/login');
       }
       
-      // If user is logged in and on the login page, redirect to home
+      // If user is logged in and on a public path, redirect to home
       if (user && pathIsPublic) {
         router.push('/');
       }
@@ -44,6 +46,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  const isPublicPage = publicPaths.includes(pathname);
+
+  if(isPublicPage) {
+    return <>{children}</>;
+  }
   
-  return <>{children}</>;
+  return (
+      <div className="relative flex min-h-screen flex-col">
+        <SiteHeader />
+        <main className="flex-1">{children}</main>
+        <SiteFooter />
+      </div>
+  )
 }
