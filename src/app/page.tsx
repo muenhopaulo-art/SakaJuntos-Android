@@ -8,7 +8,20 @@ import type { Product } from '@/lib/types';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { ProductCard } from '@/components/product-card';
 
+function getErrorMessage(error: any): string {
+  if (error && typeof error.message === 'string') {
+      if (error.message.includes('not-found')) {
+          return "O banco de dados Firestore não foi encontrado. Por favor, crie um no seu projeto Firebase.";
+      }
+      if (error.message.includes('permission-denied')) {
+          return "A API do Firestore não está habilitada. Por favor, habilite-a no seu projeto Google Cloud.";
+      }
+      return error.message;
+  }
+  return "Ocorreu um erro desconhecido ao buscar os produtos.";
+}
 
 export default async function Home() {
   let products: Product[] = [];
@@ -18,7 +31,7 @@ export default async function Home() {
     products = await getProducts();
   } catch (e: any) {
     console.error(e);
-    error = e.message || "Ocorreu um erro ao buscar os produtos.";
+    error = getErrorMessage(e);
   }
 
   return (
@@ -31,7 +44,7 @@ export default async function Home() {
               <AlertTitle>Erro ao Carregar Produtos</AlertTitle>
               <AlertDescription>
                 {error}
-                <p className="mt-2">Por favor, tente novamente ou verifique a sua conexão. Se o problema persistir, certifique-se que a API do Firestore está habilitada na sua conta Google Cloud.</p>
+                <p className="mt-2">Por favor, tente novamente ou verifique a sua conexão. Se o problema persistir, certifique-se que a base de dados existe e que a API do Firestore está habilitada na sua conta Google Cloud.</p>
               </AlertDescription>
             </Alert>
           ) : products.length === 0 ? (

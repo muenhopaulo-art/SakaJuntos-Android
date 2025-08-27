@@ -4,6 +4,20 @@ import { getGroupPromotions } from '@/services/product-service';
 import { AlertTriangle } from 'lucide-react';
 import type { GroupPromotion } from '@/lib/types';
 
+function getErrorMessage(error: any): string {
+    if (error && typeof error.message === 'string') {
+        if (error.message.includes('not-found')) {
+            return "O banco de dados Firestore não foi encontrado. Por favor, crie um no seu projeto Firebase.";
+        }
+        if (error.message.includes('permission-denied')) {
+            return "A API do Firestore não está habilitada. Por favor, habilite-a no seu projeto Google Cloud.";
+        }
+        return error.message;
+    }
+    return "Ocorreu um erro desconhecido ao buscar as promoções.";
+}
+
+
 export default async function GruposPage() {
   let groupPromotions: GroupPromotion[] = [];
   let error: string | null = null;
@@ -12,7 +26,7 @@ export default async function GruposPage() {
     groupPromotions = await getGroupPromotions();
   } catch (e: any) {
     console.error(e);
-    error = e.message || "Ocorreu um erro ao buscar as promoções. Verifique se a API do Firestore está habilitada no seu projeto Google Cloud.";
+    error = getErrorMessage(e);
   }
 
 
@@ -30,7 +44,7 @@ export default async function GruposPage() {
           <AlertTitle>Erro ao Carregar Promoções</AlertTitle>
           <AlertDescription>
             {error}
-            <p className="mt-2">Por favor, tente novamente ou verifique a sua conexão. Se o problema persistir, certifique-se que a API do Firestore está habilitada na sua conta Google Cloud.</p>
+            <p className="mt-2">Por favor, tente novamente ou verifique a sua conexão. Se o problema persistir, certifique-se que a base de dados existe e que a API do Firestore está habilitada na sua conta Google Cloud.</p>
           </AlertDescription>
         </Alert>
        ) : groupPromotions.length === 0 ? (
