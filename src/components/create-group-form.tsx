@@ -25,6 +25,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { createGroupPromotion } from '@/services/product-service';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 const createGroupSchema = z.object({
   name: z.string().min(3, { message: 'O nome do grupo deve ter pelo menos 3 caracteres.' }),
@@ -33,10 +37,23 @@ const createGroupSchema = z.object({
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
 
+// TODO: This should come from a product selection step in the future
+const placeholderProduct = {
+  id: 'promo_saco_arroz_25kg',
+  name: "Saco de Arroz 25kg",
+  description: "Arroz de alta qualidade para as suas refeições em família.",
+  price: 22000,
+  image: "https://picsum.photos/400/409",
+  aiHint: "rice sack large",
+};
+
 export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [user] = useAuthState(auth);
+  const router = useRouter();
+
 
   const form = useForm<CreateGroupFormValues>({
     resolver: zodResolver(createGroupSchema),
@@ -47,16 +64,41 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   });
 
   const onSubmit = async (data: CreateGroupFormValues) => {
-    setIsLoading(true);
-    console.log('Dados do novo grupo:', data);
-    
-    // Placeholder for actual group creation logic
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "Erro de Autenticação",
+            description: "Precisa de estar autenticado para criar um grupo.",
+        });
+        return;
+    }
 
-    toast({
-      title: 'Grupo Criado (Simulação)',
-      description: `O grupo "${data.name}" com ${data.members} membros foi criado com sucesso.`,
+    setIsLoading(true);
+    
+    const result = await createGroupPromotion({
+        name: data.name,
+        target: data.members,
+        creatorId: user.uid,
+        // Using placeholder product data for now
+        description: placeholderProduct.description,
+        price: placeholderProduct.price,
+        image: placeholderProduct.image,
+        aiHint: placeholderProduct.aiHint,
     });
+
+    if (result.success) {
+        toast({
+            title: 'Grupo Criado com Sucesso!',
+            description: `O grupo "${data.name}" foi criado.`,
+        });
+        router.refresh(); // Refresh the page to show the new group
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Erro ao Criar Grupo",
+            description: result.message || "Não foi possível criar o grupo. Tente novamente.",
+        });
+    }
 
     setIsLoading(false);
     setOpen(false);
@@ -102,7 +144,7 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
               )}
             />
              <DialogFooter>
-                <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+                <Button type="submit" disabled={isLoading || !user} className="w-full sm:w-auto">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     {isLoading ? 'A criar...' : 'Criar Grupo'}
                 </Button>

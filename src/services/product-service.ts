@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, doc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, Timestamp, addDoc } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion } from '@/lib/types';
 
@@ -60,6 +60,25 @@ export async function getGroupPromotions(): Promise<GroupPromotion[]> {
     const promotionList = promotionSnapshot.docs.map(convertDocToGroupPromotion);
     return promotionList;
 }
+
+export async function createGroupPromotion(
+    groupData: Omit<GroupPromotion, 'id' | 'createdAt' | 'participants'>
+): Promise<{ success: boolean; id?: string; message?: string }> {
+    try {
+        const promotionsCol = collection(db, 'groupPromotions');
+        const docRef = await addDoc(promotionsCol, {
+            ...groupData,
+            participants: 1, // The creator is the first participant
+            createdAt: new Date(),
+        });
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error("Error creating group promotion:", error);
+        const message = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+        return { success: false, message };
+    }
+}
+
 
 export async function seedDatabase() {
   try {

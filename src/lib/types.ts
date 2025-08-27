@@ -11,7 +11,7 @@ export interface Product {
 export interface GroupPromotion extends Product {
   participants: number;
   target: number;
-  creatorId?: string; // Add creatorId to track who created the group
+  creatorId: string;
 }
 
 export interface CartItem {

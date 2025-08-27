@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { CartSheet } from '@/components/cart-sheet';
 import { CreateGroupForm } from '@/components/create-group-form';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,17 +25,24 @@ export default function HomePage() {
   const [exploreGroups, setExploreGroups] = useState<GroupPromotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [user] = useAuthState(auth);
+  const router = useRouter();
+
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const [productsData, promotionsData] = await Promise.all([
-        getProducts(),
-        getGroupPromotions(),
-      ]);
-      setProducts(productsData);
-      setGroupPromotions(promotionsData);
-      setLoading(false);
+      try {
+        const [productsData, promotionsData] = await Promise.all([
+          getProducts(),
+          getGroupPromotions(),
+        ]);
+        setProducts(productsData);
+        setGroupPromotions(promotionsData);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchData();
   }, []);
@@ -90,7 +98,7 @@ export default function HomePage() {
                  </Carousel>
               ) : products.length > 0 ? (
                  <Carousel
-                    opts={{ align: "start", loop: false }}
+                    opts={{ align: "start", loop: true, watchDrag: false }}
                     className="w-full"
                     >
                     <CarouselContent className="-ml-4">
