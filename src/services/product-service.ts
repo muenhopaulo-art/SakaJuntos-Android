@@ -92,8 +92,19 @@ export async function getGroupPromotions(): Promise<GroupPromotion[]> {
     return promotionList;
 }
 
+interface CreateGroupData {
+    name: string;
+    target: number;
+    creatorId: string;
+    creatorName: string;
+    description: string;
+    price: number;
+    aiHint: string;
+}
+
+
 export async function createGroupPromotion(
-    groupData: Omit<GroupPromotion, 'id' | 'createdAt' | 'participants' | 'members' | 'joinRequests' | 'groupCart' | 'contributions'> & { creatorName: string }
+    groupData: CreateGroupData
 ): Promise<{ success: boolean; id?: string; message?: string }> {
     try {
         const { creatorName, ...restOfGroupData } = groupData;
