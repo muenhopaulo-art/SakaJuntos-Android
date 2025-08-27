@@ -4,13 +4,12 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  "projectId": "sakajuntos-web",
-  "appId": "1:509793458716:web:629e245318d026778c9dd9",
-  "storageBucket": "sakajuntos-web.firebasestorage.app",
-  "apiKey": "AIzaSyBieRP743PlztYXjvgBJkgeEjhpX0HNBPw",
-  "authDomain": "sakajuntos-web.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "509793458716"
+  apiKey: "AIzaSyCpcD80ckN8ce1IE-DakghSlnuygPU8wCg",
+  authDomain: "scio-cesta.firebaseapp.com",
+  projectId: "scio-cesta",
+  storageBucket: "scio-cesta.firebasestorage.app",
+  messagingSenderId: "1078740082725",
+  appId: "1:1078740082725:web:72f75a57e3c0ab98fa9fcc"
 };
 
 // Initialize Firebase
