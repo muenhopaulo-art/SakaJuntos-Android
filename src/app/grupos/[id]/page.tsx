@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { getGroupPromotions, approveJoinRequest, removeMember } from '@/services/product-service';
 import type { GroupPromotion } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,8 @@ async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> 
   return allPromotions.find(p => p.id === id);
 }
 
-export default function GroupDetailPage({ params }: { params: { id: string } }) {
+export default function GroupDetailPage() {
+  const params = useParams<{ id: string }>();
   const [group, setGroup] = useState<GroupPromotion | null>(null);
   const [creatorName, setCreatorName] = useState<string>('Desconhecido');
   const [loading, setLoading] = useState(true);
