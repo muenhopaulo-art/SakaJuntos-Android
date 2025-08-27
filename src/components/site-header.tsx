@@ -7,7 +7,6 @@ import { Sheet, SheetTrigger } from './ui/sheet';
 import { Menu, ShoppingCart, User } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
-import { CartSheet } from './cart-sheet';
 
 export function SiteHeader() {
   const { totalItems } = useCart();
@@ -74,11 +73,7 @@ export function SiteHeader() {
                   Login
                 </Link>
               </Button>
-              <CartSheet />
           </nav>
-           <div className="md:hidden">
-             <CartSheet />
-           </div>
         </div>
       </div>
     </header>
