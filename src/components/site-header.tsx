@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getUser, type User as AppUser } from '@/services/user-service';
+import { CartSheet } from './cart-sheet';
 
 export function SiteHeader() {
   const { totalItems } = useCart();
@@ -49,8 +50,6 @@ export function SiteHeader() {
 
   const navLinks = [
     { href: '/', label: 'Início'},
-    { href: '/minishopping', label: 'MiniShopping' },
-    { href: '/grupos', label: 'Grupos' },
   ];
 
   return (
