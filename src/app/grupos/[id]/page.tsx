@@ -381,6 +381,16 @@ export default function GroupDetailPage() {
       }
   };
 
+  const handleContribution = () => {
+    // Here you would typically integrate a payment gateway.
+    // For this demo, we'll just show a success message and clear the cart.
+    toast({
+        title: "Contribuição Registada!",
+        description: "Obrigado por contribuir para o grupo!",
+    });
+    setGroupCart([]);
+  }
+
 
   if (loading || authLoading) {
     return (
@@ -621,7 +631,23 @@ export default function GroupDetailPage() {
                             <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
                         </div>
                     </div>
-                    <Button className="w-full" disabled={groupCartTotal === 0}>Contribuir</Button>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button className="w-full" disabled={groupCartTotal === 0}>Contribuir</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span> para este grupo?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleContribution}>Confirmar</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </CardContent>
             </Card>
 
