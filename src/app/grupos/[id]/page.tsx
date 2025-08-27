@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
+import { getAuth } from 'firebase/auth';
 
 // This is a server component, but we need auth state.
 // In a real app, you might get the session from the request.
@@ -16,7 +17,16 @@ async function getCurrentUserId() {
     // We'd typically use a server-side session management library.
     // Or, this component would be a client component.
     // For this step, we will proceed, but this is a limitation.
-    return auth.currentUser?.uid;
+    // The following line can cause issues in server components, a more robust solution is needed
+    // For now, we will try to make it work, but it might require client side logic.
+    try {
+      const user = getAuth().currentUser;
+      return user?.uid;
+    } catch(e) {
+      // This will fail on the server, as there's no "current user"
+      // console.error("Could not get current user on server", e);
+      return null;
+    }
 }
 
 
@@ -25,7 +35,7 @@ async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> 
   return allPromotions.find(p => p.id === id);
 }
 
-export default async function GroupDetailPage({ params }: { params: { id: string } }) {
+export default async function GroupDetailPage({ params }: { params: { id:string } }) {
   const group = await getGroupDetails(params.id);
   const currentUserId = await getCurrentUserId();
   

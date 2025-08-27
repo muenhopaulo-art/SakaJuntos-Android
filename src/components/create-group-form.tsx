@@ -29,6 +29,7 @@ import { createGroupPromotion } from '@/services/product-service';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { getUser } from '@/services/user-service';
 
 const createGroupSchema = z.object({
   name: z.string().min(3, { message: 'O nome do grupo deve ter pelo menos 3 caracteres.' }),
@@ -64,46 +65,55 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   });
 
   const onSubmit = async (data: CreateGroupFormValues) => {
-    if (!user || !user.displayName) {
+    if (!user) {
         toast({
             variant: "destructive",
             title: "Erro de Autenticação",
-            description: "Precisa de estar autenticado e ter um nome de exibição para criar um grupo.",
+            description: "Precisa de estar autenticado para criar um grupo.",
         });
         return;
     }
-
-    setIsLoading(true);
     
-    const result = await createGroupPromotion({
-        name: data.name,
-        target: data.members,
-        creatorId: user.uid,
-        creatorName: user.displayName,
-        // Using placeholder product data for now
-        description: placeholderProduct.description,
-        price: placeholderProduct.price,
-        image: placeholderProduct.image,
-        aiHint: placeholderProduct.aiHint,
-    });
+    setIsLoading(true);
 
-    if (result.success) {
-        toast({
-            title: 'Grupo Criado com Sucesso!',
-            description: `O grupo "${data.name}" foi criado.`,
+    try {
+        const appUser = await getUser(user.uid);
+        if (!appUser || !appUser.name) {
+            throw new Error("Não foi possível encontrar os dados do seu perfil. Tente fazer login novamente.");
+        }
+
+        const result = await createGroupPromotion({
+            name: data.name,
+            target: data.members,
+            creatorId: user.uid,
+            creatorName: appUser.name,
+            // Using placeholder product data for now
+            description: placeholderProduct.description,
+            price: placeholderProduct.price,
+            image: placeholderProduct.image,
+            aiHint: placeholderProduct.aiHint,
         });
-        router.refresh(); // Refresh the page to show the new group
-    } else {
-        toast({
+
+        if (result.success) {
+            toast({
+                title: 'Grupo Criado com Sucesso!',
+                description: `O grupo "${data.name}" foi criado.`,
+            });
+            router.refresh(); // Refresh the page to show the new group
+            setOpen(false);
+            form.reset();
+        } else {
+            throw new Error(result.message || "Não foi possível criar o grupo. Tente novamente.");
+        }
+    } catch (error) {
+         toast({
             variant: "destructive",
             title: "Erro ao Criar Grupo",
-            description: result.message || "Não foi possível criar o grupo. Tente novamente.",
+            description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido.",
         });
+    } finally {
+        setIsLoading(false);
     }
-
-    setIsLoading(false);
-    setOpen(false);
-    form.reset();
   };
 
   return (
