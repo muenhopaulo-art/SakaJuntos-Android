@@ -20,6 +20,14 @@ export interface JoinRequest {
     requestedAt: number;
 }
 
+export interface ChatMessage {
+    id: string;
+    text: string;
+    senderId: string;
+    senderName: string;
+    createdAt: number;
+}
+
 
 export interface GroupPromotion extends Product {
   participants: number;

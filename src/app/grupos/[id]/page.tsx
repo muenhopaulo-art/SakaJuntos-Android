@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requestToJoinGroup } from '@/services/product-service';
-import type { GroupPromotion, Product, CartItem } from '@/lib/types';
+import { listenToMessages, sendMessage } from '@/services/chat-service';
+import type { GroupPromotion, Product, CartItem, ChatMessage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -16,6 +17,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ProductCard } from '@/components/product-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Image from 'next/image';
+import { Input } from '@/components/ui/input';
+import { formatDistanceToNow } from 'date-fns';
+import { pt } from 'date-fns/locale';
 
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
@@ -36,6 +40,9 @@ export default function GroupDetailPage() {
   const { toast } = useToast();
   
   const [groupCart, setGroupCart] = useState<CartItem[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Effect to load cart from localStorage
   useEffect(() => {
@@ -59,6 +66,18 @@ export default function GroupDetailPage() {
         console.error("Failed to save group cart to localStorage", error);
     }
   }, [groupCart, groupId]);
+
+   // Effect to listen for messages
+  useEffect(() => {
+    if (!groupId) return;
+
+    const unsubscribe = listenToMessages(groupId, (newMessages) => {
+        setMessages(newMessages);
+    });
+
+    // Cleanup listener on component unmount
+    return () => unsubscribe();
+  }, [groupId]);
 
 
   const fetchGroupData = useCallback(async () => {
@@ -151,6 +170,20 @@ export default function GroupDetailPage() {
     ));
   }
 
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !user || !group) return;
+
+    setSendingMessage(true);
+    const result = await sendMessage(group.id, user.uid, newMessage);
+
+    if (result.success) {
+        setNewMessage('');
+    } else {
+        toast({ variant: 'destructive', title: 'Erro ao enviar mensagem.', description: result.message });
+    }
+    setSendingMessage(false);
+  }
+
 
   if (loading || authLoading) {
     return (
@@ -194,6 +227,14 @@ export default function GroupDetailPage() {
   const totalMembers = members.length > 0 ? members.length : 1;
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
+  const chatAreaRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Scroll to the bottom of the chat area when new messages arrive
+    if (chatAreaRef.current) {
+        chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -244,15 +285,46 @@ export default function GroupDetailPage() {
           </Card>
           
           {/* Chat Section */}
-          <Card>
+          <Card className="flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><MessagesSquare/> Chat do Grupo</CardTitle>
               <CardDescription>Comunicação em tempo real com os membros do grupo.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-40 bg-muted rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground">(Funcionalidade de chat de texto e áudio a ser implementada)</p>
-              </div>
+            <CardContent className="flex-1 flex flex-col gap-4">
+                <ScrollArea className="h-64 pr-4 -mr-4" ref={chatAreaRef}>
+                    <div className="space-y-4">
+                        {messages.length > 0 ? messages.map(msg => (
+                            <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? "justify-end" : "justify-start")}>
+                                {msg.senderId !== user?.uid && (
+                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                                       {msg.senderName.substring(0, 2).toUpperCase()}
+                                    </div>
+                                )}
+                                <div className={cn("rounded-lg px-4 py-2 max-w-xs md:max-w-md", msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                                    <p className="text-sm">{msg.text}</p>
+                                    <p className="text-xs opacity-70 mt-1 text-right">
+                                        {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}
+                                    </p>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="text-center text-muted-foreground pt-10">
+                                <p>Nenhuma mensagem ainda. Seja o primeiro a dizer olá!</p>
+                            </div>
+                        )}
+                    </div>
+                </ScrollArea>
+                 <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2 pt-2 border-t">
+                    <Input 
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Escreva uma mensagem..." 
+                        disabled={!user || sendingMessage}
+                    />
+                    <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage}>
+                        {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4"/>}
+                    </Button>
+                </form>
             </CardContent>
           </Card>
         </div>
