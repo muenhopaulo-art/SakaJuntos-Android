@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { CirclePlus, Search, ShoppingCart, Users, Globe, Info } from 'lucide-react';
 import Link from 'next/link';
+import { CartSheet } from '@/components/cart-sheet';
 
 export default async function HomePage() {
   const products: Product[] = await getProducts();
@@ -32,12 +33,7 @@ export default async function HomePage() {
                       Ver Todos
                     </Link>
                   </Button>
-                  <Button variant="outline" size="icon" asChild>
-                    <Link href="/cart">
-                      <ShoppingCart className="h-5 w-5" />
-                      <span className="sr-only">Carrinho</span>
-                    </Link>
-                  </Button>
+                  <CartSheet />
                 </div>
               </div>
 

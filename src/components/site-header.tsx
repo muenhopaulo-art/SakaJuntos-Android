@@ -7,6 +7,7 @@ import { Sheet, SheetTrigger } from './ui/sheet';
 import { Menu, ShoppingCart, User } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
+import { CartSheet } from './cart-sheet';
 
 export function SiteHeader() {
   const { totalItems } = useCart();
@@ -73,36 +74,10 @@ export function SiteHeader() {
                   Login
                 </Link>
               </Button>
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="h-5 w-5" />
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs">
-                      {totalItems}
-                    </span>
-                  )}
-                  <span className="sr-only">Abrir carrinho</span>
-                </Button>
-              </SheetTrigger>
-              <CartSheetContent />
-            </Sheet>
+              <CartSheet />
           </nav>
            <div className="md:hidden">
-             <Sheet>
-                <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                    <ShoppingCart className="h-5 w-5" />
-                    {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs">
-                        {totalItems}
-                    </span>
-                    )}
-                    <span className="sr-only">Abrir carrinho</span>
-                </Button>
-                </SheetTrigger>
-                <CartSheetContent />
-            </Sheet>
+             <CartSheet />
            </div>
         </div>
       </div>
