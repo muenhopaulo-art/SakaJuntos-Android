@@ -33,6 +33,7 @@ export default async function HomePage() {
                       Ver Todos
                     </Link>
                   </Button>
+                  <CartSheet />
                 </div>
               </div>
 

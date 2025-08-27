@@ -151,7 +151,6 @@ export function SiteHeader() {
                     <Link href="/login">Login</Link>
                 </Button>
              )}
-            <CartSheet />
           </nav>
         </div>
       </div>
