@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requestToJoinGroup } from '@/services/product-service';
+import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requestToJoinGroup, deleteGroup } from '@/services/product-service';
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -24,6 +24,7 @@ import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/fire
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
@@ -73,35 +74,37 @@ const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
     const [currentTime, setCurrentTime] = useState(0);
 
     useEffect(() => {
-        // Create an audio element in memory to get duration, but don't attach to DOM
         const audio = new Audio(src);
         audio.addEventListener('loadedmetadata', () => {
-            setDuration(audio.duration);
+            if (isFinite(audio.duration)) {
+              setDuration(audio.duration);
+            }
         });
-        // assign to ref
         audioRef.current = audio;
 
         const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
         const handleEnded = () => {
             setIsPlaying(false);
-            setCurrentTime(0); // Reset on end
+            setCurrentTime(0);
         }
 
         audio.addEventListener('timeupdate', handleTimeUpdate);
         audio.addEventListener('ended', handleEnded);
 
         return () => {
+            audio.pause();
             audio.removeEventListener('timeupdate', handleTimeUpdate);
             audio.removeEventListener('ended', handleEnded);
         };
     }, [src]);
 
-    const togglePlayPause = () => {
+    const togglePlayPause = (e: React.MouseEvent) => {
+        e.stopPropagation();
         if (!audioRef.current) return;
         if (isPlaying) {
             audioRef.current.pause();
         } else {
-            audioRef.current.play();
+            audioRef.current.play().catch(err => console.error("Error playing audio:", err));
         }
         setIsPlaying(!isPlaying);
     };
@@ -153,6 +156,9 @@ export default function GroupDetailPage() {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
 
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -253,6 +259,19 @@ export default function GroupDetailPage() {
     setActionLoading(prev => ({ ...prev, [userId]: false }));
   };
 
+  const handleDeleteGroup = async () => {
+    if (!group) return;
+    setActionLoading(prev => ({...prev, delete: true}));
+    const result = await deleteGroup(group.id);
+     if (result.success) {
+      toast({ title: 'Grupo Eliminado', description: 'O grupo foi eliminado com sucesso.' });
+      router.push('/grupos');
+    } else {
+      toast({ variant: 'destructive', title: 'Erro!', description: result.message });
+    }
+     setActionLoading(prev => ({...prev, delete: false}));
+  };
+
   const handleAddToGroupCart = (product: Product) => {
     setGroupCart(prevCart => {
         const existingItem = prevCart.find(item => item.product.id === product.id);
@@ -330,6 +349,10 @@ export default function GroupDetailPage() {
 
         mediaRecorderRef.current.start();
         setIsRecording(true);
+        setRecordingTime(0);
+        recordingIntervalRef.current = setInterval(() => {
+            setRecordingTime(prev => prev + 1);
+        }, 1000);
         toast({ title: "Gravação iniciada", description: "Clique no botão parar para enviar." });
     } catch (error) {
         console.error("Error accessing microphone:", error);
@@ -337,13 +360,21 @@ export default function GroupDetailPage() {
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = (send: boolean) => {
       if (mediaRecorderRef.current && isRecording) {
           mediaRecorderRef.current.stop();
-          // Stop all media tracks to turn off the recording indicator
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
           setIsRecording(false);
-          toast({ title: "Gravação terminada", description: "A enviar a sua mensagem de voz..." });
+          if (recordingIntervalRef.current) {
+            clearInterval(recordingIntervalRef.current);
+          }
+          setRecordingTime(0);
+          if (send) {
+            toast({ title: "Gravação terminada", description: "A enviar a sua mensagem de voz..." });
+          } else {
+            toast({ title: "Gravação cancelada" });
+            audioChunksRef.current = [];
+          }
       }
   };
 
@@ -385,12 +416,29 @@ export default function GroupDetailPage() {
   }
 
   const isCreator = user?.uid === group.creatorId;
+  const isMember = group.members.some(m => m.uid === user?.uid);
   const members = group.members || [];
   const joinRequests = group.joinRequests || [];
   const totalMembers = members.length > 0 ? members.length : 1;
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
   
+  if (!isMember) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <div className='mb-4'>
+            <Button variant="outline" onClick={() => router.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+            </Button>
+        </div>
+        <ShieldAlert className="mx-auto h-16 w-16 text-destructive mb-4"/>
+        <h1 className="text-2xl font-bold">Acesso Restrito</h1>
+        <p className="text-muted-foreground">Não é membro deste grupo e não pode ver os seus detalhes.</p>
+      </div>
+    )
+  }
+
   const ChatContent = () => (
     <div className="flex flex-col h-full">
         <SheetHeader className="px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-2">
@@ -437,21 +485,35 @@ export default function GroupDetailPage() {
             </ScrollArea>
         </div>
         <div className="px-4 sm:px-6 py-4 border-t bg-background">
-             <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
-                <Input 
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Escreva uma mensagem..." 
-                    disabled={!user || sendingMessage || isRecording}
-                    className="flex-1"
-                />
-                <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage || isRecording}>
-                    <Send className="h-4 w-4"/>
-                </Button>
-                 <Button type="button" size="icon" variant={isRecording ? "destructive" : "outline"} onClick={isRecording ? stopRecording : startRecording} disabled={sendingMessage}>
-                    {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4"/>}
-                </Button>
-            </form>
+             {isRecording ? (
+                <div className="flex items-center gap-2">
+                    <Button type="button" size="icon" variant="destructive" onClick={() => stopRecording(true)}>
+                      <Send className="h-4 w-4"/>
+                    </Button>
+                    <div className="flex-1 text-center bg-muted rounded-md px-3 py-2 text-sm">
+                        <span className="text-red-500 animate-pulse mr-2">•</span> Gravando: {formatTime(recordingTime)}
+                    </div>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => stopRecording(false)}>
+                        <X className="h-5 w-5"/>
+                    </Button>
+                </div>
+             ) : (
+                <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
+                    <Input 
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Escreva uma mensagem..." 
+                        disabled={!user || sendingMessage}
+                        className="flex-1"
+                    />
+                    <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage}>
+                        <Send className="h-4 w-4"/>
+                    </Button>
+                    <Button type="button" size="icon" variant="outline" onClick={startRecording} disabled={sendingMessage}>
+                        <Mic className="h-4 w-4"/>
+                    </Button>
+                </form>
+             )}
         </div>
     </div>
   );
@@ -612,6 +674,28 @@ export default function GroupDetailPage() {
                   {members.length === 0 && joinRequests.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center">Nenhum membro ou pedido de adesão.</p>
                   )}
+                  <Separator/>
+                   {/* Delete Group */}
+                   <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                         <Button variant="destructive" className="w-full" disabled={actionLoading['delete']}>
+                            {actionLoading['delete'] ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash className="mr-2 h-4 w-4"/>}
+                            Eliminar Grupo
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Isto irá eliminar permanentemente o grupo, incluindo todos os membros, pedidos e mensagens.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteGroup} className={cn(buttonVariants({ variant: "destructive" }))}>Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                 </CardContent>
             </Card>
           )}

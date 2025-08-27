@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest } from '@/lib/types';
 import { getUser } from './user-service';
@@ -196,6 +196,36 @@ export async function removeMember(groupId: string, userId: string, isCreator: b
 
     } catch (error) {
         console.error("Error removing member:", error);
+        return { success: false, message: (error as Error).message };
+    }
+}
+
+async function deleteSubcollection(d: typeof db, collectionPath: string) {
+    const q = query(collection(d, collectionPath));
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(d);
+    snapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+}
+
+
+export async function deleteGroup(groupId: string) {
+    try {
+        const groupRef = doc(db, 'groupPromotions', groupId);
+
+        // Delete all subcollections first
+        await deleteSubcollection(db, `groupPromotions/${groupId}/members`);
+        await deleteSubcollection(db, `groupPromotions/${groupId}/joinRequests`);
+        await deleteSubcollection(db, `groupPromotions/${groupId}/messages`);
+        
+        // Finally, delete the group document itself
+        await deleteDoc(groupRef);
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting group:", error);
         return { success: false, message: (error as Error).message };
     }
 }
