@@ -23,7 +23,7 @@ import { pt } from 'date-fns/locale';
 import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
 
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
