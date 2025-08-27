@@ -48,10 +48,11 @@ export function SiteHeader() {
   }
 
   const navLinks = [
+    { href: '/', label: 'Início'},
+    { href: '/minishopping', label: 'MiniShopping' },
+    { href: '/grupos', label: 'Grupos' },
     { href: '/cart', label: 'Carrinho' },
   ];
-
-  const desktopNavLinks: { href: string; label: string }[] = [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -62,11 +63,12 @@ export function SiteHeader() {
             <span className="hidden font-bold sm:inline-block font-headline">SakaJuntos</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
-            {desktopNavLinks.map(link => (
-                <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
-                    {link.label}
-                </Link>
-            ))}
+             <Link href="/minishopping" className="transition-colors hover:text-foreground/80 text-foreground/60">
+                MiniShopping
+            </Link>
+             <Link href="/grupos" className="transition-colors hover:text-foreground/80 text-foreground/60">
+                Grupos
+            </Link>
           </nav>
         </div>
 

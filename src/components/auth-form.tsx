@@ -121,11 +121,11 @@ export function AuthForm() {
   }
 
   return (
-    <div className="w-full max-w-sm mx-auto">
-      <Card className="p-8 sm:p-12 rounded-[3rem] shadow-2xl">
+    <div className="w-full max-w-md mx-auto">
+      <Card className="p-6 sm:p-8 md:p-12 rounded-2xl sm:rounded-3xl shadow-2xl">
         <header className="text-center mb-8">
-            <Logo className="h-28 w-28 sm:h-36 sm:w-36 mx-auto text-primary" />
-            <h1 className="text-3xl font-bold text-gray-900 tracking-wide uppercase mt-4">
+            <Logo className="h-24 w-24 sm:h-32 sm:w-32 mx-auto text-primary" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-wide uppercase mt-4">
                 SakaJuntos
             </h1>
             <p className="text-sm font-light text-gray-500 mt-2 tracking-wide mb-6">

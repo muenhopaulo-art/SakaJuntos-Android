@@ -56,19 +56,19 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
 
   return (
     <section>
-        <div className="flex flex-col md:flex-row justify-between items-start mb-6">
-        <div className='mb-4 md:mb-0'>
+        <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
+        <div className='flex-grow'>
             <h2 className="text-3xl font-bold font-headline">Grupos de Compras</h2>
             <p className="text-muted-foreground">Junte-se a outros para poupar em compras em grupo.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <CreateGroupForm>
-                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto">
                 <CirclePlus className="mr-2 h-4 w-4" />
                 Criar Novo Grupo
                 </Button>
             </CreateGroupForm>
-            <Button variant="outline" onClick={() => alert('Funcionalidade de aderir com ID a ser implementada.')}>
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => alert('Funcionalidade de aderir com ID a ser implementada.')}>
                 <Users className="mr-2 h-4 w-4" />
                 Aderir com ID
             </Button>

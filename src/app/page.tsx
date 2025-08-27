@@ -30,13 +30,13 @@ export default async function HomePage() {
         {/* Mini-Shopping Section */}
         <section>
           <Card className="overflow-hidden">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col md:flex-row justify-between items-start mb-6">
                 <div className="mb-4 md:mb-0">
                   <h2 className="text-3xl font-bold font-headline">Mini-Shopping</h2>
                   <p className="text-muted-foreground">Compre produtos individualmente, sem precisar de um grupo.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end md:self-auto">
                   <Button variant="ghost" asChild>
                     <Link href="/minishopping">
                       <Search className="mr-2 h-4 w-4" />

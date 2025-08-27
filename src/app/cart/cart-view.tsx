@@ -47,53 +47,55 @@ export function CartView() {
   }
 
   return (
-    <div className="grid md:grid-cols-3 gap-8">
-      <div className="md:col-span-2">
+    <div className="grid lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-2">
         <h1 className="text-3xl font-bold mb-6 font-headline">Seu Carrinho ({totalItems} {totalItems === 1 ? 'item' : 'itens'})</h1>
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Produto</TableHead>
-                  <TableHead></TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead>Preço</TableHead>
-                  <TableHead className="text-right"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map(item => (
-                  <TableRow key={item.product.id}>
-                    <TableCell>
-                      <Image src={item.product.image} alt={item.product.name} width={64} height={64} className="rounded-md object-cover" data-ai-hint={item.product.aiHint} />
-                    </TableCell>
-                    <TableCell className="font-medium">{item.product.name}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateItemQuantity(item.product.id, item.quantity - 1)}>
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span>{item.quantity}</span>
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateItemQuantity(item.product.id, item.quantity + 1)}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price * item.quantity)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => removeItem(item.product.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">Produto</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Quantidade</TableHead>
+                    <TableHead>Preço</TableHead>
+                    <TableHead className="text-right"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {items.map(item => (
+                    <TableRow key={item.product.id}>
+                      <TableCell>
+                        <Image src={item.product.image} alt={item.product.name} width={64} height={64} className="rounded-md object-cover" data-ai-hint={item.product.aiHint} />
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{item.product.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateItemQuantity(item.product.id, item.quantity - 1)}>
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-6 text-center">{item.quantity}</span>
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateItemQuantity(item.product.id, item.quantity + 1)}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price * item.quantity)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => removeItem(item.product.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
-      <div className="md:col-span-1">
+      <div className="lg:col-span-1">
         <Card>
           <CardHeader>
             <CardTitle className="font-headline">Resumo do Pedido</CardTitle>

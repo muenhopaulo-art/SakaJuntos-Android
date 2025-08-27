@@ -322,9 +322,9 @@ export default function GroupDetailPage() {
           <span className="sr-only">Voltar</span>
         </Button>
         <div className="flex-grow">
-          <h1 className="text-4xl font-bold tracking-tight font-headline">{group.name}</h1>
-          <p className="text-xl text-muted-foreground">{group.description}</p>
-          <div className="flex items-center gap-4 text-muted-foreground mt-2">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">{group.name}</h1>
+          <p className="text-lg md:text-xl text-muted-foreground">{group.description}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-muted-foreground mt-2">
             <div className="flex items-center gap-1">
               <Users className="w-5 h-5" />
               <span>{group.participants} / {group.target} membros</span>
@@ -337,8 +337,8 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-8">
+      <div className="grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
            {/* Products Section */}
           <Card>
             <CardHeader>
@@ -348,7 +348,7 @@ export default function GroupDetailPage() {
             <CardContent>
                 {products.length > 0 ? (
                     <ScrollArea className="h-96 w-full pr-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                             {products.map(product => (
                                 <ProductCard key={product.id} product={product} onAddToCart={handleAddToGroupCart} />
                             ))}
@@ -378,7 +378,7 @@ export default function GroupDetailPage() {
                                        {msg.senderName.substring(0, 2).toUpperCase()}
                                     </div>
                                 )}
-                                <div className={cn("rounded-lg px-3 py-2 max-w-xs md:max-w-md", msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                                <div className={cn("rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md", msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
                                     <p className="text-xs font-bold mb-1">{msg.senderName}</p>
                                     {msg.text && <p className="text-sm">{msg.text}</p>}
                                     {msg.audioSrc && (
@@ -414,7 +414,7 @@ export default function GroupDetailPage() {
           </Card>
         </div>
 
-        <div className="md:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-6">
             {/* Group Cart & Contributions */}
             <Card>
                 <CardHeader>
@@ -484,7 +484,7 @@ export default function GroupDetailPage() {
                         <div className="space-y-2">
                         {joinRequests.map(req => (
                             <div key={req.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                            <span>{req.name}</span>
+                            <span className="truncate">{req.name}</span>
                              {actionLoading[req.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                                 <div className="flex gap-1">
                                     <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => handleAction(req.uid, 'approve')}><UserPlus/></Button>
