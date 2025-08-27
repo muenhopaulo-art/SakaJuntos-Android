@@ -2,11 +2,12 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentData, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentData, serverTimestamp, onSnapshot, DocumentSnapshot } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation } from '@/lib/types';
 import { getUser } from './user-service';
 import { createFinalOrder } from './order-service';
+
 
 // Helper function to convert Firestore data to a plain object
 const convertDocToProduct = (doc: DocumentData): Product => {
@@ -31,14 +32,20 @@ async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: 
     const snapshot = await getDocs(subCollectionRef);
     return snapshot.docs.map(doc => {
         const data = doc.data();
-        const plainData: any = { ...data, id: doc.id, uid: doc.id };
-
-        // Convert any Timestamps to numbers
-        for (const key in plainData) {
-            if (plainData[key] instanceof Timestamp) {
-                plainData[key] = plainData[key].toMillis();
+        // Create a plain object
+        const plainData: any = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                const value = data[key];
+                if (value instanceof Timestamp) {
+                    plainData[key] = value.toMillis();
+                } else {
+                    plainData[key] = value;
+                }
             }
         }
+        plainData.id = doc.id;
+        plainData.uid = doc.id;
         return plainData as T;
     });
 }
@@ -140,39 +147,32 @@ export async function requestToJoinGroup(groupId: string, userId: string) {
     }
 }
 
-export async function approveJoinRequest(groupId: string, userId: string) {
-     try {
-        await runTransaction(db, async (transaction) => {
-            const groupRef = doc(db, 'groupPromotions', groupId);
-            const requestRef = doc(db, 'groupPromotions', groupId, 'joinRequests', userId);
-            const memberRef = doc(db, 'groupPromotions', groupId, 'members', userId);
-            const requestSnap = await transaction.get(requestRef);
-            if (!requestSnap.exists()) throw new Error("Join request does not exist.");
-            const groupSnap = await transaction.get(groupRef);
-            if (!groupSnap.exists()) throw new Error("Group does not exist.");
-            transaction.set(memberRef, { name: requestSnap.data().name, joinedAt: serverTimestamp() });
-            transaction.delete(requestRef);
-            const newParticipantCount = (groupSnap.data().participants || 0) + 1;
-            transaction.update(groupRef, { participants: newParticipantCount });
-        });
-        return { success: true };
-    } catch (error) {
-        console.error("Error approving join request:", error);
-        return { success: false, message: (error as Error).message };
-    }
-}
-
 export async function removeMember(groupId: string, userId: string, isCreator: boolean) {
     if (isCreator) return { success: false, message: "Cannot remove the creator of the group." };
     try {
         await runTransaction(db, async (transaction) => {
             const groupRef = doc(db, 'groupPromotions', groupId);
             const memberRef = doc(db, 'groupPromotions', groupId, 'members', userId);
+            
+            // Check if member exists before trying to delete
             const memberSnap = await transaction.get(memberRef);
-            if (memberSnap.exists()) transaction.delete(memberRef);
+            if (!memberSnap.exists()) {
+                // If member doesn't exist in members, maybe they are in joinRequests
+                const requestRef = doc(db, 'groupPromotions', groupId, 'joinRequests', userId);
+                const requestSnap = await transaction.get(requestRef);
+                if (requestSnap.exists()) {
+                    transaction.delete(requestRef);
+                }
+                // If neither exist, just return, no need to throw error.
+                return;
+            }
+            
+            transaction.delete(memberRef);
+
             const groupSnap = await transaction.get(groupRef);
             if (!groupSnap.exists()) throw new Error("Group does not exist.");
-            const newParticipantCount = Math.max(0, (groupSnap.data().participants || 0) - 1);
+            const currentParticipants = groupSnap.data().participants || 0;
+            const newParticipantCount = Math.max(0, currentParticipants - 1);
             transaction.update(groupRef, { participants: newParticipantCount });
         });
         return { success: true };

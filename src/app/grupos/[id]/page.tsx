@@ -3,7 +3,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { approveJoinRequest, removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, convertDocToGroupPromotion } from '@/services/product-service';
+import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts } from '@/services/product-service';
+import { approveJoinRequest } from './actions';
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -20,11 +21,87 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { collection, query, orderBy, onSnapshot, Timestamp, doc, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, Timestamp, doc, getDocs, getDoc, DocumentData } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+// Helper function to convert Firestore data to a plain object
+const convertDocToProduct = (doc: DocumentData): Product => {
+  const data = doc.data();
+  const product: Product = {
+    id: doc.id,
+    name: data.name,
+    description: data.description,
+    price: data.price,
+    aiHint: data.aiHint,
+  };
+
+  if (data.createdAt && data.createdAt instanceof Timestamp) {
+    product.createdAt = data.createdAt.toMillis();
+  }
+
+  return product;
+}
+
+async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
+    const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
+    const snapshot = await getDocs(subCollectionRef);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Create a plain object
+        const plainData: any = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                const value = data[key];
+                if (value instanceof Timestamp) {
+                    plainData[key] = value.toMillis();
+                } else {
+                    plainData[key] = value;
+                }
+            }
+        }
+        plainData.id = doc.id;
+        plainData.uid = doc.id;
+        return plainData as T;
+    });
+}
+
+
+async function convertDocToGroupPromotion(id: string, data: DocumentData): Promise<GroupPromotion> {
+    if (!data) {
+        throw new Error("Document data not found for ID: " + id);
+    }
+
+    const [members, joinRequests, groupCart, contributions] = await Promise.all([
+        getSubCollection<GroupMember>(id, 'members'),
+        getSubCollection<JoinRequest>(id, 'joinRequests'),
+        getSubCollection<CartItem>(id, 'groupCart'),
+        getSubCollection<Contribution>(id, 'contributions')
+    ]);
+
+    const promotion: GroupPromotion = {
+        id: id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        aiHint: data.aiHint,
+        participants: data.participants,
+        target: data.target,
+        creatorId: data.creatorId,
+        members,
+        joinRequests,
+        groupCart,
+        contributions
+    };
+
+    if (data.createdAt && data.createdAt instanceof Timestamp) {
+        promotion.createdAt = data.createdAt.toMillis();
+    }
+
+    return promotion;
+}
 
 
 // Real-time listeners
@@ -239,7 +316,15 @@ export default function GroupDetailPage() {
         toast({variant: "destructive", title: "Apenas o criador do grupo pode modificar o carrinho."});
         return;
     }
-    await updateGroupCart(group.id, product, change, newQuantity);
+    // We create a plain product object to avoid passing complex objects (like Timestamps) to server actions
+    const plainProduct: Product = {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        aiHint: product.aiHint,
+    };
+    await updateGroupCart(group.id, plainProduct, change, newQuantity);
     if(change === 'add') {
          toast({
           title: "Adicionado ao Grupo!",
