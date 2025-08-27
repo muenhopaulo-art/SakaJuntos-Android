@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { getGroupPromotions, approveJoinRequest, removeMember, getProducts } from '@/services/product-service';
-import type { GroupPromotion, Product } from '@/lib/types';
+import type { GroupPromotion, Product, CartItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,8 +31,7 @@ export default function GroupDetailPage() {
   const [user, authLoading] = useAuthState(auth);
   const { toast } = useToast();
   
-  // Placeholder state for group cart
-  const [groupCartTotal, setGroupCartTotal] = useState(0);
+  const [groupCart, setGroupCart] = useState<CartItem[]>([]);
 
   const fetchGroupData = useCallback(async () => {
     if (!params.id) return;
@@ -84,6 +83,23 @@ export default function GroupDetailPage() {
     setActionLoading(prev => ({ ...prev, [userId]: false }));
   };
 
+  const handleAddToGroupCart = (product: Product) => {
+    setGroupCart(prevCart => {
+        const existingItem = prevCart.find(item => item.product.id === product.id);
+        if (existingItem) {
+            return prevCart.map(item =>
+                item.product.id === product.id
+                    ? { ...item, quantity: item.quantity + 1 }
+                    : item
+            );
+        }
+        return [...prevCart, { product, quantity: 1 }];
+    });
+    toast({
+      title: "Adicionado ao Grupo!",
+      description: `${product.name} foi adicionado ao carrinho do grupo.`,
+    });
+  };
 
   if (loading || authLoading) {
     return (
@@ -119,6 +135,7 @@ export default function GroupDetailPage() {
   const members = group.members || [];
   const joinRequests = group.joinRequests || [];
   const totalMembers = members.length > 0 ? members.length : 1;
+  const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
 
   return (
@@ -151,7 +168,7 @@ export default function GroupDetailPage() {
                     <ScrollArea className="h-96 w-full pr-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {products.map(product => (
-                                <ProductCard key={product.id} product={product} />
+                                <ProductCard key={product.id} product={product} onAddToCart={handleAddToGroupCart} />
                             ))}
                         </div>
                     </ScrollArea>

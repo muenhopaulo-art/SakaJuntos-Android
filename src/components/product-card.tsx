@@ -3,19 +3,28 @@
 import Image from 'next/image';
 import type { Product } from '@/lib/types';
 import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { useCart } from '@/contexts/cart-context';
 import { ShoppingCart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
+  onAddToCart?: (product: Product) => void;
 }
 
 const PLACEHOLDER_IMAGE = "https://picsum.photos/400/400";
 
-export function ProductCard({ product }: ProductCardProps) {
-  const { addItem } = useCart();
+export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+  const { addItem: addPersonalItem } = useCart();
   const imageUrl = product.image || PLACEHOLDER_IMAGE;
+
+  const handleAddToCart = () => {
+    if (onAddToCart) {
+      onAddToCart(product);
+    } else {
+      addPersonalItem(product);
+    }
+  };
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 bg-card">
@@ -29,7 +38,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="text-lg font-bold text-foreground mb-4">
           {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}
         </p>
-        <Button className="w-full mt-auto" onClick={() => addItem(product)}>
+        <Button className="w-full mt-auto" onClick={handleAddToCart}>
           <ShoppingCart className="mr-2 h-4 w-4" />
           Adicionar
         </Button>
