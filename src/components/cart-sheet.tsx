@@ -14,7 +14,7 @@ export function CartSheet() {
         <Button variant="outline" size="icon" className="relative ml-2">
           <ShoppingCart className="h-5 w-5" />
           {totalItems > 0 && (
-            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs">
+            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
               {totalItems}
             </span>
           )}

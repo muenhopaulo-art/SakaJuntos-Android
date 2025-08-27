@@ -1,92 +1,90 @@
-'use client';
+import { getGroupPromotions, getProducts } from '@/services/product-service';
+import type { GroupPromotion, Product } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, ShoppingBag, Users } from 'lucide-react';
+import { HomePageClient } from '@/components/home-page-client';
+import { ProductsCarousel } from '@/components/products-carousel';
+import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-import * as React from 'react';
-import { useEffect } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
-import { getUser, User } from '@/services/user-service';
-import { Loader } from 'lucide-react';
-import { Logo } from '@/components/Logo';
-import { Dashboard } from '@/components/Dashboard';
-import { AdminDashboard } from '@/components/AdminDashboard';
-import { LojistaDashboard } from '@/components/LojistaDashboard';
-import { LojistaOnboarding } from '@/components/LojistaOnboarding';
-
-export default function HomePage() {
-  const [user, authLoading] = useAuthState(auth);
-  const [appUser, setAppUser] = React.useState<User | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (user) {
-        try {
-          const profile = await getUser(user.uid);
-          setAppUser(profile);
-        } catch (error) {
-          console.error("Failed to fetch user profile, logging out.", error);
-          // Optional: redirect to an error page or show a toast
-          auth.signOut();
+function getErrorMessage(error: any): string {
+    if (error && typeof error.message === 'string') {
+        if (error.message.includes('not-found')) {
+            return "O banco de dados Firestore não foi encontrado. Por favor, crie um no seu projeto Firebase.";
         }
-      }
-      setLoading(false);
-    };
-
-    if (!authLoading) {
-      fetchUser();
+        if (error.message.includes('permission-denied')) {
+            return "A API do Firestore não está habilitada. Por favor, habilite-a no seu projeto Google Cloud.";
+        }
+        return error.message;
     }
-  }, [user, authLoading]);
+    return "Ocorreu um erro desconhecido ao buscar os dados.";
+}
 
-  const handleLogout = async () => {
-    await auth.signOut();
-    // AuthGuard will handle the redirect to /login
-  };
-  
-  if (authLoading || loading) {
-     return (
-       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-        <div className="relative flex items-center justify-center w-32 h-32">
-          <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse"></div>
-          <Logo className="w-20 h-20 text-primary animate-pulse" />
-        </div>
-        <p className="mt-6 text-lg font-semibold text-muted-foreground animate-pulse">A carregar...</p>
-      </div>
-    );
+export default async function HomePage() {
+  let products: Product[] = [];
+  let groupPromotions: GroupPromotion[] = [];
+  let error: string | null = null;
+
+  try {
+    // Fetch both products and group promotions in parallel
+    [products, groupPromotions] = await Promise.all([
+        getProducts(),
+        getGroupPromotions()
+    ]);
+  } catch (e: any) {
+    console.error(e);
+    error = getErrorMessage(e);
   }
 
-  if (!user || !appUser) {
-    // This case should be handled by AuthGuard, but as a fallback:
-    router.push('/login');
-    return null;
-  }
-  
-  const renderDashboard = () => {
-    switch (appUser.role) {
-      case 'admin':
-        return <AdminDashboard user={appUser} onLogout={handleLogout} />;
-      case 'lojista':
-        if (appUser.storeStatus === 'approved') {
-          return <LojistaDashboard user={appUser} onLogout={handleLogout} />;
-        }
-        return <LojistaOnboarding user={appUser} onLogout={handleLogout} />;
-      case 'client':
-      default:
-        // Client can also be in the process of becoming a lojista
-        if (appUser.wantsToBeLojista) {
-            return <LojistaOnboarding user={appUser} onLogout={handleLogout} />;
-        }
-        return <Dashboard user={appUser} onLogout={handleLogout} />;
-    }
-  };
-
+  const hasData = products.length > 0 || groupPromotions.length > 0;
 
   return (
-     <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
-      <div className="w-full max-w-2xl">
-       {renderDashboard()}
+    <div className="container mx-auto px-4 py-8">
+       <div className="space-y-4 mb-8 text-center">
+        <h1 className="text-4xl font-bold tracking-tight font-headline">Bem-vindo à SakaJuntos</h1>
+        <p className="text-xl text-muted-foreground">
+          A sua plataforma para compras individuais e em grupo. Mais perto de si.
+        </p>
       </div>
+
+       {error ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Erro ao Carregar Dados</AlertTitle>
+          <AlertDescription>
+            {error}
+            <p className="mt-2">Por favor, tente novamente ou verifique a sua conexão. Se o problema persistir, certifique-se que a base de dados existe e que a API do Firestore está habilitada na sua conta Google Cloud.</p>
+          </AlertDescription>
+        </Alert>
+       ) : !hasData ? (
+        <div className="text-center py-10 border-2 border-dashed rounded-lg">
+          <p className="text-lg font-semibold text-muted-foreground">A sua loja está vazia.</p>
+          <p className="text-muted-foreground mt-2">Para começar, adicione alguns produtos e promoções à sua base de dados.</p>
+          <Link href="/seed" className={cn(buttonVariants({ variant: 'default', size: 'lg'}), "mt-6")}>
+            Popular a Base de Dados
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-12">
+            {products.length > 0 && (
+                <section>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> MiniShopping</h2>
+                        <Link href="/minishopping" className={cn(buttonVariants({ variant: 'outline'}))}>Ver Todos</Link>
+                    </div>
+                    <ProductsCarousel products={products} />
+                </section>
+            )}
+
+            {products.length > 0 && groupPromotions.length > 0 && <Separator/>}
+
+            {groupPromotions.length > 0 && (
+                <HomePageClient allPromotions={groupPromotions} error={error} />
+            )}
+        </div>
+      )}
     </div>
   );
 }

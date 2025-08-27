@@ -49,7 +49,8 @@ export function SiteHeader() {
 
   const navLinks = [
     { href: '/', label: 'Início'},
-    { href: '/cart', label: 'Carrinho' },
+    { href: '/minishopping', label: 'MiniShopping' },
+    { href: '/grupos', label: 'Grupos' },
   ];
 
   return (
@@ -105,6 +106,7 @@ export function SiteHeader() {
              {loading ? (
                 <div className='h-8 w-20 bg-muted animate-pulse rounded-md' />
              ) : user && appUser ? (
+                <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -118,13 +120,13 @@ export function SiteHeader() {
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">{appUser.name}</p>
                         <p className="text-xs leading-none text-muted-foreground">
-                          {appUser.email}
+                          {user.email}
                         </p>
                       </div>
                     </DropdownMenuLabel>
                      <DropdownMenuSeparator />
                      <DropdownMenuItem asChild>
-                        <Link href="/">
+                        <Link href="/dashboard">
                             <LayoutDashboard className="mr-2 h-4 w-4" />
                             <span>Painel</span>
                         </Link>
@@ -136,6 +138,8 @@ export function SiteHeader() {
                      </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <CartSheet />
+                </>
              ) : (
                 <Button asChild>
                     <Link href="/login">Login</Link>
