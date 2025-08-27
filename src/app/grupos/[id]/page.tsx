@@ -6,7 +6,7 @@ import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requ
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Volume2, Waveform } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -22,6 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { getAudioForText } from './actions';
 
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
@@ -74,6 +75,10 @@ export default function GroupDetailPage() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const chatAreaRef = useRef<HTMLDivElement>(null);
 
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioSrc, setAudioSrc] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
 
   // Effect to load cart from localStorage
   useEffect(() => {
@@ -109,6 +114,12 @@ export default function GroupDetailPage() {
     // Cleanup listener on component unmount
     return () => unsubscribe();
   }, [groupId]);
+
+  useEffect(() => {
+    if (audioSrc && audioRef.current) {
+        audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+    }
+  }, [audioSrc]);
 
 
   const fetchGroupData = useCallback(async () => {
@@ -220,6 +231,30 @@ export default function GroupDetailPage() {
         toast({ variant: 'destructive', title: 'Erro ao enviar mensagem.', description: result.message });
     }
     setSendingMessage(false);
+  }
+
+  const handlePlayAudio = async (messageId: string, text: string) => {
+    if (playingAudioId === messageId) {
+        if (audioRef.current) {
+            if (audioRef.current.paused) {
+                audioRef.current.play();
+            } else {
+                audioRef.current.pause();
+            }
+        }
+        return;
+    }
+
+    setPlayingAudioId(messageId);
+    setAudioSrc(null);
+    const result = await getAudioForText(text);
+
+    if (result.success && result.audio) {
+        setAudioSrc(result.audio);
+    } else {
+        toast({ variant: 'destructive', title: 'Erro ao gerar áudio.' });
+        setPlayingAudioId(null);
+    }
   }
 
 
@@ -334,7 +369,12 @@ export default function GroupDetailPage() {
                                     {msg.senderId !== user?.uid && (
                                         <p className="text-xs font-bold mb-1">{msg.senderName}</p>
                                     )}
-                                    <p className="text-sm">{msg.text}</p>
+                                    <div className='flex items-center gap-2'>
+                                      <p className="text-sm">{msg.text}</p>
+                                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handlePlayAudio(msg.id, msg.text)} disabled={playingAudioId === msg.id && !audioSrc}>
+                                          {playingAudioId === msg.id ? <Waveform className="h-4 w-4 animate-pulse" /> : <Volume2 className="h-4 w-4" />}
+                                      </Button>
+                                    </div>
                                     <p className="text-xs opacity-70 mt-1 text-right">
                                         {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}
                                     </p>
@@ -454,7 +494,7 @@ export default function GroupDetailPage() {
                         <div className="space-y-2">
                         {members.map(mem => (
                             <div key={mem.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                            <span>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
+                            <span className='truncate'>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
                              {actionLoading[mem.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                                 <>
                                 {mem.uid !== group.creatorId && <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleAction(mem.uid, 'remove')}><UserMinus/></Button>}
@@ -485,6 +525,9 @@ export default function GroupDetailPage() {
           </Card>
         </div>
       </div>
+      {audioSrc && (
+        <audio ref={audioRef} src={audioSrc} onEnded={() => setPlayingAudioId(null)} onPause={() => setPlayingAudioId(null)} />
+      )}
     </div>
   );
 }
