@@ -6,7 +6,7 @@ import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requ
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -22,6 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
@@ -55,6 +56,77 @@ function listenToMessages(groupId: string, callback: (messages: ChatMessage[]) =
 
     return unsubscribe;
 }
+
+const formatTime = (seconds: number) => {
+  if (isNaN(seconds)) return '0:00';
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
+
+const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [duration, setDuration] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
+
+    useEffect(() => {
+        // Create an audio element in memory to get duration, but don't attach to DOM
+        const audio = new Audio(src);
+        audio.addEventListener('loadedmetadata', () => {
+            setDuration(audio.duration);
+        });
+        // assign to ref
+        audioRef.current = audio;
+
+        const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+        const handleEnded = () => setIsPlaying(false);
+
+        audio.addEventListener('timeupdate', handleTimeUpdate);
+        audio.addEventListener('ended', handleEnded);
+
+        return () => {
+            audio.removeEventListener('timeupdate', handleTimeUpdate);
+            audio.removeEventListener('ended', handleEnded);
+        };
+    }, [src]);
+
+    const togglePlayPause = () => {
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+    };
+
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    return (
+        <div className="flex items-center gap-3 w-full max-w-[250px]">
+            <Button
+                size="icon"
+                variant="ghost"
+                onClick={togglePlayPause}
+                className={cn(
+                    "rounded-full h-9 w-9 flex-shrink-0",
+                    isSender ? "text-primary-foreground hover:bg-white/20 hover:text-primary-foreground" : "text-foreground hover:bg-black/10"
+                )}
+            >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+            <div className="w-full space-y-1">
+                <Progress value={progress} className={cn("h-1.5", isSender ? "bg-white/30" : "bg-muted-foreground/30")} indicatorClassName={isSender ? "bg-primary-foreground" : "bg-foreground"}/>
+                <div className="flex justify-between text-xs opacity-80">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 export default function GroupDetailPage() {
@@ -316,21 +388,21 @@ export default function GroupDetailPage() {
   
   return (
     <div className="container mx-auto px-4 py-8">
-       <div className="flex items-center gap-4 mb-8">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
+       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+        <Button variant="outline" size="icon" onClick={() => router.back()} className="flex-shrink-0">
           <ArrowLeft className="h-4 w-4" />
           <span className="sr-only">Voltar</span>
         </Button>
         <div className="flex-grow">
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">{group.name}</h1>
-          <p className="text-lg md:text-xl text-muted-foreground">{group.description}</p>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-muted-foreground mt-2">
+          <p className="text-lg text-muted-foreground">{group.description}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-muted-foreground mt-2 text-sm">
             <div className="flex items-center gap-1">
-              <Users className="w-5 h-5" />
+              <Users className="w-4 h-4" />
               <span>{group.participants} / {group.target} membros</span>
             </div>
             <div className="flex items-center gap-1">
-              <UserCheck className="w-5 h-5" />
+              <UserCheck className="w-4 h-4" />
               <span>Criado por: {creatorName}</span>
             </div>
           </div>
@@ -371,25 +443,35 @@ export default function GroupDetailPage() {
             <CardContent className="flex-1 flex flex-col gap-4">
                 <ScrollArea className="h-64 pr-4 -mr-4" ref={chatAreaRef}>
                     <div className="space-y-4">
-                        {messages.length > 0 ? messages.map(msg => (
-                            <div key={msg.id} className={cn("flex items-start gap-2", msg.senderId === user?.uid ? "justify-end" : "justify-start")}>
-                                {msg.senderId !== user?.uid && (
+                        {messages.length > 0 ? messages.map(msg => {
+                            const isSender = msg.senderId === user?.uid;
+                            return (
+                            <div key={msg.id} className={cn("flex items-end gap-2.5", isSender ? "justify-end" : "justify-start")}>
+                                {!isSender && (
                                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
                                        {msg.senderName.substring(0, 2).toUpperCase()}
                                     </div>
                                 )}
-                                <div className={cn("rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md", msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
-                                    <p className="text-xs font-bold mb-1">{msg.senderName}</p>
-                                    {msg.text && <p className="text-sm">{msg.text}</p>}
+                                <div className={cn(
+                                    "rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md flex flex-col",
+                                    isSender ? "bg-primary text-primary-foreground" : "bg-muted",
+                                    { 'items-end': isSender, 'items-start': !isSender }
+                                    )}>
+                                    {!isSender && <p className="text-xs font-bold mb-1">{msg.senderName}</p>}
+                                    
+                                    {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
+                                    
                                     {msg.audioSrc && (
-                                        <audio controls src={msg.audioSrc} className="w-full h-10"/>
+                                        <AudioPlayer src={msg.audioSrc} isSender={isSender} />
                                     )}
-                                    <p className="text-xs opacity-70 mt-1 text-right">
+
+                                    <p className="text-xs opacity-70 mt-1.5 text-right">
                                         {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}
                                     </p>
                                 </div>
                             </div>
-                        )) : (
+                            )
+                        }) : (
                             <div className="text-center text-muted-foreground pt-10">
                                 <p>Nenhuma mensagem ainda. Seja o primeiro a dizer olá!</p>
                             </div>
@@ -428,14 +510,14 @@ export default function GroupDetailPage() {
                             <div className="space-y-4">
                                 {groupCart.map(item => (
                                     <div key={item.product.id} className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <Image src={item.product.image || "https://picsum.photos/48/48"} alt={item.product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint={item.product.aiHint}/>
-                                            <div>
-                                                <p className="font-semibold text-sm leading-tight">{item.product.name}</p>
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <Image src={item.product.image || "https://picsum.photos/48/48"} alt={item.product.name} width={48} height={48} className="rounded-md object-cover flex-shrink-0" data-ai-hint={item.product.aiHint}/>
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-sm leading-tight truncate">{item.product.name}</p>
                                                 <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
+                                        <div className="flex items-center gap-1 flex-shrink-0">
                                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCartQuantity(item.product.id, item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
                                             <span className="text-sm w-4 text-center">{item.quantity}</span>
                                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCartQuantity(item.product.id, item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
