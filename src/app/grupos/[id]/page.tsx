@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { getGroupPromotions, approveJoinRequest, removeMember } from '@/services/product-service';
-import type { GroupPromotion } from '@/lib/types';
+import { getGroupPromotions, approveJoinRequest, removeMember, getProducts } from '@/services/product-service';
+import type { GroupPromotion, Product } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ProductCard } from '@/components/product-card';
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
   const allPromotions = await getGroupPromotions();
@@ -22,6 +23,7 @@ async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> 
 export default function GroupDetailPage() {
   const params = useParams<{ id: string }>();
   const [group, setGroup] = useState<GroupPromotion | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [creatorName, setCreatorName] = useState<string>('Desconhecido');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
@@ -29,16 +31,23 @@ export default function GroupDetailPage() {
   const { toast } = useToast();
 
   const fetchGroupData = useCallback(async () => {
+    if (!params.id) return;
     try {
-      const groupData = await getGroupDetails(params.id);
+      const [groupData, productData] = await Promise.all([
+        getGroupDetails(params.id),
+        getProducts()
+      ]);
+      
       if (groupData) {
         setGroup(groupData);
         const creator = await getUser(groupData.creatorId);
         setCreatorName(creator.name);
       }
+      setProducts(productData);
+
     } catch (error) {
       console.error("Failed to fetch group data:", error);
-      toast({ variant: 'destructive', title: 'Erro ao carregar o grupo.' });
+      toast({ variant: 'destructive', title: 'Erro ao carregar os dados.' });
     } finally {
       setLoading(false);
     }
@@ -145,9 +154,17 @@ export default function GroupDetailPage() {
               <CardDescription>Veja os produtos e as contribuições de cada membro.</CardDescription>
             </CardHeader>
             <CardContent>
-               <div className="h-40 bg-muted rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground">(Divisão automática de contribuições a ser implementada)</p>
-              </div>
+                {products.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {products.map(product => (
+                            <ProductCard key={product.id} product={product} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="h-40 bg-muted rounded-md flex items-center justify-center">
+                        <p className="text-muted-foreground">Nenhum produto disponível para contribuição.</p>
+                    </div>
+                )}
             </CardContent>
           </Card>
         </div>
