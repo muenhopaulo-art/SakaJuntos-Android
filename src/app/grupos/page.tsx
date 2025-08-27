@@ -30,12 +30,16 @@ export default async function GruposPage() {
           <AlertTitle>Erro ao Carregar Promoções</AlertTitle>
           <AlertDescription>
             {error}
-            <p className="mt-2">Por favor, tente <a href="/seed" className="underline">popular a base de dados</a> ou verifique a sua conexão. Se o problema persistir, certifique-se que a API do Firestore está habilitada na sua conta Google Cloud.</p>
+            <p className="mt-2">Por favor, tente novamente ou verifique a sua conexão. Se o problema persistir, certifique-se que a API do Firestore está habilitada na sua conta Google Cloud.</p>
           </AlertDescription>
         </Alert>
        ) : groupPromotions.length === 0 ? (
-        <div className="text-center">
-          <p className="text-muted-foreground">Nenhuma promoção encontrada. Tente <a href="/seed" className="underline font-semibold">popular a base de dados</a>.</p>
+        <div className="text-center py-10 border-2 border-dashed rounded-lg">
+          <p className="text-lg font-semibold text-muted-foreground">Nenhuma promoção encontrada.</p>
+          <p className="text-muted-foreground mt-2">Parece que a base de dados está vazia. Que tal adicionar alguns produtos?</p>
+          <a href="/seed" className="inline-block mt-4 px-6 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90">
+            Popular a Base de Dados
+          </a>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
