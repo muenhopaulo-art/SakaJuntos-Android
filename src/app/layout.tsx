@@ -26,12 +26,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`light ${ptSans.variable}`}>
       <body className="font-body antialiased">
-        <AuthGuard>
-          <CartProvider>
+        <CartProvider>
+          <AuthGuard>
             {children}
-            <Toaster />
-          </CartProvider>
-        </AuthGuard>
+          </AuthGuard>
+          <Toaster />
+        </CartProvider>
       </body>
     </html>
   );
