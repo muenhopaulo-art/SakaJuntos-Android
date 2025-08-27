@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -7,7 +8,7 @@ import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle } from 'lucide-react';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
@@ -185,7 +186,7 @@ export default function GroupDetailPage() {
       groupUnsub();
       messagesUnsub();
     };
-  }, [groupId]);
+  }, [groupId, group]);
 
   useEffect(() => {
     if (chatAreaRef.current) {
@@ -329,10 +330,10 @@ export default function GroupDetailPage() {
   if (loading || authLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-         <div className="space-y-4 mb-8"> <Skeleton className="h-10 w-3/4" /> <Skeleton className="h-6 w-1/2" /> </div>
+         <div className="space-y-4 mb-8">  <Skeleton className="h-6 w-1/2" /> </div>
         <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-8"> <Skeleton className="h-64 w-full" /> <Skeleton className="h-48 w-full" /> </div>
-            <div className="md:col-span-1 space-y-6"> <Skeleton className="h-80 w-full" /> <Skeleton className="h-40 w-full" /> </div>
+            <div className="md:col-span-2 space-y-8">  </div>
+            <div className="md:col-span-1 space-y-6">   </div>
         </div>
       </div>
     );
@@ -341,20 +342,8 @@ export default function GroupDetailPage() {
   if (!group) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <div className='mb-4'> <Button variant="outline" onClick={() => router.back()}> <ArrowLeft className="mr-2 h-4 w-4" /> Voltar </Button> </div>
-        <h1 className="text-2xl font-bold">Grupo não encontrado</h1> <p>O grupo que está a tentar aceder não existe ou foi removido.</p>
-      </div>
-    );
-  }
-
-  const isCreator = user?.uid === group.creatorId;
-  const isMember = group.members.some(m => m.uid === user?.uid);
-  if (!isMember) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <div className='mb-4'> <Button variant="outline" onClick={() => router.back()}> <ArrowLeft className="mr-2 h-4 w-4" /> Voltar </Button> </div>
-        <ShieldAlert className="mx-auto h-16 w-16 text-destructive mb-4"/>
-        <h1 className="text-2xl font-bold">Acesso Restrito</h1> <p className="text-muted-foreground">Não é membro deste grupo e não pode ver os seus detalhes.</p>
+        <div className='mb-4'>  Voltar  </div>
+         Aceder Restrito  Não é membro deste grupo e não pode ver os seus detalhes. 
       </div>
     )
   }
@@ -366,230 +355,276 @@ export default function GroupDetailPage() {
   const totalMembers = group.members.length > 0 ? group.members.length : 1;
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
   
-  const ChatContent = () => (
-    <div className="flex flex-col h-full">
-        <SheetHeader className="px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-2">
-            <SheetTitle className="flex items-center gap-2"><MessagesSquare/> Chat do Grupo</SheetTitle>
-            <SheetDescription>Comunicação em tempo real com os membros do grupo.</SheetDescription>
-        </SheetHeader>
-        <div className="flex-1 flex flex-col gap-4 overflow-y-auto px-4 sm:px-6 py-4">
-            <ScrollArea className="flex-1 -mx-4 sm:-mx-6" ref={chatAreaRef}>
-                <div className="space-y-4 px-4 sm:px-6">
-                    {messages.length > 0 ? messages.map(msg => {
-                        const isSender = msg.senderId === user?.uid;
-                        return (
-                        <div key={msg.id} className={cn("flex items-end gap-2.5", isSender ? "justify-end" : "justify-start")}>
-                            {!isSender && (<div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">{msg.senderName.substring(0, 2).toUpperCase()}</div>)}
-                            <div className={cn("rounded-lg px-3 py-2 max-w-xs sm:max-w-sm md:max-w-md flex flex-col", isSender ? "bg-primary text-primary-foreground" : "bg-muted", { 'items-end': isSender, 'items-start': !isSender })}>
-                                {!isSender && <p className="text-xs font-bold mb-1">{msg.senderName}</p>}
-                                {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
-                                {msg.audioSrc && <AudioPlayer src={msg.audioSrc} isSender={isSender} />}
-                                <p className="text-xs opacity-70 mt-1.5 text-right">{formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}</p>
-                            </div>
+    const ChatContent = () => (
+        <SheetContent className="flex flex-col p-0">
+            <SheetHeader className="p-4 border-b">
+                <SheetTitle>Chat do Grupo</SheetTitle>
+                <SheetDescription>Comunicação em tempo real com os membros do grupo.</SheetDescription>
+            </SheetHeader>
+            <ScrollArea className="flex-1" ref={chatAreaRef}>
+                <div className="p-4 space-y-4">
+                    {messages.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-10">
+                            <MessageCircle className="mx-auto h-12 w-12" />
+                            <p>Seja o primeiro a dizer olá!</p>
                         </div>
-                        )
-                    }) : (<div className="text-center text-muted-foreground pt-10"><p>Nenhuma mensagem ainda. Seja o primeiro a dizer olá!</p></div>)}
+                    ) : (
+                        messages.map(msg => (
+                            <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? 'justify-end' : 'justify-start')}>
+                                <div className={cn("max-w-xs md:max-w-md rounded-lg p-3", msg.senderId === user?.uid ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                                    <p className="font-semibold text-xs mb-1">{msg.senderName}</p>
+                                    {msg.audioSrc ? (
+                                        <AudioPlayer src={msg.audioSrc} isSender={msg.senderId === user?.uid} />
+                                    ) : (
+                                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                                    )}
+                                    <p className="text-xs opacity-70 mt-1 text-right">{formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </ScrollArea>
-        </div>
-        <div className="px-4 sm:px-6 py-4 border-t bg-background">
-             {isRecording ? (
-                <div className="flex items-center gap-2">
-                    <Button type="button" size="icon" variant="destructive" onClick={() => stopRecording(true)}><Send className="h-4 w-4"/></Button>
-                    <div className="flex-1 text-center bg-muted rounded-md px-3 py-2 text-sm"><span className="text-red-500 animate-pulse mr-2">•</span> Gravando: {formatTime(recordingTime)}</div>
-                    <Button type="button" size="icon" variant="ghost" onClick={() => stopRecording(false)}><X className="h-5 w-5"/></Button>
+            {isRecording && (
+                <div className="p-4 border-t flex items-center justify-between bg-destructive/10">
+                    <div className="flex items-center gap-2 text-destructive">
+                        <Mic className="animate-pulse" />
+                        <span>A gravar... ({formatTime(recordingTime)})</span>
+                    </div>
+                    <div className='flex gap-2'>
+                         <Button variant="destructive" size="icon" onClick={() => stopRecording(false)}><X/></Button>
+                        <Button variant="ghost" size="icon" onClick={() => stopRecording(true)}><Send/></Button>
+                    </div>
                 </div>
-             ) : (
-                <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
-                    <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Escreva uma mensagem..." disabled={!user || sendingMessage} className="flex-1"/>
-                    <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage}><Send className="h-4 w-4"/></Button>
-                    <Button type="button" size="icon" variant="outline" onClick={startRecording} disabled={sendingMessage}><Mic className="h-4 w-4"/></Button>
-                </form>
-             )}
-        </div>
-    </div>
-  );
+            )}
+            <div className="p-4 border-t bg-background">
+                <div className="flex items-center gap-2">
+                    <Input
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Escreva uma mensagem..."
+                        className="flex-1"
+                        disabled={sendingMessage || isRecording}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                    />
+                     <Button size="icon" variant="ghost" onClick={isRecording ? () => stopRecording(true) : startRecording} disabled={sendingMessage}>
+                        {isRecording ? <Square className="text-destructive" /> : <Mic />}
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={handleSendMessage} disabled={sendingMessage || isRecording}>
+                        {sendingMessage ? <Loader2 className="animate-spin" /> : <Send />}
+                    </Button>
+                </div>
+            </div>
+        </SheetContent>
+    );
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-        <Button variant="outline" size="icon" onClick={() => router.back()} className="flex-shrink-0"><ArrowLeft className="h-4 w-4" /><span className="sr-only">Voltar</span></Button>
-        <div className="flex-grow">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">{group.name}</h1>
-          <p className="text-lg text-muted-foreground">{group.description}</p>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-muted-foreground mt-2 text-sm">
-            <div className="flex items-center gap-1"><Users className="w-4 h-4" /><span>{group.participants} / {group.target} membros</span></div>
-            <div className="flex items-center gap-1"><UserCheck className="w-4 h-4" /><span>Criado por: {creatorName}</span></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ListChecks/> Produtos para o Grupo</CardTitle>
-              <CardDescription>O criador do grupo seleciona os produtos. As contribuições são divididas por todos.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {products.length > 0 ? (
-                    <ScrollArea className={cn(isCreator ? "h-96" : "h-[450px]")}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pr-4">
-                            {products.map(product => (<ProductCard key={product.id} product={product} onAddToCart={isCreator ? (p) => handleUpdateGroupCart(p, 'add') : undefined} />))}
-                        </div>
-                    </ScrollArea>
-                ) : (<div className="h-40 bg-muted rounded-md flex items-center justify-center"><p className="text-muted-foreground">Nenhum produto disponível.</p></div>)}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-1 space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><ShoppingCart/> Carrinho e Contribuições</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {groupCart.length === 0 ? (<p className="text-muted-foreground text-center py-4">O carrinho do grupo está vazio.</p>) : (
-                        <ScrollArea className="h-48 pr-3 mb-4">
-                            <div className="space-y-4">
-                                {groupCart.map(item => (
-                                    <div key={item.product.id} className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <Image src={item.product.image || "https://picsum.photos/48/48"} alt={item.product.name} width={48} height={48} className="rounded-md object-cover flex-shrink-0" data-ai-hint={item.product.aiHint}/>
-                                            <div className="min-w-0">
-                                                <p className="font-semibold text-sm leading-tight truncate">{item.product.name}</p>
-                                                <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
-                                            </div>
-                                        </div>
-                                        {isCreator && (
-                                        <div className="flex items-center gap-1 flex-shrink-0">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
-                                            <span className="text-sm w-4 text-center">{item.quantity}</span>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleUpdateGroupCart(item.product, 'remove')}><Trash2 className="h-3 w-3"/></Button>
-                                        </div>
-                                        )}
-                                    </div>
-                                ))}
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <Button variant="ghost" onClick={() => router.back()} className="mb-4"><ArrowLeft/> Voltar </Button>
+            <div className="grid md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-3xl font-headline">{group.name}</CardTitle>
+                            <CardDescription>{group.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
+                             <div className="flex items-center gap-1">
+                                <Users className="h-4 w-4" /> {group.participants} / {group.target} membros
                             </div>
-                        </ScrollArea>
-                    )}
-                    <Separator/>
-                    <div className="space-y-4 my-4">
-                        <div className="flex justify-between font-bold text-lg"><span>Total:</span><span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span></div>
-                        <div className="flex justify-between text-primary font-semibold"><span>Valor por membro:</span><span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span></div>
-                    </div>
-                     <Separator/>
-                     <div className="mt-4">
-                        <h4 className="font-semibold mb-2">Progresso das Contribuições ({contributions.length}/{totalMembers})</h4>
-                        <Progress value={(contributions.length / totalMembers) * 100} className="h-2" />
-                        <ScrollArea className="h-24 mt-2">
-                           <div className="space-y-2 pr-2">
-                                {group.members.map(member => {
-                                    const hasPaid = contributions.some(c => c.userId === member.uid);
-                                    return (
-                                        <div key={member.uid} className={cn("flex items-center justify-between p-1.5 rounded text-sm", hasPaid ? "bg-green-100 text-green-800" : "bg-muted/60")}>
-                                            <span>{member.name}</span>
-                                            {hasPaid ? <CheckCircle className="h-4 w-4 text-green-600"/> : <Loader2 className="h-4 w-4 animate-spin text-muted-foreground"/>}
-                                        </div>
-                                    )
-                                })}
-                           </div>
-                        </ScrollArea>
-                    </div>
-                </CardContent>
-                <CardFooter>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                           <Button className="w-full" disabled={groupCartTotal === 0 || hasContributed}>
-                             {hasContributed ? 'Já Contribuiu' : 'Contribuir'}
-                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    <div>
-                                    A sua localização será solicitada para a entrega. Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>?
-                                    <p className="text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</p>
-                                    </div>
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleContribution}>Confirmar</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </CardFooter>
-            </Card>
+                            <span>Criado por: {creatorName}</span>
+                        </CardContent>
+                    </Card>
 
-          {isCreator && (
-             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Users/> Gestão de Membros</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  {group.joinRequests.length > 0 && (
-                     <div>
-                        <h4 className="font-semibold mb-2">Pedidos de Adesão ({group.joinRequests.length})</h4>
-                        <div className="space-y-2">
-                        {group.joinRequests.map(req => (
-                            <div key={req.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                            <span className="truncate">{req.name}</span>
-                             {actionLoading[req.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                                <div className="flex gap-1">
-                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => handleAction(req.uid, 'approve')}><UserPlus/></Button>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleAction(req.uid, 'remove')}><UserMinus/></Button>
+                    <Card>
+                         <CardHeader>
+                            <CardTitle>Produtos para o Grupo</CardTitle>
+                            <CardDescription>O criador do grupo seleciona os produtos. As contribuições são divididas por todos.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             {products.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {products.map(product => (
+                                        <ProductCard 
+                                            key={product.id} 
+                                            product={product} 
+                                            onAddToCart={user?.uid === group.creatorId ? (p) => handleUpdateGroupCart(p, 'add') : undefined}
+                                        />
+                                    ))}
                                 </div>
-                             )}
-                            </div>
-                        ))}
-                        </div>
-                    </div>
-                  )}
-                 
-                  {group.joinRequests.length > 0 && group.members.length > 0 && <Separator/>}
+                            ) : (
+                                <p>Nenhum produto disponível.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
 
-                   {group.members.length > 0 && (
-                     <div>
-                        <h4 className="font-semibold mb-2">Membros Atuais ({group.members.length})</h4>
-                        <div className="space-y-2">
-                        {group.members.map(mem => (
-                            <div key={mem.uid} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                            <span className='truncate'>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
-                             {actionLoading[mem.uid] ? <Loader2 className="h-5 w-5 animate-spin" /> : (<>{mem.uid !== group.creatorId && <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleAction(mem.uid, 'remove')}><UserMinus/></Button>}</>)}
+                <div className="md:col-span-1 space-y-6">
+                    <Card>
+                         <CardHeader>
+                            <CardTitle>Carrinho e Contribuições</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                             {groupCart.length > 0 ? (
+                                <ScrollArea className="h-[200px] pr-4">
+                                    <div className="space-y-4">
+                                    {groupCart.map(item => (
+                                        <div key={item.product.id} className="flex justify-between items-center">
+                                            <div className="flex items-center gap-3">
+                                                <Image src={item.product.image} alt={item.product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint={item.product.aiHint}/>
+                                                <div>
+                                                    <p className="font-medium text-sm">{item.product.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
+                                                </div>
+                                            </div>
+                                            {user?.uid === group.creatorId ? (
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
+                                                    <span className="w-4 text-center text-sm">{item.quantity}</span>
+                                                    <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
+                                                </div>
+                                            ) : (
+                                                 <p className="text-sm">x{item.quantity}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                    </div>
+                                </ScrollArea>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">O carrinho do grupo está vazio.</p>
+                            )}
+                             <Separator/>
+                            <div className="space-y-2">
+                                <div className="flex justify-between font-semibold">
+                                    <span>Total do Carrinho:</span>
+                                    <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
+                                </div>
+                                <div className="flex justify-between text-muted-foreground">
+                                    <span>Valor por membro:</span>
+                                    <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
+                                </div>
                             </div>
-                        ))}
-                        </div>
-                    </div>
-                  )}
-                  {group.members.length === 0 && group.joinRequests.length === 0 && (<p className="text-sm text-muted-foreground text-center">Nenhum membro ou pedido de adesão.</p>)}
-                  <Separator/>
-                   <AlertDialog>
-                      <AlertDialogTrigger asChild><Button variant="destructive" className="w-full" disabled={actionLoading['delete']}>{actionLoading['delete'] ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash className="mr-2 h-4 w-4"/>} Eliminar Grupo</Button></AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>Tem a certeza?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita. Isto irá eliminar permanentemente o grupo, incluindo todos os dados.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeleteGroup} className={cn(buttonVariants({ variant: "destructive" }))}>Eliminar</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-      
-        <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
-            <SheetTrigger asChild>
-                <Button size="icon" className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-accent hover:bg-accent/90 text-accent-foreground" aria-label="Abrir chat"><MessageCircle className="h-7 w-7" /></Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[85vh] w-full max-w-3xl mx-auto p-0 rounded-t-2xl border-t-4 border-primary flex flex-col">
+                            <Separator/>
+                             <div>
+                                <h4 className="font-semibold mb-2 text-sm">Progresso das Contribuições ({contributions.length}/{totalMembers})</h4>
+                                <Progress value={(contributions.length / totalMembers) * 100} />
+                                <div className="mt-2 space-y-1 text-xs">
+                                     {group.members.map(member => {
+                                        const hasPaid = contributions.some(c => c.userId === member.uid);
+                                        return (
+                                            <div key={member.uid} className="flex justify-between items-center">
+                                                <span className={cn(hasPaid && "line-through text-muted-foreground")}>{member.name}</span>
+                                                {hasPaid ? <CheckCircle className="h-4 w-4 text-green-500"/> : <XCircle className="h-4 w-4 text-muted-foreground/50"/>}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </CardContent>
+                        {groupCartTotal > 0 && (
+                            <CardFooter>
+                                <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button className="w-full" disabled={hasContributed}>
+                                        {hasContributed ? 'Já Contribuiu' : 'Contribuir'}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        <div>
+                                            A sua localização será solicitada para a entrega. Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>?
+                                            <div className="text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</div>
+                                        </div>
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleContribution}>Confirmar</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                                </AlertDialog>
+                            </CardFooter>
+                        )}
+                    </Card>
+
+                    {user?.uid === group.creatorId && (
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>Gestão de Membros</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {group.joinRequests.length > 0 && (
+                                    <div className="space-y-2">
+                                        <h4 className="font-semibold text-sm">Pedidos de Adesão ({group.joinRequests.length})</h4>
+                                        {group.joinRequests.map(req => (
+                                            <div key={req.uid} className="flex justify-between items-center">
+                                                <span>{req.name}</span>
+                                                {actionLoading[req.uid] ? <Loader2 className="animate-spin" /> : (
+                                                    <div className="flex gap-2">
+                                                        <Button size="sm" variant="ghost" className="text-green-600" onClick={() => handleAction(req.uid, 'approve')}><UserCheck/></Button>
+                                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(req.uid, 'remove')}><UserMinus/></Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                {group.joinRequests.length > 0 && group.members.length > 0 && <Separator className="my-4"/>}
+
+                                {group.members.length > 0 && (
+                                     <div className="space-y-2">
+                                        <h4 className="font-semibold text-sm">Membros Atuais ({group.members.length})</h4>
+                                        {group.members.map(mem => (
+                                            <div key={mem.uid} className="flex justify-between items-center">
+                                                <span>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
+                                                {actionLoading[mem.uid] ? <Loader2 className="animate-spin"/> : (<>{mem.uid !== group.creatorId && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(mem.uid, 'remove')}><UserMinus/></Button>}</>)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {group.members.length === 0 && group.joinRequests.length === 0 && (<p className="text-sm text-muted-foreground">Nenhum membro ou pedido de adesão.</p>)}
+                            </CardContent>
+                            <CardFooter>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" className="w-full" disabled={actionLoading['delete']}>
+                                            {actionLoading['delete'] ? <Loader2 className="animate-spin"/> : <Trash2/>}
+                                            Eliminar Grupo
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                     <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta ação não pode ser desfeita. Isto irá eliminar permanentemente o grupo, incluindo todos os dados.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteGroup} >Eliminar</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </CardFooter>
+                        </Card>
+                    )}
+                </div>
+            </div>
+
+            <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
+                <SheetTrigger asChild>
+                    <Button className="fixed bottom-4 right-4 rounded-full h-16 w-16 shadow-lg z-20">
+                        <MessagesSquare/>
+                    </Button>
+                </SheetTrigger>
                 <ChatContent />
-            </SheetContent>
-        </Sheet>
-    </div>
-  );
+            </Sheet>
+        </div>
+    );
 }
 
 // Client-side helper to convert doc snapshot to GroupPromotion
@@ -605,8 +640,8 @@ async function convertDocToGroupPromotion(doc: any): Promise<GroupPromotion> {
     };
 
     const [members, joinRequests, groupCart, contributions] = await Promise.all([
-        getSubCollection<any>('members'),
-        getSubCollection<any>('joinRequests'),
+        getSubCollection<GroupMember>('members'),
+        getSubCollection<JoinRequest>('joinRequests'),
         getSubCollection<CartItem>('groupCart'),
         getSubCollection<Contribution>('contributions'),
     ]);
@@ -629,5 +664,7 @@ async function convertDocToGroupPromotion(doc: any): Promise<GroupPromotion> {
     };
     return promotion;
 }
+
+    
 
     
