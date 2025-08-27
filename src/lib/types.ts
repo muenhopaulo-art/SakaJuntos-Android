@@ -5,6 +5,7 @@ export interface Product {
   price: number;
   image: string;
   aiHint?: string;
+  createdAt?: number;
 }
 
 export interface GroupPromotion extends Product {
