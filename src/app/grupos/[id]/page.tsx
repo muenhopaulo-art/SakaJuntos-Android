@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { getGroupPromotions, approveJoinRequest, removeMember, getProducts } from '@/services/product-service';
 import type { GroupPromotion, Product } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2 } from 'lucide-react';
+import { Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -14,6 +14,7 @@ import { getUser } from '@/services/user-service';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProductCard } from '@/components/product-card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 async function getGroupDetails(id: string): Promise<GroupPromotion | undefined> {
   const allPromotions = await getGroupPromotions();
@@ -29,6 +30,9 @@ export default function GroupDetailPage() {
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [user, authLoading] = useAuthState(auth);
   const { toast } = useToast();
+  
+  // Placeholder state for group cart
+  const [groupCartTotal, setGroupCartTotal] = useState(0);
 
   const fetchGroupData = useCallback(async () => {
     if (!params.id) return;
@@ -114,6 +118,8 @@ export default function GroupDetailPage() {
   const isCreator = user?.uid === group.creatorId;
   const members = group.members || [];
   const joinRequests = group.joinRequests || [];
+  const totalMembers = members.length > 0 ? members.length : 1;
+  const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -134,32 +140,21 @@ export default function GroupDetailPage() {
 
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-8">
-          {/* Chat Section */}
+           {/* Products Section */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><MessagesSquare/> Chat do Grupo</CardTitle>
-              <CardDescription>Comunicação em tempo real com os membros do grupo.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 bg-muted rounded-md flex items-center justify-center">
-                <p className="text-muted-foreground">(Funcionalidade de chat de texto e áudio a ser implementada)</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Contributions Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><ListChecks/> Contribuições e Produtos</CardTitle>
-              <CardDescription>Veja os produtos e as contribuições de cada membro.</CardDescription>
+              <CardTitle className="flex items-center gap-2"><ListChecks/> Produtos</CardTitle>
+              <CardDescription>Adicione produtos ao carrinho do grupo. A contribuição será dividida por todos os membros.</CardDescription>
             </CardHeader>
             <CardContent>
                 {products.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {products.map(product => (
-                            <ProductCard key={product.id} product={product} />
-                        ))}
-                    </div>
+                    <ScrollArea className="h-96 w-full pr-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {products.map(product => (
+                                <ProductCard key={product.id} product={product} />
+                            ))}
+                        </div>
+                    </ScrollArea>
                 ) : (
                     <div className="h-40 bg-muted rounded-md flex items-center justify-center">
                         <p className="text-muted-foreground">Nenhum produto disponível para contribuição.</p>
@@ -167,9 +162,49 @@ export default function GroupDetailPage() {
                 )}
             </CardContent>
           </Card>
+          
+          {/* Chat Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><MessagesSquare/> Chat do Grupo</CardTitle>
+              <CardDescription>Comunicação em tempo real com os membros do grupo.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-40 bg-muted rounded-md flex items-center justify-center">
+                <p className="text-muted-foreground">(Funcionalidade de chat de texto e áudio a ser implementada)</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="md:col-span-1 space-y-6">
+            {/* Group Cart & Contributions */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><ShoppingCart/> Carrinho do Grupo</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between font-bold text-lg">
+                        <span>Total do Carrinho:</span>
+                        <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
+                    </div>
+                     <Separator/>
+                    <div className="space-y-2">
+                        <h4 className="font-semibold">Divisão da Contribuição</h4>
+                        <div className="flex justify-between text-muted-foreground">
+                            <span>Membros no grupo:</span>
+                            <span>{totalMembers}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-primary">
+                            <span>Valor por membro:</span>
+                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
+                        </div>
+                    </div>
+                    <Button className="w-full" disabled={groupCartTotal === 0}>Contribuir</Button>
+                </CardContent>
+            </Card>
+
+
           {/* Members Management Section */}
           {isCreator && (
              <Card>
