@@ -22,7 +22,8 @@ export interface JoinRequest {
 
 export interface ChatMessage {
     id: string;
-    text: string;
+    text?: string;
+    audioSrc?: string;
     senderId: string;
     senderName: string;
     createdAt: number;

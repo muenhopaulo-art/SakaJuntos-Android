@@ -6,7 +6,7 @@ import { getGroupPromotions, approveJoinRequest, removeMember, getProducts, requ
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -44,6 +44,7 @@ function listenToMessages(groupId: string, callback: (messages: ChatMessage[]) =
                 senderId: data.senderId,
                 senderName: data.senderName,
                 createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
+                audioSrc: data.audioSrc,
             });
         });
         callback(messages);
@@ -73,6 +74,10 @@ export default function GroupDetailPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const chatAreaRef = useRef<HTMLDivElement>(null);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
 
   // Effect to load cart from localStorage
@@ -212,7 +217,7 @@ export default function GroupDetailPage() {
     if (!newMessage.trim() || !user || !group) return;
 
     setSendingMessage(true);
-    const result = await sendMessage(group.id, user.uid, newMessage);
+    const result = await sendMessage(group.id, user.uid, { text: newMessage });
 
     if (result.success) {
         setNewMessage('');
@@ -221,6 +226,50 @@ export default function GroupDetailPage() {
     }
     setSendingMessage(false);
   }
+
+  const startRecording = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+
+        mediaRecorderRef.current.ondataavailable = event => {
+            audioChunksRef.current.push(event.data);
+        };
+
+        mediaRecorderRef.current.onstop = async () => {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = async () => {
+                const base64Audio = reader.result as string;
+                if(user && group) {
+                    setSendingMessage(true);
+                    await sendMessage(group.id, user.uid, { audioSrc: base64Audio });
+                    setSendingMessage(false);
+                }
+            };
+        };
+
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+        toast({ title: "Gravação iniciada", description: "Clique no botão parar para enviar." });
+    } catch (error) {
+        console.error("Error accessing microphone:", error);
+        toast({ variant: 'destructive', title: "Erro de Microfone", description: "Não foi possível aceder ao microfone. Verifique as permissões." });
+    }
+  };
+
+  const stopRecording = () => {
+      if (mediaRecorderRef.current && isRecording) {
+          mediaRecorderRef.current.stop();
+          // Stop all media tracks to turn off the recording indicator
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+          setIsRecording(false);
+          toast({ title: "Gravação terminada", description: "A enviar a sua mensagem de voz..." });
+      }
+  };
+
 
   if (loading || authLoading) {
     return (
@@ -330,10 +379,11 @@ export default function GroupDetailPage() {
                                     </div>
                                 )}
                                 <div className={cn("rounded-lg px-3 py-2 max-w-xs md:max-w-md", msg.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
-                                    {msg.senderId !== user?.uid && (
-                                        <p className="text-xs font-bold mb-1">{msg.senderName}</p>
+                                    <p className="text-xs font-bold mb-1">{msg.senderName}</p>
+                                    {msg.text && <p className="text-sm">{msg.text}</p>}
+                                    {msg.audioSrc && (
+                                        <audio controls src={msg.audioSrc} className="w-full h-10"/>
                                     )}
-                                    <p className="text-sm">{msg.text}</p>
                                     <p className="text-xs opacity-70 mt-1 text-right">
                                         {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}
                                     </p>
@@ -351,10 +401,13 @@ export default function GroupDetailPage() {
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Escreva uma mensagem..." 
-                        disabled={!user || sendingMessage}
+                        disabled={!user || sendingMessage || isRecording}
                     />
-                    <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage}>
-                        {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4"/>}
+                    <Button type="submit" size="icon" disabled={!newMessage.trim() || sendingMessage || isRecording}>
+                        <Send className="h-4 w-4"/>
+                    </Button>
+                     <Button type="button" size="icon" variant={isRecording ? "destructive" : "outline"} onClick={isRecording ? stopRecording : startRecording} disabled={sendingMessage}>
+                        {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4"/>}
                     </Button>
                 </form>
             </CardContent>
