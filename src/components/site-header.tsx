@@ -49,8 +49,6 @@ export function SiteHeader() {
 
   const navLinks = [
     { href: '/', label: 'Início'},
-    { href: '/minishopping', label: 'MiniShopping' },
-    { href: '/grupos', label: 'Grupos' },
     { href: '/cart', label: 'Carrinho' },
   ];
 
@@ -62,14 +60,6 @@ export function SiteHeader() {
             <ShoppingCart className="h-6 w-6" />
             <span className="hidden font-bold sm:inline-block font-headline">SakaJuntos</span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-             <Link href="/minishopping" className="transition-colors hover:text-foreground/80 text-foreground/60">
-                MiniShopping
-            </Link>
-             <Link href="/grupos" className="transition-colors hover:text-foreground/80 text-foreground/60">
-                Grupos
-            </Link>
-          </nav>
         </div>
 
         <Sheet>
