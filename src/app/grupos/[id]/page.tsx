@@ -231,7 +231,7 @@ export default function GroupDetailPage() {
                                 {groupCart.map(item => (
                                     <div key={item.product.id} className="flex items-start justify-between">
                                         <div className="flex items-center gap-3">
-                                            <Image src={item.product.image} alt={item.product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint={item.product.aiHint}/>
+                                            <Image src={item.product.image || "https://picsum.photos/48/48"} alt={item.product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint={item.product.aiHint}/>
                                             <div>
                                                 <p className="font-semibold text-sm leading-tight">{item.product.name}</p>
                                                 <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
