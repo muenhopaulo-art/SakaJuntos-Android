@@ -4,12 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  projectId: "sakajuntos-web",
-  appId: "1:509793458716:web:629e245318d026778c9dd9",
-  storageBucket: "sakajuntos-web.firebasestorage.app",
-  apiKey: "AIzaSyBieRP743PlztYXjvgBJkgeEjhpX0HNBPw",
-  authDomain: "sakajuntos-web.firebaseapp.com",
-  messagingSenderId: "509793458716",
+  "projectId": "sakajuntos-web",
+  "appId": "1:509793458716:web:629e245318d026778c9dd9",
+  "storageBucket": "sakajuntos-web.firebasestorage.app",
+  "apiKey": "AIzaSyBieRP743PlztYXjvgBJkgeEjhpX0HNBPw",
+  "authDomain": "sakajuntos-web.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "509793458716"
 };
 
 // Initialize Firebase
