@@ -12,9 +12,12 @@ interface PromotionCardProps {
   promotion: GroupPromotion;
 }
 
+const PLACEHOLDER_IMAGE = "https://picsum.photos/400/400";
+
 export function PromotionCard({ promotion }: PromotionCardProps) {
   const { addItem } = useCart();
   const progress = (promotion.participants / promotion.target) * 100;
+  const imageUrl = promotion.image || PLACEHOLDER_IMAGE;
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 bg-card">
@@ -24,7 +27,7 @@ export function PromotionCard({ promotion }: PromotionCardProps) {
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
         <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-          <Image src={promotion.image} alt={promotion.name} fill className="object-cover" data-ai-hint={promotion.aiHint} />
+          <Image src={imageUrl} alt={promotion.name} fill className="object-cover" data-ai-hint={promotion.aiHint} />
         </div>
         <div className="space-y-2">
             <p className="text-2xl font-bold text-foreground">
