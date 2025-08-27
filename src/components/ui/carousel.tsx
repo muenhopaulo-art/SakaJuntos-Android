@@ -64,14 +64,7 @@ const Carousel = React.forwardRef<
         ...opts,
         axis: orientation === "horizontal" ? "x" : "y",
       },
-      [
-        Autoplay({
-          delay: 5000,
-          stopOnInteraction: false,
-          stopOnMouseEnter: true,
-        }),
-        ...(plugins || []),
-      ]
+      [Autoplay(), ...(plugins || [])]
     )
     const [canScrollPrev, setCanScrollPrev] = React.useState(false)
     const [canScrollNext, setCanScrollNext] = React.useState(false)

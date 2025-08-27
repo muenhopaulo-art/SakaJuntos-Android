@@ -33,7 +33,6 @@ export default async function HomePage() {
                       Ver Todos
                     </Link>
                   </Button>
-                  <CartSheet />
                 </div>
               </div>
 
@@ -58,7 +57,7 @@ export default async function HomePage() {
                 </Carousel>
               ): (
                 <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                    <p className="text-lg font-semibold text-muted-foreground">Nenhum produto encontrado.</p>
+                    <p className="text-lg fontsemibold text-muted-foreground">Nenhum produto encontrado.</p>
                     <p className="text-muted-foreground mt-2">Parece que a base de dados está vazia.</p>
                     <Button asChild className="mt-4">
                     <a href="/seed">Popular a Base de Dados</a>

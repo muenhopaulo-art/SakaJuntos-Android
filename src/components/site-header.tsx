@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetClose } from './ui/sheet';
-import { Menu, ShoppingCart, User, LogOut, LayoutDashboard, HelpCircle } from 'lucide-react';
+import { Menu, ShoppingCart, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -49,6 +49,8 @@ export function SiteHeader() {
 
   const navLinks = [
     { href: '/', label: 'Início' },
+    { href: '/minishopping', label: 'MiniShopping' },
+    { href: '/grupos', label: 'Grupos' },
     { href: '/cart', label: 'Carrinho' },
   ];
 
@@ -60,6 +62,13 @@ export function SiteHeader() {
             <ShoppingCart className="h-6 w-6" />
             <span className="hidden font-bold sm:inline-block font-headline">SakaJuntos</span>
           </Link>
+          <nav className="flex items-center space-x-6 text-sm font-medium">
+            {navLinks.filter(l => l.href !== '/cart' && l.href !== '/').map(link => (
+                <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                    {link.label}
+                </Link>
+            ))}
+          </nav>
         </div>
 
         <Sheet>
@@ -101,7 +110,7 @@ export function SiteHeader() {
           <div className="w-full flex-1 md:w-auto md:flex-none">
             {/* Search can go here */}
           </div>
-          <nav className="hidden md:flex items-center gap-4">
+          <nav className="flex items-center">
              {loading ? (
                 <div className='h-8 w-20 bg-muted animate-pulse rounded-md' />
              ) : user && appUser ? (
@@ -137,17 +146,11 @@ export function SiteHeader() {
                   </DropdownMenuContent>
                 </DropdownMenu>
              ) : (
-                <Button variant="ghost" asChild>
-                    <Link href="/login">
-                      <User className="h-5 w-5 mr-2" />
-                      Login
-                    </Link>
+                <Button asChild>
+                    <Link href="/login">Login</Link>
                 </Button>
              )}
-             <Button variant="ghost" size="icon">
-                <HelpCircle className="h-5 w-5" />
-                <span className="sr-only">Ajuda</span>
-             </Button>
+            <CartSheet />
           </nav>
         </div>
       </div>
