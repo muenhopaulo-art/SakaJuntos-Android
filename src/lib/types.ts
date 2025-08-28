@@ -68,13 +68,16 @@ export interface Order {
   contributions: Contribution[];
 }
 
+export type UserRole = 'client' | 'lojista' | 'admin';
+export type StoreStatus = 'pending' | 'approved' | 'rejected';
+
 export interface User {
     uid: string;
     name: string;
     phone: string;
     email: string;
-    // role: UserRole;
+    role: UserRole;
     createdAt: number;
-    // wantsToBeLojista?: boolean;
-    // storeStatus?: StoreStatus;
+    wantsToBeLojista?: boolean;
+    storeStatus?: StoreStatus;
 }

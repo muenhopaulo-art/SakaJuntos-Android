@@ -2,6 +2,8 @@
 import type { User } from '@/services/user-service';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 interface AdminDashboardProps {
     user: User;
@@ -17,7 +19,14 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
             </CardHeader>
             <CardContent className="space-y-4">
                 <p>Aqui você pode gerir utilizadores, produtos e promoções.</p>
-                <Button onClick={onLogout} variant="destructive">Terminar Sessão</Button>
+                 <div className="flex flex-col sm:flex-row gap-2">
+                    <Button asChild>
+                        <Link href="/admin">
+                            Gerir Pedidos <ArrowRight className="ml-2"/>
+                        </Link>
+                    </Button>
+                    <Button onClick={onLogout} variant="outline">Terminar Sessão</Button>
+                </div>
             </CardContent>
         </Card>
     );

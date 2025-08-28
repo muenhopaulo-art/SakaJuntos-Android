@@ -2,20 +2,7 @@
 
 import { db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
-
-export type UserRole = 'client' | 'lojista' | 'admin';
-export type StoreStatus = 'pending' | 'approved' | 'rejected';
-
-export interface User {
-    uid: string;
-    name: string;
-    phone: string;
-    email: string;
-    role: UserRole;
-    createdAt: number;
-    wantsToBeLojista?: boolean;
-    storeStatus?: StoreStatus;
-}
+import type { User, UserRole, StoreStatus } from '@/lib/types';
 
 
 interface UserProfileData {

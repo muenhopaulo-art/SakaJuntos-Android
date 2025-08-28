@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetClose } from './ui/sheet';
-import { Menu, ShoppingCart, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, ShoppingCart, User, LogOut, LayoutDashboard, Shield } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -50,6 +50,12 @@ export function SiteHeader() {
 
   const navLinks = [
     { href: '/', label: 'Início'},
+    { href: '/minishopping', label: 'MiniShopping'},
+    { href: '/grupos', label: 'Grupos'},
+  ];
+
+  const adminLinks = [
+    { href: '/admin', label: 'Admin'},
   ];
 
   return (
@@ -60,6 +66,18 @@ export function SiteHeader() {
             <ShoppingCart className="h-6 w-6" />
             <span className="hidden font-bold sm:inline-block font-headline">SakaJuntos</span>
           </Link>
+          <nav className="flex items-center space-x-6 text-sm font-medium">
+            {navLinks.map(link => (
+              <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                {link.label}
+              </Link>
+            ))}
+            {appUser?.role === 'admin' && adminLinks.map(link => (
+              <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center gap-1">
+                <Shield size={16}/> {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
         <Sheet>
@@ -85,6 +103,13 @@ export function SiteHeader() {
                       </Link>
                     </SheetClose>
                 ))}
+                 {appUser?.role === 'admin' && adminLinks.map(link => (
+                    <SheetClose asChild key={link.href}>
+                      <Link href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center gap-2">
+                        <Shield size={16}/> {link.label}
+                      </Link>
+                    </SheetClose>
+                  ))}
                  {!user && (
                     <SheetClose asChild>
                       <Link href="/login" className="transition-colors hover:text-foreground/80 text-foreground/60">
