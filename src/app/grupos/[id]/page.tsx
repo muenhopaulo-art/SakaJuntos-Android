@@ -1,10 +1,10 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, approveJoinRequest, sendMessage } from '@/services/product-service';
+import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, approveJoinRequest } from '@/services/product-service';
+import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package } from 'lucide-react';
@@ -802,4 +802,5 @@ export default function GroupDetailPage() {
     );
 }
 
+    
     
