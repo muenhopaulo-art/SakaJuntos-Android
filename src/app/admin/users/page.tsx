@@ -1,6 +1,6 @@
 
 import { getUsers } from '../actions';
-import type { User } from '@/lib/types';
+import type { User, VerificationStatus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -23,14 +23,14 @@ const roleTranslations: Record<User['role'], string> = {
     client: 'Cliente'
 }
 
-const statusVariant: Record<User['storeStatus'], 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const statusVariant: Record<VerificationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
     pending: 'secondary',
     rejected: 'destructive',
     none: 'outline'
 }
 
-const statusTranslations: Record<User['storeStatus'], string> = {
+const statusTranslations: Record<VerificationStatus, string> = {
     approved: 'Aprovado',
     pending: 'Pendente',
     rejected: 'Rejeitado',
@@ -48,15 +48,15 @@ export default async function AdminUsersPage() {
         error = getErrorMessage(e);
     }
 
-    const usersWithPendingRequests = users.filter(u => u.wantsToBeLojista && u.storeStatus === 'pending');
-    const otherUsers = users.filter(u => !u.wantsToBeLojista || u.storeStatus !== 'pending');
+    const usersWithPendingRequests = users.filter(u => u.wantsToBecomeLojista && u.verificationStatus === 'pending');
+    const otherUsers = users.filter(u => !u.wantsToBecomeLojista || u.verificationStatus !== 'pending');
 
 
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="space-y-2 mb-8">
                 <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Utilizadores</h1>
-                <p className="text-muted-foreground">Monitorize e gira os utilizadores e os seus pedidos.</p>
+                <p className="text-muted-foreground">Monitorize e gira os utilizadores e os seus pedidos de verificação.</p>
             </div>
 
              {error ? (
@@ -70,7 +70,7 @@ export default async function AdminUsersPage() {
                     {usersWithPendingRequests.length > 0 && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Pedidos de Lojista Pendentes</CardTitle>
+                                <CardTitle>Pedidos de Verificação Pendentes</CardTitle>
                                 <CardDescription>Estes utilizadores solicitaram tornar-se lojistas e aguardam aprovação.</CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -103,7 +103,7 @@ function UsersTable({ users }: { users: User[] }) {
                     <TableHead>Nome</TableHead>
                     <TableHead>Telemóvel</TableHead>
                     <TableHead>Função</TableHead>
-                    <TableHead>Estado do Pedido</TableHead>
+                    <TableHead>Estado da Verificação</TableHead>
                     <TableHead>Data de Registo</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -118,9 +118,9 @@ function UsersTable({ users }: { users: User[] }) {
                                 <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>{roleTranslations[user.role]}</Badge>
                             </TableCell>
                             <TableCell>
-                                {user.wantsToBeLojista ? (
-                                    <Badge variant={statusVariant[user.storeStatus]}>
-                                        {statusTranslations[user.storeStatus]}
+                                {user.wantsToBecomeLojista ? (
+                                    <Badge variant={statusVariant[user.verificationStatus ?? 'none']}>
+                                        {statusTranslations[user.verificationStatus ?? 'none']}
                                     </Badge>
                                 ) : (
                                     <Badge variant="outline">N/A</Badge>

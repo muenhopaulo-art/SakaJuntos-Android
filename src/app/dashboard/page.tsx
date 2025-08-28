@@ -70,14 +70,14 @@ export default function DashboardPage() {
       case 'admin':
         return <AdminDashboard user={appUser} onLogout={handleLogout} />;
       case 'lojista':
-        if (appUser.storeStatus === 'approved') {
+        if (appUser.verificationStatus === 'approved') {
           return <LojistaDashboard user={appUser} onLogout={handleLogout} />;
         }
         return <LojistaOnboarding user={appUser} onLogout={handleLogout} />;
       case 'client':
       default:
         // Client can also be in the process of becoming a lojista
-        if (appUser.wantsToBeLojista) {
+        if (appUser.wantsToBecomeLojista) {
             return <LojistaOnboarding user={appUser} onLogout={handleLogout} />;
         }
         return <Dashboard user={appUser} onLogout={handleLogout} />;

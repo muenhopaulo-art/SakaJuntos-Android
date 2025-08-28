@@ -10,7 +10,7 @@ interface LojistaOnboardingProps {
 
 export function LojistaOnboarding({ user, onLogout }: LojistaOnboardingProps) {
     const getStatusMessage = () => {
-        switch (user.storeStatus) {
+        switch (user.verificationStatus) {
             case 'pending':
                 return 'O seu pedido para se tornar um lojista está a ser revisto. Entraremos em contacto em breve.';
             case 'rejected':
@@ -22,7 +22,7 @@ export function LojistaOnboarding({ user, onLogout }: LojistaOnboardingProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Pedido de Lojista</CardTitle>
+                <CardTitle>Pedido de Verificação</CardTitle>
                 <CardDescription>Olá, {user.name}.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

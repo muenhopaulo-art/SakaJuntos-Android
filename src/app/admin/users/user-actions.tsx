@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check, X } from 'lucide-react';
-import { updateUserStatus } from './actions';
+import { updateUserVerificationStatus } from './actions';
 import type { User } from '@/lib/types';
 import {
   AlertDialog,
@@ -28,7 +28,7 @@ export function UserActions({ user }: UserActionsProps) {
 
   const handleUpdateStatus = async (action: 'approve' | 'reject') => {
     setLoadingAction(action);
-    const result = await updateUserStatus(user.uid, action);
+    const result = await updateUserVerificationStatus(user.uid, action);
     setLoadingAction(null);
 
     if (result.success) {
@@ -38,7 +38,7 @@ export function UserActions({ user }: UserActionsProps) {
     }
   };
   
-  if (user.wantsToBeLojista && user.storeStatus === 'pending') {
+  if (user.wantsToBecomeLojista && user.verificationStatus === 'pending') {
     return (
       <div className="flex gap-2 justify-end">
         <AlertDialog>
@@ -70,9 +70,9 @@ export function UserActions({ user }: UserActionsProps) {
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Rejeitar Lojista?</AlertDialogTitle>
+              <AlertDialogTitle>Rejeitar Pedido?</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem a certeza que deseja rejeitar o pedido de {user.name}? Esta ação pode ser revertida manualmente.
+                Tem a certeza que deseja rejeitar o pedido de verificação de {user.name}? Esta ação pode ser revertida manualmente.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

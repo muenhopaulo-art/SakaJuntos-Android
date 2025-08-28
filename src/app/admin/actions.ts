@@ -114,8 +114,8 @@ export async function getUsers(): Promise<User[]> {
                 phone: data.phone,
                 email: data.email,
                 role: data.role,
-                wantsToBeLojista: data.wantsToBeLojista,
-                storeStatus: data.storeStatus || 'none',
+                wantsToBecomeLojista: data.wantsToBecomeLojista,
+                verificationStatus: data.verificationStatus || 'none',
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
             }
         });

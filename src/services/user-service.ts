@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
-import type { User, UserRole, StoreStatus } from '@/lib/types';
+import type { User } from '@/lib/types';
 
 
 interface UserProfileData {
@@ -18,8 +18,8 @@ export async function createUser(uid: string, data: UserProfileData) {
             role: 'client', // Default role
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
-            wantsToBeLojista: false,
-            storeStatus: 'none',
+            wantsToBecomeLojista: false,
+            verificationStatus: 'none',
         });
         return { success: true, uid };
     } catch (error) {
@@ -49,8 +49,8 @@ export async function getUser(uid: string): Promise<User> {
         email: data.email,
         role: data.role || 'client',
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
-        wantsToBeLojista: data.wantsToBeLojista || false,
-        storeStatus: data.storeStatus || 'none',
+        wantsToBecomeLojista: data.wantsToBecomeLojista || false,
+        verificationStatus: data.verificationStatus || 'none',
     };
 }
 
