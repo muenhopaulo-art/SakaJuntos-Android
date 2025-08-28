@@ -57,6 +57,15 @@ export interface Contribution {
     createdAt: number;
 }
 
+export type OrderStatus = 
+  | 'Pendente' 
+  | 'A aguardar lojista' 
+  | 'Pronto para recolha' 
+  | 'A caminho' 
+  | 'Entregue' 
+  | 'Cancelado';
+
+
 export interface Order {
   id: string;
   groupId: string;
@@ -64,7 +73,7 @@ export interface Order {
   creatorName: string;
   items: CartItem[];
   totalAmount: number;
-  status: 'Pendente' | 'A caminho' | 'Entregue';
+  status: OrderStatus;
   createdAt?: number;
   contributions: Contribution[];
 }

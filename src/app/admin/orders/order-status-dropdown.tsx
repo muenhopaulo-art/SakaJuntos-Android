@@ -9,17 +9,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { updateOrderStatus } from './actions';
-import type { Order } from '@/lib/types';
+import type { Order, OrderStatus } from '@/lib/types';
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const statusOptions: Order['status'][] = ['Pendente', 'A caminho', 'Entregue'];
+const statusOptions: OrderStatus[] = [
+    'Pendente', 
+    'A aguardar lojista', 
+    'Pronto para recolha', 
+    'A caminho', 
+    'Entregue', 
+    'Cancelado'
+];
 
-const statusColors: Record<Order['status'], string> = {
-    Pendente: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30',
-    'A caminho': 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30',
-    Entregue: 'bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/30',
+const statusColors: Record<OrderStatus, string> = {
+    'Pendente': 'bg-gray-500/20 text-gray-700 border-gray-500/30 hover:bg-gray-500/30',
+    'A aguardar lojista': 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30',
+    'Pronto para recolha': 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30',
+    'A caminho': 'bg-indigo-500/20 text-indigo-700 border-indigo-500/30 hover:bg-indigo-500/30',
+    'Entregue': 'bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/30',
+    'Cancelado': 'bg-red-500/20 text-red-700 border-red-500/30 hover:bg-red-500/30',
 };
 
 
@@ -28,7 +38,7 @@ export function OrderStatusDropdown({ order }: { order: Order }) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleStatusChange = async (newStatus: Order['status']) => {
+  const handleStatusChange = async (newStatus: OrderStatus) => {
     if (newStatus === currentStatus) return;
     
     setIsLoading(true);
@@ -48,14 +58,14 @@ export function OrderStatusDropdown({ order }: { order: Order }) {
         <DropdownMenuTrigger asChild>
             <Button
                 variant="outline"
-                className={cn("w-36 justify-between", statusColors[currentStatus])}
+                className={cn("w-48 justify-between", statusColors[currentStatus])}
                 disabled={isLoading}
             >
                 {isLoading ? <Loader2 className="animate-spin" /> : currentStatus}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-40">
+      <DropdownMenuContent className="w-56">
         {statusOptions.map((status) => (
           <DropdownMenuItem
             key={status}
