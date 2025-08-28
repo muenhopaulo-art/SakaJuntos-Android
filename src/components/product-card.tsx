@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { useCart } from '@/contexts/cart-context';
 import { ShoppingCart, Package } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -14,16 +15,20 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const { addItem: addPersonalItem } = useCart();
+  const { toast } = useToast();
 
   const handleAddToCart = () => {
     // When onAddToCart is provided, it means we are in the context of a group.
+    // The parent component (e.g., the group page) is responsible for handling the logic.
     if (onAddToCart) {
-      // Create a plain object without the createdAt timestamp to avoid serialization issues
-      // when passing the object to a server action.
-      const { createdAt, ...plainProduct } = product;
-      onAddToCart(plainProduct);
+      onAddToCart(product);
     } else {
+      // Otherwise, it's a personal shopping context, so we add to the global cart.
       addPersonalItem(product);
+      toast({
+        title: "Adicionado ao Carrinho!",
+        description: `${product.name} foi adicionado ao seu carrinho pessoal.`,
+      });
     }
   };
 
