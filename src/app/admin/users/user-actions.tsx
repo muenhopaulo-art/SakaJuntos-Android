@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -38,7 +39,7 @@ export function UserActions({ user }: UserActionsProps) {
     }
   };
   
-  if (user.wantsToBecomeLojista && user.verificationStatus === 'pending') {
+  if (user.verificationStatus === 'pending') {
     return (
       <div className="flex gap-2 justify-end">
         <AlertDialog>

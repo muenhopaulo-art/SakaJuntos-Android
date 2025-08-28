@@ -48,8 +48,8 @@ export default async function AdminUsersPage() {
         error = getErrorMessage(e);
     }
 
-    const usersWithPendingRequests = users.filter(u => u.wantsToBecomeLojista && u.verificationStatus === 'pending');
-    const otherUsers = users.filter(u => !u.wantsToBecomeLojista || u.verificationStatus !== 'pending');
+    const usersWithPendingRequests = users.filter(u => u.verificationStatus === 'pending');
+    const otherUsers = users.filter(u => u.verificationStatus !== 'pending');
 
 
     return (
@@ -118,13 +118,9 @@ function UsersTable({ users }: { users: User[] }) {
                                 <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>{roleTranslations[user.role]}</Badge>
                             </TableCell>
                             <TableCell>
-                                {user.wantsToBecomeLojista ? (
-                                    <Badge variant={statusVariant[user.verificationStatus ?? 'none']}>
-                                        {statusTranslations[user.verificationStatus ?? 'none']}
-                                    </Badge>
-                                ) : (
-                                    <Badge variant="outline">N/A</Badge>
-                                )}
+                                <Badge variant={statusVariant[user.verificationStatus ?? 'none']}>
+                                    {statusTranslations[user.verificationStatus ?? 'none']}
+                                </Badge>
                             </TableCell>
                             <TableCell>{user.createdAt ? format(new Date(user.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                             <TableCell className="text-right">
