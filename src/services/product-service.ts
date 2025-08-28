@@ -7,7 +7,7 @@ import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation, User } from '@/lib/types';
 import { getUser, queryUserByPhone as queryUserByPhoneFromUserService } from './user-service';
-import { createFinalOrder } from './order-service';
+import { createFinalOrder, cleanupGroup } from './order-service';
 
 
 // Helper function to convert Firestore data to a plain object
@@ -302,7 +302,7 @@ export async function updateGroupCart(groupId: string, product: Product, change:
 
 export async function contributeToGroup(groupId: string, userId: string, location: Geolocation) {
     try {
-        const result = await runTransaction(db, async (transaction) => {
+        await runTransaction(db, async (transaction) => {
             const groupRef = doc(db, 'groupPromotions', groupId);
             const groupSnap = await transaction.get(groupRef);
             if (!groupSnap.exists()) throw new Error("Group does not exist.");
@@ -335,8 +335,6 @@ export async function contributeToGroup(groupId: string, userId: string, locatio
                 location,
                 createdAt: serverTimestamp(),
             });
-
-            // This part of the logic doesn't need to return anything for the transaction itself.
         });
 
         // Post-transaction: check if the order is complete
@@ -375,18 +373,7 @@ async function checkAndFinalizeOrder(groupId: string) {
         }, contributions);
 
         if (orderResult.success) {
-            // Clean up the group's cart and contributions for the next purchase
-            const batch = writeBatch(db);
-            
-            const cartCol = collection(db, 'groupPromotions', groupId, 'groupCart');
-            const cartDocs = await getDocs(cartCol);
-            cartDocs.forEach(doc => batch.delete(doc.ref));
-
-            const contribCol = collection(db, 'groupPromotions', groupId, 'contributions');
-            const contribDocs = await getDocs(contribCol);
-            contribDocs.forEach(doc => batch.delete(doc.ref));
-            
-            await batch.commit();
+            await cleanupGroup(groupId);
             return { success: true, orderCreated: true };
         } else {
             // Handle failure to create order
@@ -421,5 +408,3 @@ export async function seedDatabase() {
     return { success: false, message: `Ocorreu um erro: ${(error as Error).message}` };
   }
 }
-
-    

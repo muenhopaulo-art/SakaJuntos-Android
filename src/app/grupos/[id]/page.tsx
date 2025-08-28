@@ -378,8 +378,8 @@ export default function GroupDetailPage() {
   };
 
   const handleUpdateGroupCart = async (product: Product, change: 'add' | 'remove' | 'update', newQuantity?: number) => {
-    if (!group || !user || user.uid !== group.creatorId) {
-        toast({variant: "destructive", title: "Apenas o criador do grupo pode modificar o carrinho."});
+    if (!group || !user || !group.members.some(m => m.uid === user.uid)) {
+        toast({variant: "destructive", title: "Apenas membros do grupo podem modificar o carrinho."});
         return;
     }
     
@@ -576,6 +576,7 @@ export default function GroupDetailPage() {
   const groupCart = group.groupCart || [];
   const contributions = group.contributions || [];
   const hasContributed = user ? contributions.some(c => c.userId === user.uid) : false;
+  const allMembersContributed = group.members.length > 0 && contributions.length === group.members.length;
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const totalMembers = group.members.length > 0 ? group.members.length : 1;
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
@@ -723,7 +724,7 @@ export default function GroupDetailPage() {
                                                     {user?.uid === group.creatorId && (
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
-                                                                <Button className="w-full" disabled={isFinalizing || groupCart.length === 0}>
+                                                                <Button className="w-full" disabled={isFinalizing || groupCart.length === 0 || !allMembersContributed}>
                                                                     {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : null}
                                                                     Finalizar Compra
                                                                 </Button>
@@ -770,7 +771,7 @@ export default function GroupDetailPage() {
                                         <ProductCard 
                                             key={product.id} 
                                             product={product} 
-                                            onAddToCart={user?.uid === group.creatorId ? (p) => handleUpdateGroupCart(p, 'add') : undefined}
+                                            onAddToCart={(p) => handleUpdateGroupCart(p, 'add')}
                                         />
                                     ))}
                                 </div>

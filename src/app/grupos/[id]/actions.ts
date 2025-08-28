@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -26,26 +27,22 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
         if (groupData.creatorId !== creatorId) {
             throw new Error("Apenas o criador do grupo pode finalizar o pedido.");
         }
+        
+        const members = await getSubCollection<GroupMember>(groupId, 'members');
+        const contributions = await getSubCollection<Contribution>(groupId, 'contributions');
+
+        if (contributions.length < members.length) {
+            throw new Error("Ainda faltam contribuições. Não é possível finalizar o pedido.");
+        }
 
         const cart = await getSubCollection<CartItem>(groupId, 'groupCart');
         if (cart.length === 0) {
             throw new Error("O carrinho está vazio. Adicione produtos antes de finalizar.");
         }
-
-        const members = await getSubCollection<GroupMember>(groupId, 'members');
-        const totalAmount = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
-        const contributionPerMember = members.length > 0 ? totalAmount / members.length : 0;
         
-        // Create placeholder contributions for all members
-        const contributions: Contribution[] = members.map(member => ({
-            userId: member.uid,
-            userName: member.name,
-            amount: contributionPerMember,
-            location: { latitude: 0, longitude: 0 }, // Placeholder location
-            createdAt: Date.now() // Placeholder timestamp
-        }));
-
-        // Create the final order
+        const totalAmount = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+        
+        // Create the final order with the existing contributions
         const orderResult = await createFinalOrder({
             groupId: groupId,
             groupName: groupData.name,

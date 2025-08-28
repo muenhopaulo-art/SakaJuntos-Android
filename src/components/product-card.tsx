@@ -22,6 +22,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     // The parent component (e.g., the group page) is responsible for handling the logic.
     if (onAddToCart) {
       onAddToCart(product);
+      // The group page will show its own toast.
     } else {
       // Otherwise, it's a personal shopping context, so we add to the global cart.
       addPersonalItem(product);
@@ -44,7 +45,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         <p className="text-lg font-bold text-foreground mb-4">
           {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}
         </p>
-        <Button className="w-full mt-auto" onClick={handleAddToCart}>
+        <Button className="w-full mt-auto" onClick={handleAddToCart} disabled={!onAddToCart && !addPersonalItem}>
           <ShoppingCart className="mr-2 h-4 w-4" />
           {onAddToCart ? 'Adicionar ao Grupo' : 'Adicionar'}
         </Button>
