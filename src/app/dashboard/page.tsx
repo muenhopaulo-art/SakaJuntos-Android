@@ -61,9 +61,16 @@ export default function DashboardPage() {
   }
 
   if (!user || !appUser) {
-    // This case should be handled by AuthGuard, but as a fallback:
-    router.push('/login');
-    return null;
+    // A loading screen or null is returned while useEffect handles the redirect.
+    return (
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+         <div className="relative flex items-center justify-center w-32 h-32">
+           <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse"></div>
+           <Logo className="w-20 h-20 text-primary animate-pulse" />
+         </div>
+         <p className="mt-6 text-lg font-semibold text-muted-foreground animate-pulse">A redirecionar...</p>
+       </div>
+     );
   }
   
   const renderDashboard = () => {
