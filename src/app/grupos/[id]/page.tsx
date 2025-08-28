@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -469,12 +470,10 @@ export default function GroupDetailPage() {
   if (!group) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <div className='mb-4'>
-            <Button variant="ghost" onClick={() => router.back()}><ArrowLeft/> Voltar</Button>
-        </div>
-        <Card className="max-w-md mx-auto">
+        <Button variant="ghost" onClick={() => router.back()} className="absolute top-4 left-4"><ArrowLeft/> Voltar</Button>
+        <Card className="max-w-md mx-auto mt-20">
             <CardHeader>
-                <CardTitle>Acesso Restrito</CardTitle>
+                <CardTitle>Grupo Não Encontrado</CardTitle>
             </CardHeader>
             <CardContent>
                 <p>O grupo que está a tentar aceder não foi encontrado ou foi eliminado.</p>
@@ -596,13 +595,13 @@ export default function GroupDetailPage() {
                                                 <ScrollArea className="flex-1 my-4">
                                                     <div className="space-y-4 pr-6">
                                                         {groupCart.map(item => (
-                                                            <div key={item.product.id} className="flex justify-between items-center">
-                                                                <div className="flex items-center gap-3">
+                                                            <div key={item.product.id} className="flex justify-between items-center gap-2">
+                                                                <div className="flex items-center gap-3 flex-1 min-w-0">
                                                                     <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
                                                                         <Package className="h-6 w-6 text-muted-foreground" />
                                                                     </div>
-                                                                    <div>
-                                                                        <p className="font-medium text-sm">{item.product.name}</p>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="font-medium text-sm truncate">{item.product.name}</p>
                                                                         <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
                                                                     </div>
                                                                 </div>
@@ -611,9 +610,10 @@ export default function GroupDetailPage() {
                                                                         <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
                                                                         <span className="w-4 text-center text-sm">{item.quantity}</span>
                                                                         <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
+                                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleUpdateGroupCart(item.product, 'remove')}><Trash2 className="h-4 w-4"/></Button>
                                                                     </div>
                                                                 ) : (
-                                                                    <p className="text-sm">x{item.quantity}</p>
+                                                                    <p className="text-sm font-medium">x{item.quantity}</p>
                                                                 )}
                                                             </div>
                                                         ))}
