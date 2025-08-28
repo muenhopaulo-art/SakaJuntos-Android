@@ -768,10 +768,10 @@ export default function GroupDetailPage() {
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
-                                    <AlertDialogDescription>
+                                    <AlertDialogDescription asChild>
                                         <div>
                                             A sua localização será solicitada para a entrega. Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>?
-                                            <div className="text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</div>
+                                            <span className="block text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</span>
                                         </div>
                                     </AlertDialogDescription>
                                     </AlertDialogHeader>
