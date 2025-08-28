@@ -726,8 +726,9 @@ export default function GroupDetailPage() {
 
                     {user?.uid === group.creatorId && (
                          <Card>
-                            <CardHeader>
+                            <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle>Gestão de Membros</CardTitle>
+                                <Button size="sm" variant="outline"><UserPlus className="mr-2"/>Adicionar</Button>
                             </CardHeader>
                             <CardContent>
                                 {group.joinRequests.length > 0 && (
@@ -801,6 +802,3 @@ export default function GroupDetailPage() {
         </div>
     );
 }
-
-    
-    
