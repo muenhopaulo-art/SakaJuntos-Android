@@ -574,12 +574,12 @@ export default function GroupDetailPage() {
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
   
     const ChatContent = () => (
-        <SheetContent className="flex flex-col p-0">
+        <SheetContent className="flex flex-col h-full p-0">
             <SheetHeader className="p-4 border-b">
                 <SheetTitle>Chat do Grupo</SheetTitle>
                 <SheetDescription>Comunicação em tempo real com os membros do grupo.</SheetDescription>
             </SheetHeader>
-            <ScrollArea className="flex-1" ref={chatAreaRef}>
+            <div className="flex-1 overflow-y-auto" ref={chatAreaRef}>
                 <div className="p-4 space-y-4">
                     {messages.length === 0 ? (
                         <div className="text-center text-muted-foreground py-10">
@@ -602,7 +602,7 @@ export default function GroupDetailPage() {
                         ))
                     )}
                 </div>
-            </ScrollArea>
+            </div>
             {isRecording && (
                 <div className="p-4 border-t flex items-center justify-between bg-destructive/10">
                     <div className="flex items-center gap-2 text-destructive">
