@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 export type UserRole = 'client' | 'lojista' | 'admin';
 export type StoreStatus = 'pending' | 'approved' | 'rejected';
@@ -65,4 +65,25 @@ export async function getUser(uid: string): Promise<User> {
         wantsToBeLojista: data.wantsToBeLojista || false,
         storeStatus: data.storeStatus || 'pending',
     };
+}
+
+export async function queryUserByPhone(phone: string): Promise<{user?: User, error?: string}> {
+    try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("phone", "==", phone), limit(1));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            return { error: "Nenhum utilizador encontrado com este número de telefone." };
+        }
+
+        const userDoc = querySnapshot.docs[0];
+        const userData = await getUser(userDoc.id);
+
+        return { user: userData };
+
+    } catch(error) {
+        console.error("Error querying user by phone:", error);
+        return { error: "Ocorreu um erro ao procurar o utilizador." };
+    }
 }

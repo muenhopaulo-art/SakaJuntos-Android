@@ -5,8 +5,8 @@
 import { db } from '@/lib/firebase';
 import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentData, serverTimestamp, onSnapshot, DocumentSnapshot } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
-import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation } from '@/lib/types';
-import { getUser } from './user-service';
+import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation, User } from '@/lib/types';
+import { getUser, queryUserByPhone as queryUserByPhoneFromUserService } from './user-service';
 import { createFinalOrder } from './order-service';
 
 
@@ -26,6 +26,10 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
   }
 
   return product;
+}
+
+export async function queryUserByPhone(phone: string): Promise<{user?: User, error?: string}> {
+    return queryUserByPhoneFromUserService(phone);
 }
 
 async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
@@ -176,6 +180,33 @@ export async function approveJoinRequest(groupId: string, userId: string) {
         return { success: true };
     } catch (error) {
         console.error("Error approving join request:", error);
+        return { success: false, message: (error as Error).message };
+    }
+}
+
+export async function addMember(groupId: string, userId: string, userName: string) {
+     try {
+        await runTransaction(db, async (transaction) => {
+            const groupRef = doc(db, 'groupPromotions', groupId);
+            const memberRef = doc(db, 'groupPromotions', groupId, 'members', userId);
+            
+            const groupSnap = await transaction.get(groupRef);
+            if (!groupSnap.exists()) throw new Error("O grupo não existe.");
+
+            const memberSnap = await transaction.get(memberRef);
+            if (memberSnap.exists()) throw new Error("Este utilizador já é membro do grupo.");
+
+            const groupData = groupSnap.data();
+            if (groupData.participants >= groupData.target) {
+                throw new Error("O grupo já atingiu o número máximo de membros.");
+            }
+
+            transaction.set(memberRef, { name: userName, joinedAt: serverTimestamp() });
+            transaction.update(groupRef, { participants: groupData.participants + 1 });
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error adding member:", error);
         return { success: false, message: (error as Error).message };
     }
 }

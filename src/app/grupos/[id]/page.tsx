@@ -4,11 +4,11 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, approveJoinRequest } from '@/services/product-service';
+import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, approveJoinRequest, addMember, queryUserByPhone } from '@/services/product-service';
 import { sendMessage } from '@/services/chat-service';
-import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest } from '@/lib/types';
+import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 
 // Real-time listeners
@@ -234,6 +235,14 @@ export default function GroupDetailPage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   const [productSearch, setProductSearch] = useState('');
+  
+  // State for adding a member
+  const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
+  const [searchPhone, setSearchPhone] = useState('');
+  const [isSearchingUser, setIsSearchingUser] = useState(false);
+  const [foundUser, setFoundUser] = useState<User | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isAddingMember, setIsAddingMember] = useState(false);
 
 
   // Use a single, unified effect for all real-time listeners
@@ -300,6 +309,58 @@ export default function GroupDetailPage() {
     }
     setActionLoading(prev => ({ ...prev, [userId]: false }));
   };
+  
+  const handleOpenAddMemberDialog = () => {
+    setSearchPhone('');
+    setFoundUser(null);
+    setSearchError(null);
+    setIsAddMemberDialogOpen(true);
+  };
+  
+  const handleSearchUser = async () => {
+    if (!searchPhone.trim()) {
+        setSearchError('Por favor, insira um número de telefone.');
+        return;
+    }
+    setIsSearchingUser(true);
+    setFoundUser(null);
+    setSearchError(null);
+
+    try {
+        const result = await queryUserByPhone(searchPhone);
+        if (result.error) {
+            setSearchError(result.error);
+        } else if (result.user) {
+            setFoundUser(result.user as User);
+        } else {
+            setSearchError('Nenhum utilizador encontrado com este número.');
+        }
+    } catch (e: any) {
+        setSearchError('Ocorreu um erro no servidor. Tente novamente mais tarde.');
+    } finally {
+        setIsSearchingUser(false);
+    }
+  }
+
+  const handleAddMember = async () => {
+    if (!foundUser || !group) return;
+    setIsAddingMember(true);
+    try {
+        const result = await addMember(group.id, foundUser.uid, foundUser.name);
+        if (result.success) {
+            toast({ title: 'Sucesso!', description: `${foundUser.name} foi adicionado ao grupo.` });
+            setIsAddMemberDialogOpen(false);
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error: any) {
+        setSearchError(error.message); // Show error inside the dialog
+        toast({ variant: 'destructive', title: 'Erro ao Adicionar', description: error.message });
+    } finally {
+        setIsAddingMember(false);
+    }
+  }
+
 
   const handleDeleteGroup = async () => {
     if (!group || !user || user.uid !== group.creatorId) return;
@@ -728,7 +789,45 @@ export default function GroupDetailPage() {
                          <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle>Gestão de Membros</CardTitle>
-                                <Button size="sm" variant="outline"><UserPlus className="mr-2"/>Adicionar</Button>
+                                 <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
+                                      <DialogTrigger asChild>
+                                        <Button size="sm" variant="outline" onClick={handleOpenAddMemberDialog}>
+                                            <UserPlus className="mr-2"/>Adicionar
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-md">
+                                          <DialogHeader>
+                                              <DialogTitle>Adicionar Membro</DialogTitle>
+                                              <DialogDescription>
+                                                  Procure por um utilizador pelo número de telefone para adicioná-lo ao grupo.
+                                              </DialogDescription>
+                                          </DialogHeader>
+                                          <div className="py-4 space-y-4">
+                                              <div className="flex items-center space-x-2">
+                                                  <Input 
+                                                      id="phone-search" 
+                                                      placeholder="9xx xxx xxx" 
+                                                      value={searchPhone} 
+                                                      onChange={(e) => setSearchPhone(e.target.value)}
+                                                      disabled={isSearchingUser || isAddingMember}
+                                                  />
+                                                  <Button type="button" onClick={handleSearchUser} disabled={isSearchingUser || isAddingMember}>
+                                                      {isSearchingUser ? <Loader2 className="animate-spin"/> : <Search/>}
+                                                  </Button>
+                                              </div>
+                                              {searchError && <p className="text-sm text-destructive">{searchError}</p>}
+                                              {foundUser && (
+                                                  <div className="p-4 border rounded-md bg-muted/50 space-y-3">
+                                                      <p><strong>Nome:</strong> {foundUser.name}</p>
+                                                      <p><strong>Telefone:</strong> {foundUser.phone}</p>
+                                                      <Button className="w-full" onClick={handleAddMember} disabled={isAddingMember}>
+                                                          {isAddingMember ? <Loader2 className="animate-spin"/> : 'Adicionar ao Grupo'}
+                                                      </Button>
+                                                  </div>
+                                              )}
+                                          </div>
+                                      </DialogContent>
+                                  </Dialog>
                             </CardHeader>
                             <CardContent>
                                 {group.joinRequests.length > 0 && (

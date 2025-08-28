@@ -67,3 +67,14 @@ export interface Order {
   createdAt?: number;
   contributions?: Contribution[];
 }
+
+export interface User {
+    uid: string;
+    name: string;
+    phone: string;
+    email: string;
+    // role: UserRole;
+    createdAt: number;
+    // wantsToBeLojista?: boolean;
+    // storeStatus?: StoreStatus;
+}
