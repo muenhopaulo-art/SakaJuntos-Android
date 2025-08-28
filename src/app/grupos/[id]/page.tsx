@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { finalizeGroupOrder } from './actions';
 import { approveJoinRequest } from '@/services/product-service';
 
+const SHIPPING_COST_PER_MEMBER = 1000;
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds)) return '0:00';
@@ -263,19 +264,6 @@ function listenToGroup(groupId: string, callback: (group: GroupPromotion) => voi
         }
     });
 }
-
-function listenToGroupCart(groupId: string, callback: (cartItems: CartItem[]) => void) {
-    const cartCol = collection(db, 'groupPromotions', groupId, 'groupCart');
-    const q = query(cartCol);
-    return onSnapshot(q, (querySnapshot) => {
-        const cartItems: CartItem[] = [];
-        querySnapshot.forEach((doc) => {
-            cartItems.push(doc.data() as CartItem);
-        });
-        callback(cartItems);
-    });
-}
-
 
 async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
     const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
@@ -627,7 +615,8 @@ export default function GroupDetailPage() {
   const allMembersContributed = group.members.length > 0 && contributions.length === group.members.length;
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const totalMembers = group.members.length > 0 ? group.members.length : 1;
-  const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
+  const productsValuePerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
+  const contributionPerMember = productsValuePerMember + SHIPPING_COST_PER_MEMBER;
   
     return (
         <div className="container mx-auto px-4 py-8">
@@ -698,11 +687,11 @@ export default function GroupDetailPage() {
                                                 <div className="border-t pt-4 mt-auto space-y-4">
                                                     <div className="space-y-2">
                                                         <div className="flex justify-between font-semibold">
-                                                            <span>Total do Carrinho:</span>
+                                                            <span>Total dos Produtos:</span>
                                                             <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
                                                         </div>
                                                         <div className="flex justify-between text-muted-foreground">
-                                                            <span>Valor por membro:</span>
+                                                            <span>Valor por membro (c/ entrega):</span>
                                                             <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
                                                         </div>
                                                     </div>

@@ -9,6 +9,7 @@ import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contr
 import { getUser, queryUserByPhone as queryUserByPhoneFromUserService } from './user-service';
 import { createFinalOrder, cleanupGroup } from './order-service';
 
+const SHIPPING_COST_PER_MEMBER = 1000;
 
 // Helper function to convert Firestore data to a plain object
 const convertDocToProduct = (doc: DocumentSnapshot): Product => {
@@ -320,7 +321,8 @@ export async function contributeToGroup(groupId: string, userId: string, locatio
             if (totalMembers === 0) throw new Error("Group has no members to divide contribution.");
 
             const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
-            const contributionAmount = groupCartTotal / totalMembers;
+            const productsValuePerMember = groupCartTotal / totalMembers;
+            const contributionAmount = productsValuePerMember + SHIPPING_COST_PER_MEMBER;
 
             const user = await getUser(userId);
              if (!user || !user.name) {

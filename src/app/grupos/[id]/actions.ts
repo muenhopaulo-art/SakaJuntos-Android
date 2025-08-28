@@ -6,6 +6,7 @@ import { doc, getDoc, collection, getDocs, writeBatch } from 'firebase/firestore
 import { createFinalOrder, cleanupGroup } from '@/services/order-service';
 import type { CartItem, Contribution, GroupMember } from '@/lib/types';
 
+const SHIPPING_COST_PER_MEMBER = 1000;
 
 async function getSubCollection<T>(groupId: string, subCollectionName: string): Promise<T[]> {
     const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
@@ -40,7 +41,9 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
             throw new Error("O carrinho está vazio. Adicione produtos antes de finalizar.");
         }
         
-        const totalAmount = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+        const productsTotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+        const shippingTotal = (members.length || 1) * SHIPPING_COST_PER_MEMBER;
+        const totalAmount = productsTotal + shippingTotal;
         
         // Create the final order with the existing contributions
         const orderResult = await createFinalOrder({
