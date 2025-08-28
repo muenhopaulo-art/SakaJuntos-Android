@@ -1,3 +1,4 @@
+
 import { getOrders } from './actions';
 import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -54,7 +55,7 @@ export default async function AdminPage() {
                                         <div>
                                             <CardTitle>{order.groupName}</CardTitle>
                                             <CardDescription>
-                                                Pedido a {format(new Date(order.createdAt!), "d MMM, HH:mm", { locale: pt })} • Total: {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}
+                                                Pedido a {order.createdAt ? format(new Date(order.createdAt), "d MMM, HH:mm", { locale: pt }) : 'Data desconhecida'} • Total: {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}
                                             </CardDescription>
                                         </div>
                                          <CollapsibleTrigger asChild>
@@ -77,27 +78,29 @@ export default async function AdminPage() {
                                     <CollapsibleContent>
                                         <Separator className="my-4"/>
                                         <div className="p-6 pt-0 grid gap-6 md:grid-cols-2">
-                                            <div>
-                                                <h4 className="font-semibold mb-2 flex items-center gap-2"><ShoppingBag/> Itens do Pedido</h4>
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>Produto</TableHead>
-                                                            <TableHead>Qtd.</TableHead>
-                                                            <TableHead className="text-right">Subtotal</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {order.items.map(item => (
-                                                            <TableRow key={item.product.id}>
-                                                                <TableCell>{item.product.name}</TableCell>
-                                                                <TableCell>{item.quantity}</TableCell>
-                                                                <TableCell className="text-right">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price * item.quantity)}</TableCell>
+                                            {order.items && order.items.length > 0 && (
+                                                <div>
+                                                    <h4 className="font-semibold mb-2 flex items-center gap-2"><ShoppingBag/> Itens do Pedido</h4>
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>Produto</TableHead>
+                                                                <TableHead>Qtd.</TableHead>
+                                                                <TableHead className="text-right">Subtotal</TableHead>
                                                             </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {order.items.map(item => (
+                                                                <TableRow key={item.product.id}>
+                                                                    <TableCell>{item.product.name}</TableCell>
+                                                                    <TableCell>{item.quantity}</TableCell>
+                                                                    <TableCell className="text-right">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price * item.quantity)}</TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                            )}
                                              <div>
                                                 <h4 className="font-semibold mb-2 flex items-center gap-2"><Users/> Contribuições e Localizações</h4>
                                                 <Table>
@@ -137,7 +140,7 @@ export default async function AdminPage() {
                     ) : (
                          <Card>
                             <CardContent className="p-6 text-center text-muted-foreground">
-                                <p>Ainda não há nenhum pedido registado.</p>
+                                <p>Ainda não há nenhum pedido para ser exibido.</p>
                             </CardContent>
                         </Card>
                     )}
