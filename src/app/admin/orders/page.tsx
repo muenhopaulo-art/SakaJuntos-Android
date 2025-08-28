@@ -9,6 +9,7 @@ import { AlertTriangle, MapPin, Users, ShoppingBag } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { OrderStatusDropdown } from './order-status-dropdown';
+import { OrderActions } from './order-actions';
 
 
 function getErrorMessage(error: any): string {
@@ -54,8 +55,9 @@ export default async function AdminOrdersPage() {
                                     <TableHead>Data</TableHead>
                                     <TableHead>Total</TableHead>
                                     <TableHead>Estado</TableHead>
-                                    <TableHead>Contribuições</TableHead>
-                                    <TableHead>Itens</TableHead>
+                                    <TableHead className="text-center">Contribuições</TableHead>
+                                    <TableHead className="text-center">Itens</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -71,11 +73,14 @@ export default async function AdminOrdersPage() {
                                             </TableCell>
                                             <TableCell className="text-center">{order.contributions?.length || 0}</TableCell>
                                             <TableCell className="text-center">{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</TableCell>
+                                            <TableCell className="text-right">
+                                                <OrderActions orderId={order.id} />
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
+                                        <TableCell colSpan={8} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
