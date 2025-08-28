@@ -55,7 +55,7 @@ export function SiteHeader() {
   ];
 
   const adminLinks = [
-    { href: '/admin', label: 'Admin'},
+    { href: '/admin', label: 'Admin', icon: Shield },
   ];
 
   return (
@@ -74,7 +74,7 @@ export function SiteHeader() {
             ))}
             {appUser?.role === 'admin' && adminLinks.map(link => (
               <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center gap-1">
-                <Shield size={16}/> {link.label}
+                <link.icon size={16}/> {link.label}
               </Link>
             ))}
           </nav>
@@ -106,7 +106,7 @@ export function SiteHeader() {
                  {appUser?.role === 'admin' && adminLinks.map(link => (
                     <SheetClose asChild key={link.href}>
                       <Link href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center gap-2">
-                        <Shield size={16}/> {link.label}
+                        <link.icon size={16}/> {link.label}
                       </Link>
                     </SheetClose>
                   ))}

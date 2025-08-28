@@ -1,151 +1,119 @@
 
-import { getOrders } from './actions';
-import type { Order } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+
+import { getDashboardAnalytics } from './actions';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, PackageCheck, MapPin, Users, ShoppingBag } from 'lucide-react';
-import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { AlertTriangle, DollarSign, Package, Users, Hourglass } from 'lucide-react';
 
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
         return error.message;
     }
-    return "Ocorreu um erro desconhecido ao buscar os pedidos.";
+    return "Ocorreu um erro desconhecido ao buscar os dados.";
 }
 
 
 export default async function AdminPage() {
-    let orders: Order[] = [];
+    let analytics;
     let error: string | null = null;
 
     try {
-        orders = await getOrders();
+        analytics = await getDashboardAnalytics();
     } catch (e) {
         console.error(e);
         error = getErrorMessage(e);
     }
 
+    const analyticsCards = [
+        {
+            title: "Receita Total",
+            value: analytics?.totalRevenue,
+            icon: DollarSign,
+            description: "Total de vendas de encomendas entregues."
+        },
+        {
+            title: "Vendas Pendentes",
+            value: analytics?.pendingSales,
+            icon: Hourglass,
+            description: "Valor total de encomendas pendentes."
+        },
+        {
+            title: "Total de Pedidos",
+            value: analytics?.totalOrders,
+            icon: Package,
+            isCurrency: false,
+            description: "Número total de encomendas recebidas."
+        },
+        {
+            title: "Total de Utilizadores",
+            value: analytics?.usersCount,
+            icon: Users,
+            isCurrency: false,
+            description: "Número total de utilizadores registados."
+        }
+    ];
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="space-y-2 mb-8">
-                <h1 className="text-3xl font-bold tracking-tight font-headline">Painel do Administrador</h1>
-                <p className="text-muted-foreground">Monitorize e gira as contribuições e entregas dos grupos.</p>
+                <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
+                <p className="text-muted-foreground">Uma visão geral do desempenho da sua aplicação.</p>
             </div>
 
              {error ? (
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Erro ao Carregar Pedidos</AlertTitle>
+                    <AlertTitle>Erro ao Carregar Dados</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
-             ) : (
-                <div className="space-y-6">
-                    {orders.length > 0 ? (
-                        orders.map(order => (
-                            <Collapsible key={order.id} className="space-y-2">
-                                <Card>
-                                    <CardHeader className="flex flex-row items-center justify-between">
-                                        <div>
-                                            <CardTitle>{order.groupName}</CardTitle>
-                                            <CardDescription>
-                                                Pedido a {order.createdAt ? format(new Date(order.createdAt), "d MMM, HH:mm", { locale: pt }) : 'Data desconhecida'} • Total: {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}
-                                            </CardDescription>
-                                        </div>
-                                         <CollapsibleTrigger asChild>
-                                            <Button variant="ghost" size="sm">Ver Detalhes</Button>
-                                        </CollapsibleTrigger>
-                                    </CardHeader>
-                                     <CardContent>
-                                        <div className="flex justify-between items-center">
-                                            <Badge variant={order.status === 'Entregue' ? 'default' : 'secondary'}>
-                                                <PackageCheck className="mr-1 h-3 w-3" />
-                                                {order.status}
-                                            </Badge>
-                                             <div className="flex items-center text-sm text-muted-foreground">
-                                                <Users className="mr-2 h-4 w-4" />
-                                                <span>{order.contributions?.length || 0} Membros Contribuiram</span>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-
-                                    <CollapsibleContent>
-                                        <Separator className="my-4"/>
-                                        <div className="p-6 pt-0 grid gap-6 md:grid-cols-2">
-                                            {order.items && order.items.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-semibold mb-2 flex items-center gap-2"><ShoppingBag/> Itens do Pedido</h4>
-                                                    <Table>
-                                                        <TableHeader>
-                                                            <TableRow>
-                                                                <TableHead>Produto</TableHead>
-                                                                <TableHead>Qtd.</TableHead>
-                                                                <TableHead className="text-right">Subtotal</TableHead>
-                                                            </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {order.items.map(item => (
-                                                                <TableRow key={item.product.id}>
-                                                                    <TableCell>{item.product.name}</TableCell>
-                                                                    <TableCell>{item.quantity}</TableCell>
-                                                                    <TableCell className="text-right">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price * item.quantity)}</TableCell>
-                                                                </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </div>
-                                            )}
-                                             <div>
-                                                <h4 className="font-semibold mb-2 flex items-center gap-2"><Users/> Contribuições e Localizações</h4>
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>Utilizador</TableHead>
-                                                            <TableHead>Valor</TableHead>
-                                                            <TableHead>Localização</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {order.contributions?.map(c => (
-                                                            <TableRow key={c.userId}>
-                                                                <TableCell>{c.userName}</TableCell>
-                                                                <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(c.amount)}</TableCell>
-                                                                <TableCell>
-                                                                    <a 
-                                                                        href={`https://www.google.com/maps?q=${c.location.latitude},${c.location.longitude}`} 
-                                                                        target="_blank" 
-                                                                        rel="noopener noreferrer" 
-                                                                        className="flex items-center gap-1 text-primary hover:underline"
-                                                                    >
-                                                                        <MapPin className="h-4 w-4"/>
-                                                                        Ver Mapa
-                                                                    </a>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                        </div>
-                                    </CollapsibleContent>
-                                </Card>
-                            </Collapsible>
-                        ))
-                    ) : (
-                         <Card>
-                            <CardContent className="p-6 text-center text-muted-foreground">
-                                <p>Ainda não há nenhum pedido para ser exibido.</p>
+             ) : analytics ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {analyticsCards.map(card => (
+                        <Card key={card.title}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                                <card.icon className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {card.isCurrency === false ? card.value : new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(card.value ?? 0)}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{card.description}</p>
                             </CardContent>
                         </Card>
-                    )}
+                    ))}
                 </div>
+            ) : (
+                <p className="text-center text-muted-foreground">A carregar dados do dashboard...</p>
             )}
+
+            {/* Placeholder for future charts */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-8">
+                <Card className="col-span-4">
+                    <CardHeader>
+                        <CardTitle>Visão Geral das Vendas</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                         <div className="h-80 flex items-center justify-center text-muted-foreground">
+                            (Gráfico de vendas em breve)
+                         </div>
+                    </CardContent>
+                </Card>
+                <Card className="col-span-3">
+                    <CardHeader>
+                        <CardTitle>Vendas Recentes</CardTitle>
+                        <CardDescription>
+                            As 5 vendas mais recentes.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-80 flex items-center justify-center text-muted-foreground">
+                            (Lista de vendas recentes em breve)
+                        </div>
+                    </CardContent>
+                </Card>
+          </div>
         </div>
     );
 }

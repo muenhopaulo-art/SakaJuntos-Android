@@ -1,9 +1,9 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, doc, getDoc, Timestamp,getCountFromServer } from 'firebase/firestore';
 import type { Order, Contribution } from '@/lib/types';
-import { Timestamp } from 'firebase/firestore';
+
 
 // Helper function to convert Firestore contribution doc to a plain object
 const convertDocToContribution = (doc: any): Contribution => {
@@ -64,4 +64,38 @@ export async function getOrders(): Promise<Order[]> {
     console.error("Error fetching orders:", error);
     throw new Error("Failed to fetch orders.");
   }
+}
+
+export async function getDashboardAnalytics() {
+    try {
+        const orders = await getOrders();
+        const usersCount = await getUsersCount();
+
+        const totalRevenue = orders
+            .filter(order => order.status === 'Entregue')
+            .reduce((sum, order) => sum + order.totalAmount, 0);
+
+        const pendingSales = orders
+            .filter(order => order.status !== 'Entregue')
+            .reduce((sum, order) => sum + order.totalAmount, 0);
+        
+        const totalOrders = orders.length;
+
+        return {
+            totalRevenue,
+            pendingSales,
+            totalOrders,
+            usersCount,
+        };
+
+    } catch (error) {
+        console.error("Error fetching dashboard analytics:", error);
+        throw new Error("Failed to fetch dashboard analytics.");
+    }
+}
+
+export async function getUsersCount(): Promise<number> {
+    const usersCol = collection(db, 'users');
+    const snapshot = await getCountFromServer(usersCol);
+    return snapshot.data().count;
 }

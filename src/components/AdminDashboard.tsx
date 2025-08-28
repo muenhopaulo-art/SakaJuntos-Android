@@ -22,7 +22,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button asChild>
                         <Link href="/admin">
-                            Gerir Pedidos <ArrowRight className="ml-2"/>
+                            Ir para o Painel <ArrowRight className="ml-2"/>
                         </Link>
                     </Button>
                     <Button onClick={onLogout} variant="outline">Terminar Sessão</Button>
