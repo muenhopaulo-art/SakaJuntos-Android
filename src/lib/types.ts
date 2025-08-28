@@ -65,7 +65,7 @@ export interface Order {
   totalAmount: number;
   status: 'Pendente' | 'A caminho' | 'Entregue';
   createdAt?: number;
-  contributions?: Contribution[];
+  contributions: Contribution[];
 }
 
 export interface User {

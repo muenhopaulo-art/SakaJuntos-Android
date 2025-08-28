@@ -27,6 +27,7 @@ import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { finalizeGroupOrder } from './actions';
 
 
 // Real-time listeners
@@ -235,6 +236,7 @@ export default function GroupDetailPage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   const [productSearch, setProductSearch] = useState('');
+  const [isFinalizing, setIsFinalizing] = useState(false);
   
   // State for adding a member
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
@@ -397,6 +399,33 @@ export default function GroupDetailPage() {
         });
     }
   };
+
+  const handleFinalizeOrder = async () => {
+    if (!group || !user || user.uid !== group.creatorId) return;
+
+    setIsFinalizing(true);
+    try {
+        const result = await finalizeGroupOrder(group.id, user.uid);
+        if (result.success) {
+            toast({
+                title: "Pedido Finalizado!",
+                description: "O pedido foi enviado ao administrador e o carrinho foi limpo.",
+            });
+            // The sheet will close and the cart will be empty due to real-time updates.
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Erro ao Finalizar",
+            description: error instanceof Error ? error.message : "Ocorreu um erro desconhecido.",
+        });
+    } finally {
+        setIsFinalizing(false);
+    }
+  };
+
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !group) return;
@@ -646,11 +675,11 @@ export default function GroupDetailPage() {
                                             {groupCart.length > 0 && <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">{groupCart.reduce((acc, item) => acc + item.quantity, 0)}</span>}
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent>
+                                    <SheetContent className="flex flex-col">
                                         <SheetHeader>
                                             <SheetTitle>Carrinho do Grupo</SheetTitle>
                                         </SheetHeader>
-                                        <div className="flex flex-col h-full">
+                                        <div className="flex-1 flex flex-col">
                                             {groupCart.length > 0 ? (
                                             <>
                                                 <ScrollArea className="flex-1 my-4">
@@ -680,7 +709,7 @@ export default function GroupDetailPage() {
                                                         ))}
                                                     </div>
                                                 </ScrollArea>
-                                                <div className="border-t pt-4 mt-auto">
+                                                <div className="border-t pt-4 mt-auto space-y-4">
                                                     <div className="space-y-2">
                                                         <div className="flex justify-between font-semibold">
                                                             <span>Total do Carrinho:</span>
@@ -691,6 +720,28 @@ export default function GroupDetailPage() {
                                                             <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
                                                         </div>
                                                     </div>
+                                                    {user?.uid === group.creatorId && (
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button className="w-full" disabled={isFinalizing || groupCart.length === 0}>
+                                                                    {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : null}
+                                                                    Finalizar Compra
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Confirmar Finalização?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        Esta ação enviará o pedido para o administrador e limpará o carrinho do grupo. Deseja continuar?
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={handleFinalizeOrder}>Confirmar</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    )}
                                                 </div>
                                             </>
                                             ) : (
@@ -901,3 +952,4 @@ export default function GroupDetailPage() {
         </div>
     );
 }
+
