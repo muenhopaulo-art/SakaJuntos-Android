@@ -137,7 +137,7 @@ export default async function AdminPage() {
                     ) : (
                          <Card>
                             <CardContent className="p-6 text-center text-muted-foreground">
-                                <p>Ainda não há nenhuma contribuição registada.</p>
+                                <p>Ainda não há nenhum pedido registado.</p>
                             </CardContent>
                         </Card>
                     )}
