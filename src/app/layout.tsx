@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { CartProvider } from '@/contexts/cart-context';
 import AuthGuard from '@/components/auth-guard';
 
+export const dynamic = 'force-dynamic';
 
 const ptSans = PT_Sans({
   subsets: ['latin'],
