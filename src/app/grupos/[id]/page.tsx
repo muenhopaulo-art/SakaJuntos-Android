@@ -31,54 +31,6 @@ import { finalizeGroupOrder } from './actions';
 import { approveJoinRequest } from '@/services/product-service';
 
 
-// Real-time listeners
-function listenToGroup(groupId: string, callback: (group: GroupPromotion) => void) {
-    const groupRef = doc(db, 'groupPromotions', groupId);
-    return onSnapshot(groupRef, async (docSnap) => {
-        if (docSnap.exists()) {
-            const groupData = await convertDocToGroupPromotion(docSnap.id, docSnap.data());
-            callback(groupData);
-        }
-    });
-}
-
-function listenToGroupCart(groupId: string, callback: (cartItems: CartItem[]) => void) {
-    const cartCol = collection(db, 'groupPromotions', groupId, 'groupCart');
-    const q = query(cartCol);
-    return onSnapshot(q, (querySnapshot) => {
-        const cartItems: CartItem[] = [];
-        querySnapshot.forEach((doc) => {
-            cartItems.push(doc.data() as CartItem);
-        });
-        callback(cartItems);
-    });
-}
-
-function listenToMessages(groupId: string, callback: (messages: ChatMessage[]) => void) {
-    const messagesCol = collection(db, 'groupPromotions', groupId, 'messages');
-    const q = query(messagesCol, orderBy('createdAt', 'asc'));
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const messages: ChatMessage[] = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            messages.push({
-                id: doc.id,
-                text: data.text,
-                senderId: data.senderId,
-                senderName: data.senderName,
-                createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
-                audioSrc: data.audioSrc,
-            });
-        });
-        callback(messages);
-    }, (error) => {
-        console.error("Error listening to messages:", error);
-        callback([]);
-    });
-    return unsubscribe;
-}
-
 const formatTime = (seconds: number) => {
   if (isNaN(seconds)) return '0:00';
   const minutes = Math.floor(seconds / 60);
@@ -154,6 +106,177 @@ const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
 };
 
 
+const ChatDialogContent = ({ groupId, user }: { groupId: string; user: User | null }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const chatAreaRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    if (!groupId) return;
+    const unsubscribe = onSnapshot(query(collection(db, 'groupPromotions', groupId, 'messages'), orderBy('createdAt', 'asc')), (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+      setMessages(msgs);
+    });
+    return () => unsubscribe();
+  }, [groupId]);
+
+  useEffect(() => {
+    if (chatAreaRef.current) {
+        chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !user || !groupId) return;
+    setSendingMessage(true);
+    const result = await sendMessage(groupId, user.uid, { text: newMessage });
+    if (result.success) {
+        setNewMessage('');
+    } else {
+        toast({ variant: 'destructive', title: 'Erro ao enviar mensagem.', description: result.message });
+    }
+    setSendingMessage(false);
+  };
+  
+  const startRecording = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+        mediaRecorderRef.current.ondataavailable = event => audioChunksRef.current.push(event.data);
+        mediaRecorderRef.current.onstop = async () => {
+            if (audioChunksRef.current.length === 0) return;
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = async () => {
+                const base64Audio = reader.result as string;
+                if(user && groupId) {
+                    setSendingMessage(true);
+                    await sendMessage(groupId, user.uid, { audioSrc: base64Audio });
+                    setSendingMessage(false);
+                }
+            };
+        };
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+        setRecordingTime(0);
+        recordingIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+        toast({ title: "Gravação iniciada", description: "Clique no botão parar para enviar." });
+    } catch (error) {
+        console.error("Error accessing microphone:", error);
+        toast({ variant: 'destructive', title: "Erro de Microfone", description: "Não foi possível aceder ao microfone. Verifique as permissões." });
+    }
+  };
+  
+  const stopRecording = (send: boolean) => {
+      if (mediaRecorderRef.current && isRecording) {
+          mediaRecorderRef.current.stop();
+          if (!send) audioChunksRef.current = [];
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+          setIsRecording(false);
+          if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+          setRecordingTime(0);
+          if (send) toast({ title: "Gravação terminada", description: "A enviar a sua mensagem de voz..." });
+          else toast({ title: "Gravação cancelada" });
+      }
+  };
+
+  return (
+    <>
+      <DialogHeader className="p-4 border-b">
+        <DialogTitle>Chat do Grupo</DialogTitle>
+        <DialogDescription>Comunicação em tempo real com os membros do grupo.</DialogDescription>
+      </DialogHeader>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatAreaRef}>
+        {messages.length === 0 ? (
+          <div className="text-center text-muted-foreground py-10">
+            <MessageCircle className="mx-auto h-12 w-12" />
+            <p>Seja o primeiro a dizer olá!</p>
+          </div>
+        ) : (
+          messages.map(msg => (
+            <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? 'justify-end' : 'justify-start')}>
+              <div className={cn("max-w-xs md:max-w-md rounded-lg p-3", msg.senderId === user?.uid ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                <p className="font-semibold text-xs mb-1">{msg.senderName}</p>
+                {msg.audioSrc ? (
+                  <AudioPlayer src={msg.audioSrc} isSender={msg.senderId === user?.uid} />
+                ) : (
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                )}
+                 <p className="text-xs opacity-70 mt-1 text-right">{msg.createdAt ? formatDistanceToNow(new Date((msg.createdAt as any).seconds * 1000), { addSuffix: true, locale: pt }) : 'agora'}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      {isRecording && (
+        <div className="p-4 border-t flex items-center justify-between bg-destructive/10">
+          <div className="flex items-center gap-2 text-destructive">
+            <Mic className="animate-pulse" />
+            <span>A gravar... ({formatTime(recordingTime)})</span>
+          </div>
+          <div className='flex gap-2'>
+            <Button variant="destructive" size="icon" onClick={() => stopRecording(false)}><X/></Button>
+            <Button variant="ghost" size="icon" onClick={() => stopRecording(true)}><Send/></Button>
+          </div>
+        </div>
+      )}
+      <div className="p-4 border-t bg-background">
+        <div className="flex items-center gap-2">
+          <Input
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Escreva uma mensagem..."
+            className="flex-1"
+            disabled={sendingMessage || isRecording}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+          />
+          <Button size="icon" variant="ghost" onClick={isRecording ? () => stopRecording(true) : startRecording} disabled={sendingMessage}>
+            {isRecording ? <Square className="text-destructive" /> : <Mic />}
+          </Button>
+          <Button size="icon" variant="ghost" onClick={handleSendMessage} disabled={sendingMessage || isRecording}>
+            {sendingMessage ? <Loader2 className="animate-spin" /> : <Send />}
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+
+// Real-time listeners
+function listenToGroup(groupId: string, callback: (group: GroupPromotion) => void) {
+    const groupRef = doc(db, 'groupPromotions', groupId);
+    return onSnapshot(groupRef, async (docSnap) => {
+        if (docSnap.exists()) {
+            const groupData = await convertDocToGroupPromotion(docSnap.id, docSnap.data());
+            callback(groupData);
+        }
+    });
+}
+
+function listenToGroupCart(groupId: string, callback: (cartItems: CartItem[]) => void) {
+    const cartCol = collection(db, 'groupPromotions', groupId, 'groupCart');
+    const q = query(cartCol);
+    return onSnapshot(q, (querySnapshot) => {
+        const cartItems: CartItem[] = [];
+        querySnapshot.forEach((doc) => {
+            cartItems.push(doc.data() as CartItem);
+        });
+        callback(cartItems);
+    });
+}
+
+
 async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
     const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
     const snapshot = await getDocs(subCollectionRef);
@@ -222,18 +345,9 @@ export default function GroupDetailPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [user, authLoading] = useAuthState(auth);
+  const [appUser, setAppUser] = useState<User | null>(null);
   const { toast } = useToast();
   
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const chatAreaRef = useRef<HTMLDivElement>(null);
-
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   const [productSearch, setProductSearch] = useState('');
@@ -245,6 +359,12 @@ export default function GroupDetailPage() {
   const [foundUser, setFoundUser] = useState<User | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isAddingMember, setIsAddingMember] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+        getUser(user.uid).then(setAppUser);
+    }
+  }, [user]);
 
 
   // Use a single, unified effect for all real-time listeners
@@ -269,22 +389,15 @@ export default function GroupDetailPage() {
         setLoading(false);
     });
 
-    const messagesUnsub = listenToMessages(groupId, setMessages);
     
     // Fetch static products data
     getProducts().then(setProducts);
 
     return () => {
       groupUnsub();
-      messagesUnsub();
     };
   }, [groupId]);
 
-  useEffect(() => {
-    if (chatAreaRef.current) {
-        chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
-    }
-  }, [messages, isChatOpen]);
 
   const handleAction = async (userId: string, action: 'approve' | 'remove') => {
     if (!group || !user || user.uid !== group.creatorId) {
@@ -421,63 +534,6 @@ export default function GroupDetailPage() {
     }
   };
 
-
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !group) return;
-    setSendingMessage(true);
-    const result = await sendMessage(group.id, user.uid, { text: newMessage });
-    if (result.success) {
-        setNewMessage('');
-    } else {
-        toast({ variant: 'destructive', title: 'Erro ao enviar mensagem.', description: result.message });
-    }
-    setSendingMessage(false);
-  }
-
-  const startRecording = async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorderRef.current = new MediaRecorder(stream);
-        audioChunksRef.current = [];
-        mediaRecorderRef.current.ondataavailable = event => audioChunksRef.current.push(event.data);
-        mediaRecorderRef.current.onstop = async () => {
-            if (audioChunksRef.current.length === 0) return;
-            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
-            reader.onloadend = async () => {
-                const base64Audio = reader.result as string;
-                if(user && group) {
-                    setSendingMessage(true);
-                    await sendMessage(group.id, user.uid, { audioSrc: base64Audio });
-                    setSendingMessage(false);
-                }
-            };
-        };
-        mediaRecorderRef.current.start();
-        setIsRecording(true);
-        setRecordingTime(0);
-        recordingIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
-        toast({ title: "Gravação iniciada", description: "Clique no botão parar para enviar." });
-    } catch (error) {
-        console.error("Error accessing microphone:", error);
-        toast({ variant: 'destructive', title: "Erro de Microfone", description: "Não foi possível aceder ao microfone. Verifique as permissões." });
-    }
-  };
-
-  const stopRecording = (send: boolean) => {
-      if (mediaRecorderRef.current && isRecording) {
-          mediaRecorderRef.current.stop();
-          if (!send) audioChunksRef.current = [];
-          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-          setIsRecording(false);
-          if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
-          setRecordingTime(0);
-          if (send) toast({ title: "Gravação terminada", description: "A enviar a sua mensagem de voz..." });
-          else toast({ title: "Gravação cancelada" });
-      }
-  };
-
   const handleContribution = () => {
     if (!user || !group) return;
     toast({ title: "A obter localização...", description: "Por favor, autorize o acesso à sua localização." });
@@ -573,67 +629,6 @@ export default function GroupDetailPage() {
   const totalMembers = group.members.length > 0 ? group.members.length : 1;
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
   
-    const ChatContent = () => (
-        <div className="flex flex-col h-full">
-            <DialogHeader className="p-4 border-b">
-                <DialogTitle>Chat do Grupo</DialogTitle>
-                <DialogDescription>Comunicação em tempo real com os membros do grupo.</DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatAreaRef}>
-                {messages.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-10">
-                        <MessageCircle className="mx-auto h-12 w-12" />
-                        <p>Seja o primeiro a dizer olá!</p>
-                    </div>
-                ) : (
-                    messages.map(msg => (
-                        <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? 'justify-end' : 'justify-start')}>
-                            <div className={cn("max-w-xs md:max-w-md rounded-lg p-3", msg.senderId === user?.uid ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                                <p className="font-semibold text-xs mb-1">{msg.senderName}</p>
-                                {msg.audioSrc ? (
-                                    <AudioPlayer src={msg.audioSrc} isSender={msg.senderId === user?.uid} />
-                                ) : (
-                                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                                )}
-                                <p className="text-xs opacity-70 mt-1 text-right">{formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}</p>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-            {isRecording && (
-                <div className="p-4 border-t flex items-center justify-between bg-destructive/10">
-                    <div className="flex items-center gap-2 text-destructive">
-                        <Mic className="animate-pulse" />
-                        <span>A gravar... ({formatTime(recordingTime)})</span>
-                    </div>
-                    <div className='flex gap-2'>
-                         <Button variant="destructive" size="icon" onClick={() => stopRecording(false)}><X/></Button>
-                        <Button variant="ghost" size="icon" onClick={() => stopRecording(true)}><Send/></Button>
-                    </div>
-                </div>
-            )}
-            <div className="p-4 border-t bg-background">
-                <div className="flex items-center gap-2">
-                    <Input
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Escreva uma mensagem..."
-                        className="flex-1"
-                        disabled={sendingMessage || isRecording}
-                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                    />
-                     <Button size="icon" variant="ghost" onClick={isRecording ? () => stopRecording(true) : startRecording} disabled={sendingMessage}>
-                        {isRecording ? <Square className="text-destructive" /> : <Mic />}
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={handleSendMessage} disabled={sendingMessage || isRecording}>
-                        {sendingMessage ? <Loader2 className="animate-spin" /> : <Send />}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
-
     return (
         <div className="container mx-auto px-4 py-8">
             <Button variant="ghost" onClick={() => router.back()} className="mb-4"><ArrowLeft/> Voltar </Button>
@@ -941,11 +936,9 @@ export default function GroupDetailPage() {
                     </Button>
                 </DialogTrigger>
                 <DialogContent className="p-0 max-w-lg h-[80vh] flex flex-col">
-                     <ChatContent />
+                     <ChatDialogContent groupId={groupId} user={appUser}/>
                 </DialogContent>
             </Dialog>
         </div>
     );
 }
-
-    
