@@ -85,13 +85,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+  
+  // Conditionally render based on path
+  const pathIsPublic = publicPaths.includes(pathname);
+  const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
 
-  // The admin layout handles its own structure, so we just render the children.
-  // This prevents the main site header/footer from appearing on admin pages.
-  if (adminPaths.some(p => pathname.startsWith(p))) {
+  // For public paths or admin paths, just render children without default layout
+  if (pathIsPublic || pathIsAdmin) {
     return <>{children}</>;
   }
-  
-  // For all other pages, render the children as is. The parent layout will provide the header/footer.
+
+  // For all other pages, render children inside the main layout
   return <>{children}</>;
 }
