@@ -302,12 +302,12 @@ export async function updateGroupCart(groupId: string, product: Product, change:
 
 export async function contributeToGroup(groupId: string, userId: string, location: Geolocation) {
     try {
+        let orderFinalized = false;
         await runTransaction(db, async (transaction) => {
             const groupRef = doc(db, 'groupPromotions', groupId);
             const groupSnap = await transaction.get(groupRef);
             if (!groupSnap.exists()) throw new Error("Group does not exist.");
-            const groupData = groupSnap.data();
-
+            
             const cartColRef = collection(db, 'groupPromotions', groupId, 'groupCart');
             const cartSnapshot = await getDocs(query(cartColRef));
             const groupCart: CartItem[] = cartSnapshot.docs.map(d => d.data() as CartItem);
@@ -337,10 +337,16 @@ export async function contributeToGroup(groupId: string, userId: string, locatio
             });
         });
 
-        // Post-transaction: check if the order is complete
-        const finalizationResult = await checkAndFinalizeOrder(groupId);
+        // After the transaction, check if the group is complete.
+        const groupDoc = await getDoc(doc(db, 'groupPromotions', groupId));
+        if (groupDoc.exists()) {
+            const groupData = await convertDocToGroupPromotion(groupId, groupDoc.data());
+            if (groupData.members.length > 0 && groupData.contributions.length === groupData.members.length) {
+                orderFinalized = true;
+            }
+        }
 
-        return { success: true, orderFinalized: finalizationResult.orderCreated };
+        return { success: true, orderFinalized };
 
     } catch (error) {
         console.error("Error making contribution:", error);
@@ -348,41 +354,6 @@ export async function contributeToGroup(groupId: string, userId: string, locatio
     }
 }
 
-async function checkAndFinalizeOrder(groupId: string) {
-    const groupRef = doc(db, 'groupPromotions', groupId);
-    const groupSnap = await getDoc(groupRef);
-    if (!groupSnap.exists()) throw new Error("Group not found for finalization check.");
-    
-    const contributions = await getSubCollection<Contribution>(groupId, 'contributions');
-    const members = await getSubCollection<GroupMember>(groupId, 'members');
-
-    if (members.length > 0 && contributions.length === members.length) {
-        const cart = await getSubCollection<CartItem>(groupId, 'groupCart');
-        const totalAmount = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
-        
-        if (cart.length === 0) {
-             console.log("Finalization check: Cart is empty, skipping order creation.");
-             return { success: true, orderCreated: false };
-        }
-
-        const orderResult = await createFinalOrder({
-            groupId: groupId,
-            groupName: groupSnap.data().name,
-            items: cart,
-            totalAmount: totalAmount,
-        }, contributions);
-
-        if (orderResult.success) {
-            await cleanupGroup(groupId);
-            return { success: true, orderCreated: true };
-        } else {
-            // Handle failure to create order
-            console.error("Failed to create final order:", orderResult.message);
-            return { success: false, orderCreated: false, message: orderResult.message };
-        }
-    }
-    return { success: true, orderCreated: false };
-}
 
 export async function seedDatabase() {
   try {

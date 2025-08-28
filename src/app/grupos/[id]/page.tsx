@@ -495,7 +495,7 @@ export default function GroupDetailPage() {
                 if (result.success) {
                     toast({ title: "Contribuição Registada!", description: "Obrigado por contribuir." });
                     if (result.orderFinalized) {
-                         toast({ title: "GRUPO COMPLETO!", description: "Todas as contribuições foram feitas. O pedido foi enviado ao administrador." });
+                         toast({ title: "GRUPO COMPLETO!", description: "Todas as contribuições foram feitas. O criador do grupo já pode finalizar a compra." });
                     }
                 } else {
                    throw new Error(result.message);
