@@ -1,7 +1,7 @@
 
 
 import { getDashboardAnalytics } from './actions';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, DollarSign, Package, Users, Hourglass } from 'lucide-react';
 
