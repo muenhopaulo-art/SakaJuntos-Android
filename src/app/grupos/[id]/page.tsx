@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, approveJoinRequest, addMember, queryUserByPhone } from '@/services/product-service';
+import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, addMember, queryUserByPhone } from '@/services/product-service';
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose,
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { finalizeGroupOrder } from './actions';
+import { approveJoinRequest } from '@/services/product-service';
 
 
 // Real-time listeners
@@ -238,7 +239,6 @@ export default function GroupDetailPage() {
   const [productSearch, setProductSearch] = useState('');
   const [isFinalizing, setIsFinalizing] = useState(false);
   
-  // State for adding a member
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
   const [searchPhone, setSearchPhone] = useState('');
   const [isSearchingUser, setIsSearchingUser] = useState(false);
@@ -271,17 +271,12 @@ export default function GroupDetailPage() {
 
     const messagesUnsub = listenToMessages(groupId, setMessages);
     
-    const cartUnsub = listenToGroupCart(groupId, (newCartItems) => {
-        setGroup(prevGroup => prevGroup ? { ...prevGroup, groupCart: newCartItems } : null);
-    });
-
     // Fetch static products data
     getProducts().then(setProducts);
 
     return () => {
       groupUnsub();
       messagesUnsub();
-      cartUnsub();
     };
   }, [groupId]);
 
@@ -494,9 +489,6 @@ export default function GroupDetailPage() {
                 const result = await contributeToGroup(group.id, user.uid, location);
                 if (result.success) {
                     toast({ title: "Contribuição Registada!", description: "Obrigado por contribuir." });
-                    if (result.orderFinalized) {
-                         toast({ title: "GRUPO COMPLETO!", description: "Todas as contribuições foram feitas. O criador do grupo já pode finalizar a compra." });
-                    }
                 } else {
                    throw new Error(result.message);
                 }
@@ -822,7 +814,9 @@ export default function GroupDetailPage() {
                                     <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
                                     <AlertDialogDescription asChild>
                                         <div>
+                                            <p>
                                             A sua localização será solicitada para a entrega. Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>?
+                                            </p>
                                             <span className="block text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</span>
                                         </div>
                                     </AlertDialogDescription>
@@ -954,3 +948,4 @@ export default function GroupDetailPage() {
     );
 }
 
+    

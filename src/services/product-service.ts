@@ -302,7 +302,6 @@ export async function updateGroupCart(groupId: string, product: Product, change:
 
 export async function contributeToGroup(groupId: string, userId: string, location: Geolocation) {
     try {
-        let orderFinalized = false;
         await runTransaction(db, async (transaction) => {
             const groupRef = doc(db, 'groupPromotions', groupId);
             const groupSnap = await transaction.get(groupRef);
@@ -337,16 +336,7 @@ export async function contributeToGroup(groupId: string, userId: string, locatio
             });
         });
 
-        // After the transaction, check if the group is complete.
-        const groupDoc = await getDoc(doc(db, 'groupPromotions', groupId));
-        if (groupDoc.exists()) {
-            const groupData = await convertDocToGroupPromotion(groupId, groupDoc.data());
-            if (groupData.members.length > 0 && groupData.contributions.length === groupData.members.length) {
-                orderFinalized = true;
-            }
-        }
-
-        return { success: true, orderFinalized };
+        return { success: true };
 
     } catch (error) {
         console.error("Error making contribution:", error);
@@ -379,3 +369,6 @@ export async function seedDatabase() {
     return { success: false, message: `Ocorreu um erro: ${(error as Error).message}` };
   }
 }
+
+
+    
