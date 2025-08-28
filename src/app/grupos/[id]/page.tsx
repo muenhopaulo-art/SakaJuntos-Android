@@ -2,11 +2,10 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, approveJoinRequest } from '@/services/product-service';
-import { sendMessage } from '@/services/chat-service';
-import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution } from '@/lib/types';
+import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,82 +25,6 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-
-// Helper function to convert Firestore data to a plain object
-const convertDocToProduct = (doc: DocumentSnapshot): Product => {
-  const data = doc.data() as DocumentData;
-  const product: Product = {
-    id: doc.id,
-    name: data.name,
-    description: data.description,
-    price: data.price,
-    aiHint: data.aiHint,
-  };
-
-  if (data.createdAt && data.createdAt instanceof Timestamp) {
-    product.createdAt = data.createdAt.toMillis();
-  }
-
-  return product;
-}
-
-async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
-    const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
-    const snapshot = await getDocs(subCollectionRef);
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        // Create a plain object
-        const plainData: any = {};
-        for (const key in data) {
-            if (Object.prototype.hasOwnProperty.call(data, key)) {
-                const value = data[key];
-                if (value instanceof Timestamp) {
-                    plainData[key] = value.toMillis();
-                } else {
-                    plainData[key] = value;
-                }
-            }
-        }
-        plainData.id = doc.id;
-        plainData.uid = doc.id;
-        return plainData as T;
-    });
-}
-
-
-async function convertDocToGroupPromotion(id: string, data: DocumentData): Promise<GroupPromotion> {
-    if (!data) {
-        throw new Error("Document data not found for ID: " + id);
-    }
-
-    const [members, joinRequests, groupCart, contributions] = await Promise.all([
-        getSubCollection<GroupMember>(id, 'members'),
-        getSubCollection<JoinRequest>(id, 'joinRequests'),
-        getSubCollection<CartItem>(id, 'groupCart'),
-        getSubCollection<Contribution>(id, 'contributions')
-    ]);
-
-    const promotion: GroupPromotion = {
-        id: id,
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        aiHint: data.aiHint,
-        participants: data.participants,
-        target: data.target,
-        creatorId: data.creatorId,
-        members,
-        joinRequests,
-        groupCart,
-        contributions
-    };
-
-    if (data.createdAt && data.createdAt instanceof Timestamp) {
-        promotion.createdAt = data.createdAt.toMillis();
-    }
-
-    return promotion;
-}
 
 
 // Real-time listeners
@@ -214,6 +137,65 @@ const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
     );
 };
 
+
+async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
+    const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
+    const snapshot = await getDocs(subCollectionRef);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        const plainData: any = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                const value = data[key];
+                if (value instanceof Timestamp) {
+                    plainData[key] = value.toMillis();
+                } else {
+                    plainData[key] = value;
+                }
+            }
+        }
+        plainData.id = doc.id;
+        plainData.uid = doc.id;
+        return plainData as T;
+    });
+}
+
+
+async function convertDocToGroupPromotion(id: string, data: DocumentData): Promise<GroupPromotion> {
+    if (!data) {
+        throw new Error("Document data not found for ID: " + id);
+    }
+
+    const [members, joinRequests, groupCart, contributions] = await Promise.all([
+        getSubCollection<GroupMember>(id, 'members'),
+        getSubCollection<JoinRequest>(id, 'joinRequests'),
+        getSubCollection<CartItem>(id, 'groupCart'),
+        getSubCollection<Contribution>(id, 'contributions')
+    ]);
+
+    const promotion: GroupPromotion = {
+        id: id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        aiHint: data.aiHint,
+        participants: data.participants,
+        target: data.target,
+        creatorId: data.creatorId,
+        members,
+        joinRequests,
+        groupCart,
+        contributions
+    };
+
+    if (data.createdAt && data.createdAt instanceof Timestamp) {
+        promotion.createdAt = data.createdAt.toMillis();
+    }
+
+    return promotion;
+}
+
+
 export default function GroupDetailPage() {
   const params = useParams();
   const groupId = params.id as string;
@@ -237,6 +219,9 @@ export default function GroupDetailPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  
+  const [productSearch, setProductSearch] = useState('');
+
 
   // Use a single, unified effect for all real-time listeners
   useEffect(() => {
@@ -316,7 +301,8 @@ export default function GroupDetailPage() {
         toast({variant: "destructive", title: "Apenas o criador do grupo pode modificar o carrinho."});
         return;
     }
-    // We create a plain product object to avoid passing complex objects (like Timestamps) to server actions
+    
+    // Create a plain product object to avoid passing complex objects to server actions
     const plainProduct: Product = {
         id: product.id,
         name: product.name,
@@ -417,6 +403,11 @@ export default function GroupDetailPage() {
         { enableHighAccuracy: true }
     );
   };
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return products;
+    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  }, [products, productSearch]);
 
   if (loading || authLoading) {
     return (
@@ -566,13 +557,87 @@ export default function GroupDetailPage() {
 
                     <Card>
                          <CardHeader>
-                            <CardTitle>Produtos para o Grupo</CardTitle>
-                            <CardDescription>O criador do grupo seleciona os produtos. As contribuições são divididas por todos.</CardDescription>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Produtos para o Grupo</CardTitle>
+                                    <CardDescription>O criador do grupo seleciona os produtos.</CardDescription>
+                                </div>
+                                <Sheet>
+                                    <SheetTrigger asChild>
+                                        <Button variant="outline" size="icon" className="relative">
+                                            <ShoppingCart />
+                                            {groupCart.length > 0 && <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">{groupCart.reduce((acc, item) => acc + item.quantity, 0)}</span>}
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent>
+                                        <SheetHeader>
+                                            <SheetTitle>Carrinho do Grupo</SheetTitle>
+                                        </SheetHeader>
+                                        <div className="flex flex-col h-full">
+                                            {groupCart.length > 0 ? (
+                                            <>
+                                                <ScrollArea className="flex-1 my-4">
+                                                    <div className="space-y-4 pr-6">
+                                                        {groupCart.map(item => (
+                                                            <div key={item.product.id} className="flex justify-between items-center">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
+                                                                        <Package className="h-6 w-6 text-muted-foreground" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-medium text-sm">{item.product.name}</p>
+                                                                        <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
+                                                                    </div>
+                                                                </div>
+                                                                {user?.uid === group.creatorId ? (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
+                                                                        <span className="w-4 text-center text-sm">{item.quantity}</span>
+                                                                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-sm">x{item.quantity}</p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </ScrollArea>
+                                                <div className="border-t pt-4 mt-auto">
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between font-semibold">
+                                                            <span>Total do Carrinho:</span>
+                                                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-muted-foreground">
+                                                            <span>Valor por membro:</span>
+                                                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                            ) : (
+                                                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                                                    <ShoppingCart className="w-12 h-12 mb-4" />
+                                                    <p>O carrinho do grupo está vazio.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+                            </div>
+                            <div className="mt-4">
+                                <Input 
+                                    placeholder="Pesquisar produtos..."
+                                    value={productSearch}
+                                    onChange={(e) => setProductSearch(e.target.value)}
+                                />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                             {products.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {products.map(product => (
+                            <ScrollArea className="h-96">
+                             {filteredProducts.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
+                                    {filteredProducts.map(product => (
                                         <ProductCard 
                                             key={product.id} 
                                             product={product} 
@@ -581,70 +646,33 @@ export default function GroupDetailPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <p>Nenhum produto disponível.</p>
+                                <p className="text-center text-muted-foreground pt-10">Nenhum produto encontrado.</p>
                             )}
+                            </ScrollArea>
                         </CardContent>
                     </Card>
                 </div>
 
                 <div className="md:col-span-1 space-y-6">
                     <Card>
-                         <CardHeader>
-                            <CardTitle>Carrinho e Contribuições</CardTitle>
+                        <CardHeader>
+                            <CardTitle>Contribuições</CardTitle>
+                            <CardDescription>Acompanhe o progresso dos pagamentos.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                             {groupCart.length > 0 ? (
-                                <ScrollArea className="h-[200px] pr-4">
-                                    <div className="space-y-4">
-                                    {groupCart.map(item => (
-                                        <div key={item.product.id} className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
-                                                    <Package className="h-6 w-6 text-muted-foreground" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-sm">{item.product.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
-                                                </div>
-                                            </div>
-                                            {user?.uid === group.creatorId ? (
-                                                <div className="flex items-center gap-1">
-                                                    <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
-                                                    <span className="w-4 text-center text-sm">{item.quantity}</span>
-                                                    <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
-                                                </div>
-                                            ) : (
-                                                 <p className="text-sm">x{item.quantity}</p>
-                                            )}
-                                        </div>
-                                    ))}
-                                    </div>
-                                </ScrollArea>
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">O carrinho do grupo está vazio.</p>
-                            )}
-                             <Separator/>
-                            <div className="space-y-2">
-                                <div className="flex justify-between font-semibold">
-                                    <span>Total do Carrinho:</span>
-                                    <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
-                                </div>
-                                <div className="flex justify-between text-muted-foreground">
-                                    <span>Valor por membro:</span>
-                                    <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
-                                </div>
-                            </div>
-                            <Separator/>
                              <div>
-                                <h4 className="font-semibold mb-2 text-sm">Progresso das Contribuições ({contributions.length}/{totalMembers})</h4>
+                                <div className='flex justify-between items-baseline mb-2'>
+                                     <h4 className="font-semibold text-sm">Progresso ({contributions.length}/{totalMembers})</h4>
+                                     <span className="font-bold text-lg">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)} / membro</span>
+                                </div>
                                 <Progress value={(contributions.length / totalMembers) * 100} />
-                                <div className="mt-2 space-y-1 text-xs">
+                                <div className="mt-4 space-y-2 text-sm max-h-40 overflow-y-auto">
                                      {group.members.map(member => {
                                         const hasPaid = contributions.some(c => c.userId === member.uid);
                                         return (
-                                            <div key={member.uid} className="flex justify-between items-center">
+                                            <div key={member.uid} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
                                                 <span className={cn(hasPaid && "line-through text-muted-foreground")}>{member.name}</span>
-                                                {hasPaid ? <CheckCircle className="h-4 w-4 text-green-500"/> : <XCircle className="h-4 w-4 text-muted-foreground/50"/>}
+                                                {hasPaid ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-muted-foreground/50"/>}
                                             </div>
                                         )
                                     })}
