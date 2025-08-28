@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -66,22 +67,31 @@ export default function DashboardPage() {
   }
   
   const renderDashboard = () => {
-    switch (appUser.role) {
-      case 'admin':
+    // Prioritize admin and lojista roles
+    if (appUser.role === 'admin') {
         return <AdminDashboard user={appUser} onLogout={handleLogout} />;
-      case 'lojista':
+    }
+
+    if (appUser.role === 'lojista') {
+        // If they are a lojista, they must be approved to see the dashboard.
+        // Other statuses are handled by the onboarding component.
         if (appUser.verificationStatus === 'approved') {
-          return <LojistaDashboard user={appUser} onLogout={handleLogout} />;
+            return <LojistaDashboard user={appUser} onLogout={handleLogout} />;
         }
+        // If for some reason they are lojista but not approved, show onboarding.
         return <LojistaOnboarding user={appUser} onLogout={handleLogout} />;
-      case 'client':
-      default:
-        // Client can also be in the process of becoming a lojista
+    }
+
+    // Handle client roles and those in the process of becoming a lojista
+    if (appUser.role === 'client') {
         if (appUser.wantsToBecomeLojista) {
             return <LojistaOnboarding user={appUser} onLogout={handleLogout} />;
         }
         return <Dashboard user={appUser} onLogout={handleLogout} />;
     }
+
+    // Fallback to the default client dashboard
+    return <Dashboard user={appUser} onLogout={handleLogout} />;
   };
 
 
