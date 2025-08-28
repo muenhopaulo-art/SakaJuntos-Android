@@ -39,6 +39,7 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
     id: doc.id,
     groupId: data.groupId,
     groupName: data.groupName,
+    creatorName: data.creatorName || 'N/A', // Add creatorName
     items: data.items,
     totalAmount: data.totalAmount,
     status: data.status,

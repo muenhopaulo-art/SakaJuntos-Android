@@ -52,10 +52,11 @@ export default async function AdminOrdersPage() {
                                 <TableRow>
                                     <TableHead>Pedido ID</TableHead>
                                     <TableHead>Grupo</TableHead>
+                                    <TableHead>Criador</TableHead>
                                     <TableHead>Data</TableHead>
                                     <TableHead>Total</TableHead>
                                     <TableHead>Estado</TableHead>
-                                    <TableHead className="text-center">Contribuições</TableHead>
+                                    <TableHead className="text-center">Entregas</TableHead>
                                     <TableHead className="text-center">Itens</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
@@ -66,6 +67,7 @@ export default async function AdminOrdersPage() {
                                         <TableRow key={order.id}>
                                             <TableCell className="font-mono text-xs">#{order.id.substring(0, 6)}</TableCell>
                                             <TableCell>{order.groupName}</TableCell>
+                                            <TableCell>{order.creatorName}</TableCell>
                                             <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
                                             <TableCell>
@@ -80,7 +82,7 @@ export default async function AdminOrdersPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
+                                        <TableCell colSpan={9} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

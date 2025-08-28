@@ -61,6 +61,7 @@ export interface Order {
   id: string;
   groupId: string;
   groupName: string;
+  creatorName: string;
   items: CartItem[];
   totalAmount: number;
   status: 'Pendente' | 'A caminho' | 'Entregue';

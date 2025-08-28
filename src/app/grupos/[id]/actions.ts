@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
 import { createFinalOrder, cleanupGroup } from '@/services/order-service';
 import type { CartItem, Contribution, GroupMember } from '@/lib/types';
+import { getUser } from '@/services/user-service';
 
 const SHIPPING_COST_PER_MEMBER = 1000;
 
@@ -45,10 +46,13 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
         const shippingTotal = (members.length || 1) * SHIPPING_COST_PER_MEMBER;
         const totalAmount = productsTotal + shippingTotal;
         
+        const creator = await getUser(creatorId);
+        
         // Create the final order with the existing contributions
         const orderResult = await createFinalOrder({
             groupId: groupId,
             groupName: groupData.name,
+            creatorName: creator.name,
             items: cart,
             totalAmount: totalAmount,
         }, contributions);
