@@ -8,12 +8,21 @@ import { Timestamp } from 'firebase/firestore';
 // Helper function to convert Firestore contribution doc to a plain object
 const convertDocToContribution = (doc: any): Contribution => {
   const data = doc.data();
+  // The `createdAt` field might already be a number if it comes from `createFinalOrder`,
+  // or a Timestamp if it's being read directly from the contributions subcollection.
+  // We need to handle both cases.
+  const createdAtMillis = data.createdAt instanceof Timestamp 
+    ? data.createdAt.toMillis() 
+    : typeof data.createdAt === 'number' 
+    ? data.createdAt 
+    : Date.now();
+    
   return {
     userId: doc.id,
     userName: data.userName,
     amount: data.amount,
     location: data.location,
-    createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
+    createdAt: createdAtMillis,
   };
 }
 
