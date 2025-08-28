@@ -1,10 +1,10 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts } from '@/services/product-service';
-import { approveJoinRequest } from './actions';
+import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, approveJoinRequest } from '@/services/product-service';
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -21,15 +21,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { collection, query, orderBy, onSnapshot, Timestamp, doc, getDocs, getDoc, DocumentData } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, Timestamp, doc, getDocs, getDoc, DocumentData, DocumentSnapshot } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 // Helper function to convert Firestore data to a plain object
-const convertDocToProduct = (doc: DocumentData): Product => {
-  const data = doc.data();
+const convertDocToProduct = (doc: DocumentSnapshot): Product => {
+  const data = doc.data() as DocumentData;
   const product: Product = {
     id: doc.id,
     name: data.name,
