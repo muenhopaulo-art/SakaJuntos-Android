@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -11,6 +12,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,6 +27,7 @@ import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { createUser } from '@/services/user-service';
 import { useRouter } from 'next/navigation';
+import { Checkbox } from './ui/checkbox';
 
 const phoneRegex = /^9\d{8}$/; // Aceita números de 9 dígitos que começam com 9
 
@@ -37,6 +40,7 @@ const registerSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres.' }),
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
+  wantsToBeLojista: z.boolean().default(false),
 });
 
 
@@ -47,9 +51,11 @@ export function AuthForm() {
   const router = useRouter();
 
   const formSchema = authMode === 'login' ? loginSchema : registerSchema;
-  const form = useForm<z.infer<typeof formSchema>>({
+  
+  // Need to use any here because the types from zod can't be easily reconciled
+  const form = useForm<any>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '' },
+    defaultValues: { name: '', phone: '', password: '', wantsToBeLojista: false },
   });
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -67,11 +73,14 @@ export function AuthForm() {
             await createUser(user.uid, {
                 name: registerValues.name,
                 phone: values.phone,
+                wantsToBeLojista: registerValues.wantsToBeLojista,
             });
             
             toast({
                 title: "Conta Criada!",
-                description: "O seu registo foi concluído com sucesso. A entrar...",
+                description: registerValues.wantsToBeLojista 
+                  ? "O seu pedido de verificação foi enviado. Entraremos em contacto."
+                  : "O seu registo foi concluído com sucesso. A entrar...",
             });
             router.push('/');
         } else {
@@ -136,19 +145,21 @@ export function AuthForm() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               {authMode === 'register' && (
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="sr-only">Nome Completo</FormLabel>
-                        <FormControl>
-                          <Input placeholder="O seu nome completo" {...field}  disabled={isLoading} className="py-3 px-4 rounded-xl"/>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <>
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="sr-only">Nome Completo</FormLabel>
+                            <FormControl>
+                            <Input placeholder="O seu nome completo" {...field}  disabled={isLoading} className="py-3 px-4 rounded-xl"/>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                  </>
               )}
                <FormField
                 control={form.control}
@@ -176,6 +187,31 @@ export function AuthForm() {
                   </FormItem>
                 )}
               />
+              {authMode === 'register' && (
+                <FormField
+                    control={form.control}
+                    name="wantsToBeLojista"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                        <FormControl>
+                        <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={isLoading}
+                        />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                        <FormLabel>
+                            Quero ser um lojista
+                        </FormLabel>
+                        <FormDescription>
+                           Irá submeter um pedido para vender os seus produtos na plataforma.
+                        </FormDescription>
+                        </div>
+                    </FormItem>
+                    )}
+                />
+              )}
               <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? (authMode === 'login' ? 'A entrar...' : 'A registar...') : (authMode === 'login' ? 'Entrar' : 'Registar')}

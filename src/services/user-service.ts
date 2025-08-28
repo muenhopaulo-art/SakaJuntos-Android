@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -8,18 +9,20 @@ import type { User } from '@/lib/types';
 interface UserProfileData {
     name: string;
     phone: string;
+    wantsToBeLojista?: boolean;
 }
 
 export async function createUser(uid: string, data: UserProfileData) {
     try {
         const userRef = doc(db, 'users', uid);
+        const { wantsToBeLojista, ...restData } = data;
         await setDoc(userRef, {
-            ...data,
+            ...restData,
             role: 'client', // Default role
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
-            wantsToBecomeLojista: false,
-            verificationStatus: 'none',
+            wantsToBecomeLojista: wantsToBeLojista || false,
+            verificationStatus: wantsToBeLojista ? 'pending' : 'none',
         });
         return { success: true, uid };
     } catch (error) {
