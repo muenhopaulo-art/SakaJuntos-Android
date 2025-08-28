@@ -19,7 +19,7 @@ export async function createUser(uid: string, data: UserProfileData) {
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
             wantsToBeLojista: false,
-            storeStatus: 'pending',
+            storeStatus: 'none',
         });
         return { success: true, uid };
     } catch (error) {
@@ -50,7 +50,7 @@ export async function getUser(uid: string): Promise<User> {
         role: data.role || 'client',
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
         wantsToBeLojista: data.wantsToBeLojista || false,
-        storeStatus: data.storeStatus || 'pending',
+        storeStatus: data.storeStatus || 'none',
     };
 }
 

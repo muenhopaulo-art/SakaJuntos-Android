@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query, doc, getDoc, Timestamp,getCountFromServer } from 'firebase/firestore';
-import type { Order, Contribution } from '@/lib/types';
+import type { Order, Contribution, User } from '@/lib/types';
 
 
 // Helper function to convert Firestore contribution doc to a plain object
@@ -99,4 +99,28 @@ export async function getUsersCount(): Promise<number> {
     const usersCol = collection(db, 'users');
     const snapshot = await getCountFromServer(usersCol);
     return snapshot.data().count;
+}
+
+export async function getUsers(): Promise<User[]> {
+    try {
+        const usersCol = collection(db, 'users');
+        const q = query(usersCol, orderBy('createdAt', 'desc'));
+        const userSnapshot = await getDocs(q);
+        return userSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                uid: doc.id,
+                name: data.name,
+                phone: data.phone,
+                email: data.email,
+                role: data.role,
+                wantsToBeLojista: data.wantsToBeLojista,
+                storeStatus: data.storeStatus || 'none',
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        throw new Error("Failed to fetch users.");
+    }
 }

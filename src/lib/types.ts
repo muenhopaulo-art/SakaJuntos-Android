@@ -70,7 +70,7 @@ export interface Order {
 }
 
 export type UserRole = 'client' | 'lojista' | 'admin';
-export type StoreStatus = 'pending' | 'approved' | 'rejected';
+export type StoreStatus = 'pending' | 'approved' | 'rejected' | 'none';
 
 export interface User {
     uid: string;

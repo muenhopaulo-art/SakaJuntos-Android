@@ -16,7 +16,7 @@ export default function AdminLayout({
   const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: Home },
     { href: '/admin/orders', label: 'Pedidos', icon: Package },
-    // { href: '/admin/users', label: 'Utilizadores', icon: Users },
+    { href: '/admin/users', label: 'Utilizadores', icon: Users },
   ];
 
   return (
