@@ -574,34 +574,32 @@ export default function GroupDetailPage() {
   const contributionPerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
   
     const ChatContent = () => (
-        <SheetContent className="flex flex-col h-full p-0">
-            <SheetHeader className="p-4 border-b">
-                <SheetTitle>Chat do Grupo</SheetTitle>
-                <SheetDescription>Comunicação em tempo real com os membros do grupo.</SheetDescription>
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto" ref={chatAreaRef}>
-                <div className="p-4 space-y-4">
-                    {messages.length === 0 ? (
-                        <div className="text-center text-muted-foreground py-10">
-                            <MessageCircle className="mx-auto h-12 w-12" />
-                            <p>Seja o primeiro a dizer olá!</p>
-                        </div>
-                    ) : (
-                        messages.map(msg => (
-                            <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? 'justify-end' : 'justify-start')}>
-                                <div className={cn("max-w-xs md:max-w-md rounded-lg p-3", msg.senderId === user?.uid ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                                    <p className="font-semibold text-xs mb-1">{msg.senderName}</p>
-                                    {msg.audioSrc ? (
-                                        <AudioPlayer src={msg.audioSrc} isSender={msg.senderId === user?.uid} />
-                                    ) : (
-                                        <p className="whitespace-pre-wrap">{msg.text}</p>
-                                    )}
-                                    <p className="text-xs opacity-70 mt-1 text-right">{formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}</p>
-                                </div>
+        <div className="flex flex-col h-full">
+            <DialogHeader className="p-4 border-b">
+                <DialogTitle>Chat do Grupo</DialogTitle>
+                <DialogDescription>Comunicação em tempo real com os membros do grupo.</DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatAreaRef}>
+                {messages.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-10">
+                        <MessageCircle className="mx-auto h-12 w-12" />
+                        <p>Seja o primeiro a dizer olá!</p>
+                    </div>
+                ) : (
+                    messages.map(msg => (
+                        <div key={msg.id} className={cn("flex items-end gap-2", msg.senderId === user?.uid ? 'justify-end' : 'justify-start')}>
+                            <div className={cn("max-w-xs md:max-w-md rounded-lg p-3", msg.senderId === user?.uid ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                                <p className="font-semibold text-xs mb-1">{msg.senderName}</p>
+                                {msg.audioSrc ? (
+                                    <AudioPlayer src={msg.audioSrc} isSender={msg.senderId === user?.uid} />
+                                ) : (
+                                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                                )}
+                                <p className="text-xs opacity-70 mt-1 text-right">{formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: pt })}</p>
                             </div>
-                        ))
-                    )}
-                </div>
+                        </div>
+                    ))
+                )}
             </div>
             {isRecording && (
                 <div className="p-4 border-t flex items-center justify-between bg-destructive/10">
@@ -633,7 +631,7 @@ export default function GroupDetailPage() {
                     </Button>
                 </div>
             </div>
-        </SheetContent>
+        </div>
     );
 
     return (
@@ -936,14 +934,16 @@ export default function GroupDetailPage() {
                 </div>
             </div>
 
-            <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
-                <SheetTrigger asChild>
+            <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+                <DialogTrigger asChild>
                     <Button className="fixed bottom-4 right-4 rounded-full h-16 w-16 shadow-lg z-20">
                         <MessagesSquare/>
                     </Button>
-                </SheetTrigger>
-                <ChatContent />
-            </Sheet>
+                </DialogTrigger>
+                <DialogContent className="p-0 max-w-lg h-[80vh] flex flex-col">
+                     <ChatContent />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
