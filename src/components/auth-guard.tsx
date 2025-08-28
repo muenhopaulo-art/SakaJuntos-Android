@@ -5,15 +5,12 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader } from 'lucide-react';
 import { Logo } from './Logo';
-import { SiteHeader } from './site-header';
-import { SiteFooter } from './site-footer';
 import { getUser, User } from '@/services/user-service';
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
-const restrictedPathsForPendingLojista = ['/', '/minishopping', '/grupos', '/cart', '/admin'];
+const adminPaths = ['/admin', '/admin/orders', '/admin/users'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth);
@@ -46,6 +43,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (loading || isAppUserLoading) return; // Wait for both auth and user profile to load
 
     const pathIsPublic = publicPaths.includes(pathname);
+    const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
 
     // If user is not logged in and not on a public path, redirect to login
     if (!user && !pathIsPublic) {
@@ -66,6 +64,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         }
     }
 
+    // If a non-admin tries to access admin pages, redirect them
+    if (appUser && appUser.role !== 'admin' && pathIsAdmin) {
+      router.push('/dashboard'); // Or show an unauthorized page
+    }
+
+
   }, [user, appUser, loading, isAppUserLoading, router, pathname]);
 
   // Show a loading screen while auth state is being determined,
@@ -82,22 +86,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const isPublicPage = publicPaths.includes(pathname);
-
-  if(isPublicPage) {
+  // The admin layout handles its own structure, so we just render the children.
+  // This prevents the main site header/footer from appearing on admin pages.
+  if (adminPaths.some(p => pathname.startsWith(p))) {
     return <>{children}</>;
   }
   
-  // Don't render layout for pending/rejected lojistas if they aren't on the dashboard
-  if (appUser && appUser.wantsToBecomeLojista && appUser.verificationStatus !== 'approved' && pathname !== '/dashboard') {
-      return null;
-  }
-  
-  return (
-      <div className="relative flex min-h-screen flex-col">
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
-      </div>
-  )
+  // For all other pages, render the children as is. The parent layout will provide the header/footer.
+  return <>{children}</>;
 }
