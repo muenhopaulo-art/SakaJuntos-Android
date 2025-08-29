@@ -1,12 +1,17 @@
 
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, Package, Users, Hourglass, Bike } from 'lucide-react';
-import { getDashboardAnalytics, getOnlineDeliveryDrivers } from './actions';
+import { DollarSign, Package, Users, Hourglass, Bike, AlertTriangle } from 'lucide-react';
+import { getDashboardAnalytics } from './actions';
 import type { User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 
 function getErrorMessage(error: any): string {
@@ -24,20 +29,49 @@ const getInitials = (name: string) => {
 }
 
 
-export default async function AdminPage() {
+export default function AdminPage() {
     
-    let analyticsData;
-    let onlineDrivers: User[] = [];
-    let error: string | null = null;
+    const [analyticsData, setAnalyticsData] = useState<any>(null);
+    const [onlineDrivers, setOnlineDrivers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    try {
-        [analyticsData, onlineDrivers] = await Promise.all([
-            getDashboardAnalytics(),
-            getOnlineDeliveryDrivers()
-        ]);
-    } catch (e) {
-        error = getErrorMessage(e);
-    }
+    useEffect(() => {
+      const fetchAnalytics = async () => {
+        try {
+          const data = await getDashboardAnalytics();
+          setAnalyticsData(data);
+        } catch (e) {
+          setError(getErrorMessage(e));
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchAnalytics();
+
+      const driversQuery = query(collection(db, 'users'), where('online', '==', true));
+      const unsubscribe = onSnapshot(driversQuery, (snapshot) => {
+        const drivers: User[] = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                uid: doc.id,
+                name: data.name,
+                phone: data.phone,
+                email: data.email,
+                role: data.role,
+                createdAt: data.createdAt?.toMillis() || Date.now(),
+                online: data.online,
+            }
+        });
+        setOnlineDrivers(drivers);
+      }, (err) => {
+        console.error("Error listening for online drivers:", err);
+        setError("Não foi possível carregar os entregadores em tempo real.");
+      });
+
+      return () => unsubscribe();
+    }, []);
     
     const analyticsCards = [
         {
@@ -69,6 +103,24 @@ export default async function AdminPage() {
             description: "Número total de utilizadores registados."
         }
     ];
+
+    if (loading) {
+        return (
+             <div className="container mx-auto px-4 py-8">
+                <div className="space-y-2 mb-8">
+                    <Skeleton className="h-10 w-1/3" />
+                    <Skeleton className="h-6 w-1/2" />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)}
+                </div>
+                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-8">
+                    <Skeleton className="col-span-4 h-96" />
+                    <Skeleton className="col-span-3 h-96" />
+                </div>
+            </div>
+        )
+    }
 
     if (error) {
         return (

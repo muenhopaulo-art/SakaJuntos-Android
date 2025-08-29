@@ -19,6 +19,7 @@ export default function AdminLayout({
   const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: Home },
     { href: '/admin/orders', label: 'Pedidos', icon: Package },
+    { href: '/admin/products', label: 'Produtos', icon: Package },
   ];
   
   const handleLogout = async () => {

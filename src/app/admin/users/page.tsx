@@ -1,5 +1,5 @@
-// This file is no longer used by the application and can be removed.
-// The user management UI will be built out later if requested.
+
+// This page is no longer used and can be removed.
 export default function AdminUsersPage() {
     return null;
 }
