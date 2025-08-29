@@ -13,6 +13,7 @@ import { SiteFooter } from './site-footer';
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
 const adminPaths = ['/admin', '/admin/orders', '/admin/users'];
+const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth);
@@ -46,6 +47,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const pathIsPublic = publicPaths.includes(pathname);
     const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
+    const pathIsLojista = lojistaPaths.some(p => pathname.startsWith(p));
 
     // If user is not logged in and not on a public path, redirect to login
     if (!user && !pathIsPublic) {
@@ -63,12 +65,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (appUser && appUser.wantsToBecomeLojista && appUser.verificationStatus !== 'approved') {
         if (pathname !== '/dashboard') {
             router.push('/dashboard');
+            return;
         }
     }
 
     // If a non-admin tries to access admin pages, redirect them
     if (appUser && appUser.role !== 'admin' && pathIsAdmin) {
       router.push('/dashboard'); // Or show an unauthorized page
+      return;
+    }
+
+    // If a non-lojista tries to access lojista pages, redirect them
+    if (appUser && appUser.role !== 'lojista' && pathIsLojista) {
+        router.push('/dashboard');
+        return;
     }
 
 
@@ -89,10 +99,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
   
   const pathIsPublic = publicPaths.includes(pathname);
-  const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
+  const pathIsLayoutLess = adminPaths.some(p => pathname.startsWith(p)) || lojistaPaths.some(p => pathname.startsWith(p));
 
-  // Render children without the main layout for public and admin pages
-  if (pathIsPublic || pathIsAdmin) {
+
+  // Render children without the main layout for public, admin and lojista pages
+  if (pathIsPublic || pathIsLayoutLess) {
     return <>{children}</>;
   }
 

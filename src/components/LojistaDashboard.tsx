@@ -1,7 +1,9 @@
+
 'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { User } from '@/services/user-service';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Loader2 } from 'lucide-react';
 
 interface LojistaDashboardProps {
     user: User;
@@ -9,16 +11,17 @@ interface LojistaDashboardProps {
 }
 
 export function LojistaDashboard({ user, onLogout }: LojistaDashboardProps) {
+    const router = useRouter();
+
+    useEffect(() => {
+        // Redirect to the new lojista layout
+        router.replace('/lojista');
+    }, [router]);
+    
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Painel do Lojista</CardTitle>
-                <CardDescription>Bem-vindo, {user.name}! A sua loja está aprovada.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <p>Aqui você pode gerir os seus produtos, ver as suas vendas e muito mais.</p>
-                <Button onClick={onLogout} variant="destructive">Terminar Sessão</Button>
-            </CardContent>
-        </Card>
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">A redirecionar para o painel do lojista...</p>
+        </div>
     );
 }

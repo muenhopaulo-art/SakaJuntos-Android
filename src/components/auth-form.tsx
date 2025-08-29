@@ -98,7 +98,10 @@ export function AuthForm() {
 
             if (appUser && appUser.role === 'admin') {
                 router.push('/admin');
-            } else {
+            } else if (appUser && appUser.role === 'lojista') {
+                router.push('/lojista');
+            }
+             else {
                 router.push('/');
             }
         }
