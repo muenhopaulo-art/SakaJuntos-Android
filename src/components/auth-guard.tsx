@@ -7,6 +7,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Logo } from './Logo';
 import { getUser, User } from '@/services/user-service';
+import { SiteHeader } from './site-header';
+import { SiteFooter } from './site-footer';
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
@@ -86,15 +88,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // Conditionally render based on path
   const pathIsPublic = publicPaths.includes(pathname);
   const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
 
-  // For public paths or admin paths, just render children without default layout
+  // Render children without the main layout for public and admin pages
   if (pathIsPublic || pathIsAdmin) {
     return <>{children}</>;
   }
 
-  // For all other pages, render children inside the main layout
-  return <>{children}</>;
+  // Render children inside the main layout for all other authenticated pages
+  return (
+     <div className="relative flex min-h-screen flex-col">
+        <SiteHeader />
+        <main className="flex-1">{children}</main>
+        <SiteFooter />
+    </div>
+  );
 }
