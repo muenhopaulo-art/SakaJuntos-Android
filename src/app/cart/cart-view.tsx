@@ -67,9 +67,14 @@ export function CartView() {
         <ShoppingCart className="mx-auto h-24 w-24 text-muted-foreground" />
         <h1 className="text-3xl font-bold font-headline">O seu carrinho está vazio</h1>
         <p className="text-muted-foreground">Parece que ainda não adicionou nada. Que tal explorar os nossos produtos?</p>
-        <Button asChild size="lg">
-          <Link href="/minishopping">Começar a comprar</Link>
-        </Button>
+        <div className="flex justify-center gap-4">
+          <Button asChild size="lg">
+            <Link href="/minishopping">Começar a comprar</Link>
+          </Button>
+           <Button asChild size="lg" variant="outline">
+              <Link href="/">Voltar à Página Inicial</Link>
+            </Button>
+        </div>
       </div>
     );
   }
