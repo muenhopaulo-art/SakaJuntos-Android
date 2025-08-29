@@ -5,7 +5,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  imageUrl?: string; // Add optional imageUrl
+  imageUrl?: string; 
   aiHint?: string;
   createdAt?: number;
   lojistaId?: string; // ID of the lojista who owns the product
