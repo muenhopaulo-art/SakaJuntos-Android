@@ -47,6 +47,12 @@ function OrderItem({ order }: { order: Order }) {
                     <span className="text-muted-foreground">Total</span>
                     <span className="font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</span>
                 </div>
+                {order.driverName && (
+                     <div className="flex justify-between">
+                        <span className="text-muted-foreground">Entregador</span>
+                        <span className="font-medium">{order.driverName}</span>
+                    </div>
+                )}
             </div>
         </div>
     )
@@ -86,6 +92,8 @@ export function OrdersSheet() {
                 status: data.status,
                 createdAt: data.createdAt?.toMillis(),
                 contributions,
+                driverId: data.driverId,
+                driverName: data.driverName,
             });
         }
         

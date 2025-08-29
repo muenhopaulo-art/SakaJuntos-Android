@@ -67,6 +67,8 @@ export default function MyOrdersPage() {
                     status: data.status,
                     createdAt: data.createdAt?.toMillis(),
                     contributions,
+                    driverId: data.driverId,
+                    driverName: data.driverName,
                 });
             }
             
@@ -150,6 +152,15 @@ export default function MyOrdersPage() {
                                                                         </li>
                                                                     ))}
                                                                 </ul>
+                                                                 {order.driverName && (
+                                                                    <div className="mt-4 pt-4 border-t">
+                                                                        <h5 className="font-semibold mb-2">Detalhes da Entrega</h5>
+                                                                        <div className="flex justify-between text-sm">
+                                                                            <span>Entregador:</span>
+                                                                            <span>{order.driverName}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </AccordionContent>
                                                     </TableCell>
