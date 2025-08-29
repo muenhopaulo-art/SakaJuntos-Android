@@ -1,37 +1,86 @@
 
-'use client';
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, Package, Users, Hourglass } from 'lucide-react';
+import { DollarSign, Package, Users, Hourglass, Bike } from 'lucide-react';
+import { getDashboardAnalytics, getOnlineDeliveryDrivers } from './actions';
+import type { User } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
-export default function AdminPage() {
+
+function getErrorMessage(error: any): string {
+    if (error && typeof error.message === 'string') {
+        return error.message;
+    }
+    return "Ocorreu um erro desconhecido ao buscar os dados.";
+}
+
+const getInitials = (name: string) => {
+    if (!name) return '?';
+    const names = name.split(' ');
+    const initials = names.map(n => n[0]).join('');
+    return initials.substring(0, 2).toUpperCase();
+}
+
+
+export default async function AdminPage() {
+    
+    let analyticsData;
+    let onlineDrivers: User[] = [];
+    let error: string | null = null;
+
+    try {
+        [analyticsData, onlineDrivers] = await Promise.all([
+            getDashboardAnalytics(),
+            getOnlineDeliveryDrivers()
+        ]);
+    } catch (e) {
+        error = getErrorMessage(e);
+    }
     
     const analyticsCards = [
         {
             title: "Receita Total",
-            value: "0,00 AOA",
+            value: analyticsData?.totalRevenue,
+            isCurrency: true,
             icon: DollarSign,
             description: "Total de vendas de encomendas entregues."
         },
         {
             title: "Vendas Pendentes",
-            value: "0,00 AOA",
+            value: analyticsData?.pendingSales,
+            isCurrency: true,
             icon: Hourglass,
             description: "Valor total de encomendas pendentes."
         },
         {
             title: "Total de Pedidos",
-            value: "0",
+            value: analyticsData?.totalOrders,
+            isCurrency: false,
             icon: Package,
             description: "Número total de encomendas recebidas."
         },
         {
             title: "Total de Utilizadores",
-            value: "0",
+            value: analyticsData?.usersCount,
+            isCurrency: false,
             icon: Users,
             description: "Número total de utilizadores registados."
         }
     ];
+
+    if (error) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Erro ao Carregar Dados do Dashboard</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            </div>
+        )
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -48,7 +97,12 @@ export default function AdminPage() {
                             <card.icon className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{card.value}</div>
+                            <div className="text-2xl font-bold">
+                                {card.isCurrency 
+                                    ? new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(card.value ?? 0)
+                                    : card.value ?? 0
+                                }
+                            </div>
                             <p className="text-xs text-muted-foreground">{card.description}</p>
                         </CardContent>
                     </Card>
@@ -74,9 +128,28 @@ export default function AdminPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-full flex items-center justify-center text-muted-foreground">
-                            (Lista de entregadores em breve)
-                        </div>
+                        {onlineDrivers.length > 0 ? (
+                             <div className="space-y-4">
+                                {onlineDrivers.map(driver => (
+                                    <div key={driver.uid} className="flex items-center gap-3">
+                                        <Avatar>
+                                            <AvatarFallback>{getInitials(driver.name)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1">
+                                            <p className="font-medium text-sm">{driver.name}</p>
+                                            <p className="text-xs text-muted-foreground">{driver.phone}</p>
+                                        </div>
+                                         <Badge variant="secondary" className="bg-green-500/20 text-green-700">Online</Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                             <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center space-y-2">
+                                <Bike className="h-10 w-10" />
+                                <p className="font-medium">Nenhum entregador online.</p>
+                                <p className="text-sm">Os entregadores online aparecerão aqui.</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

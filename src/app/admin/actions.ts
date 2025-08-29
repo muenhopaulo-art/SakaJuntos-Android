@@ -209,7 +209,8 @@ export async function getUsers(): Promise<User[]> {
 export async function getOnlineDeliveryDrivers(): Promise<User[]> {
     try {
         const usersCol = collection(db, 'users');
-        const q = query(usersCol, where('role', '==', 'courier'), where('online', '==', true));
+        // We only care about online status, not role, as per user feedback
+        const q = query(usersCol, where('online', '==', true));
         const driverSnapshot = await getDocs(q);
         return driverSnapshot.docs.map(doc => {
             const data = doc.data();
@@ -218,7 +219,7 @@ export async function getOnlineDeliveryDrivers(): Promise<User[]> {
                 name: data.name,
                 phone: data.phone,
                 email: data.email,
-                role: data.role,
+                role: data.role, // still return role if it exists
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
                 online: data.online
             }
