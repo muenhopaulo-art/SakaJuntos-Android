@@ -8,7 +8,7 @@ import type { Order, OrderStatus } from '@/lib/types';
 import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Package, Truck, ListOrdered } from 'lucide-react';
+import { Loader2, Package, Truck, ListOrdered, User as UserIcon, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +65,7 @@ export default function MyOrdersPage() {
                     items: data.items,
                     totalAmount: data.totalAmount,
                     status: data.status,
+                    orderType: data.orderType || 'group',
                     createdAt: data.createdAt?.toMillis(),
                     contributions,
                     driverId: data.driverId,
@@ -111,7 +112,7 @@ export default function MyOrdersPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>ID da Encomenda</TableHead>
-                                    <TableHead>Grupo</TableHead>
+                                    <TableHead>Tipo</TableHead>
                                     <TableHead>Data</TableHead>
                                     <TableHead>Total</TableHead>
                                     <TableHead>Estado</TableHead>
@@ -125,7 +126,12 @@ export default function MyOrdersPage() {
                                              <>
                                                 <TableRow>
                                                     <TableCell className="font-mono text-xs">#{order.id.substring(0, 6)}</TableCell>
-                                                    <TableCell>{order.groupName}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
+                                                            {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
+                                                            {order.groupName || 'Individual'}
+                                                        </Badge>
+                                                    </TableCell>
                                                     <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                                     <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
                                                     <TableCell>

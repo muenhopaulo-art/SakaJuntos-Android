@@ -5,12 +5,13 @@ import type { Order, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, MapPin, Users, ShoppingBag, Bike, Building } from 'lucide-react';
+import { AlertTriangle, MapPin, Users, ShoppingBag, Bike, Building, User as UserIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { OrderStatusDropdown } from './order-status-dropdown';
 import { OrderActions } from './order-actions';
 import { AssignDriverDialog } from './assign-driver-dialog';
+import { Badge } from '@/components/ui/badge';
 
 
 function getErrorMessage(error: any): string {
@@ -59,8 +60,8 @@ export default async function AdminOrdersPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Pedido ID</TableHead>
-                                    <TableHead>Grupo</TableHead>
-                                    <TableHead>Criador</TableHead>
+                                    <TableHead>Tipo</TableHead>
+                                    <TableHead>Cliente</TableHead>
                                     <TableHead>Lojista</TableHead>
                                     <TableHead>Data</TableHead>
                                     <TableHead>Total</TableHead>
@@ -74,7 +75,12 @@ export default async function AdminOrdersPage() {
                                     orders.map(order => (
                                         <TableRow key={order.id}>
                                             <TableCell className="font-mono text-xs">#{order.id.substring(0, 6)}</TableCell>
-                                            <TableCell>{order.groupName}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
+                                                     {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
+                                                     {order.groupName || 'Individual'}
+                                                </Badge>
+                                            </TableCell>
                                             <TableCell>{order.creatorName}</TableCell>
                                             <TableCell>
                                                 {order.lojistaId ? (

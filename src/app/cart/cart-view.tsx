@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,18 +6,26 @@ import { useCart } from '@/contexts/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Minus, Plus, ShoppingCart, Sparkles, Trash2, Package } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Minus, Plus, ShoppingCart, Sparkles, Trash2, Package, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { getOrderSummary } from './actions';
+import { useRouter } from 'next/navigation';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { getOrderSummary, createIndividualOrder } from './actions';
+import { useToast } from '@/hooks/use-toast';
 
 const SHIPPING_COST = 1000;
 
 export function CartView() {
-  const { items, removeItem, updateItemQuantity, totalPrice, totalItems, isInitialized } = useCart();
+  const { items, removeItem, updateItemQuantity, totalPrice, totalItems, clearCart, isInitialized } = useCart();
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [user] = useAuthState(auth);
+  const router = useRouter();
+  const { toast } = useToast();
 
   const handleSummarize = async () => {
     setIsSummaryLoading(true);
@@ -31,6 +40,25 @@ export function CartView() {
     setIsAlertOpen(true);
     setIsSummaryLoading(false);
   };
+  
+  const handleCheckout = async () => {
+      if (!user) {
+        toast({ variant: 'destructive', title: 'Erro!', description: 'Precisa de estar autenticado para finalizar a compra.' });
+        router.push('/login');
+        return;
+      }
+      setIsCheckoutLoading(true);
+      const result = await createIndividualOrder(user.uid, items, totalPrice + SHIPPING_COST);
+      setIsCheckoutLoading(false);
+      
+      if (result.success && result.orderId) {
+          toast({ title: 'Compra Finalizada!', description: 'A sua encomenda foi criada com sucesso.' });
+          clearCart();
+          router.push('/my-orders');
+      } else {
+          toast({ variant: 'destructive', title: 'Erro ao Finalizar', description: result.message });
+      }
+  }
 
   if (isInitialized && totalItems === 0) {
     return (
@@ -116,7 +144,26 @@ export function CartView() {
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-2">
-            <Button size="lg" className="w-full">Finalizar Compra</Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                  <Button size="lg" className="w-full" disabled={isCheckoutLoading}>
+                    {isCheckoutLoading ? <Loader2 className="animate-spin mr-2"/> : null}
+                    Finalizar Compra
+                  </Button>
+              </AlertDialogTrigger>
+               <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar Compra?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isto irá criar uma encomenda com os itens do seu carrinho. O seu pedido será enviado a um lojista para preparação. Deseja continuar?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCheckout}>Confirmar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <Button size="lg" variant="outline" className="w-full" onClick={handleSummarize} disabled={isSummaryLoading}>
               {isSummaryLoading ? 'A gerar...' : <><Sparkles className="mr-2 h-4 w-4" /> Resumir com IA</>}
             </Button>

@@ -45,6 +45,7 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
     items: data.items,
     totalAmount: data.totalAmount,
     status: data.status,
+    orderType: data.orderType || 'group',
     contributions, // Add contributions here
     driverId: data.driverId,
     driverName: data.driverName,

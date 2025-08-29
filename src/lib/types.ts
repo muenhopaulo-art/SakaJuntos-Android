@@ -1,5 +1,6 @@
 
 
+
 export interface Product {
   id: string;
   name: string;
@@ -70,18 +71,20 @@ export type OrderStatus =
   | 'Entregue' 
   | 'Cancelado';
 
+export type OrderType = 'individual' | 'group';
 
 export interface Order {
   id: string;
-  groupId: string;
   creatorId: string;
-  groupName: string;
-  creatorName: string;
   items: CartItem[];
   totalAmount: number;
   status: OrderStatus;
+  orderType: OrderType;
+  groupName?: string; // For group orders
+  groupId?: string; // For group orders
+  creatorName: string;
   createdAt?: number;
-  contributions: Contribution[];
+  contributions?: Contribution[];
   lojistaId?: string; // ID of the lojista responsible for the order
   driverId?: string;
   driverName?: string;

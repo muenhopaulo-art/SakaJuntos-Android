@@ -9,10 +9,11 @@ import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, User as UserIcon, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { LojistaOrderStatusButton } from './lojista-order-status-button';
+import { Badge } from '@/components/ui/badge';
 
 
 function getErrorMessage(error: any): string {
@@ -75,7 +76,7 @@ export default function LojistaOrdersPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Pedido ID</TableHead>
-                                    <TableHead>Grupo</TableHead>
+                                    <TableHead>Tipo</TableHead>
                                     <TableHead>Cliente</TableHead>
                                     <TableHead>Data</TableHead>
                                     <TableHead>Total</TableHead>
@@ -88,7 +89,12 @@ export default function LojistaOrdersPage() {
                                     orders.map(order => (
                                         <TableRow key={order.id}>
                                             <TableCell className="font-mono text-xs">#{order.id.substring(0, 6)}</TableCell>
-                                            <TableCell>{order.groupName}</TableCell>
+                                             <TableCell>
+                                                <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
+                                                     {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
+                                                     {order.groupName || 'Individual'}
+                                                </Badge>
+                                            </TableCell>
                                             <TableCell>{order.creatorName}</TableCell>
                                             <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
