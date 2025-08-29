@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Logo } from './Logo';
 import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { createUser } from '@/services/user-service';
+import { createUser, getUser } from '@/services/user-service';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from './ui/checkbox';
 
@@ -85,12 +85,22 @@ export function AuthForm() {
             router.push('/');
         } else {
             // Login mode
-            await signInWithEmailAndPassword(auth, email, values.password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, values.password);
+            const user = userCredential.user;
+            
+            // Fetch user profile to check role for redirection
+            const appUser = await getUser(user.uid);
+
             toast({
                 title: "Login bem-sucedido!",
                 description: "Bem-vindo de volta.",
             });
-            router.push('/');
+
+            if (appUser && appUser.role === 'admin') {
+                router.push('/admin');
+            } else {
+                router.push('/');
+            }
         }
 
      } catch (error: any) {
