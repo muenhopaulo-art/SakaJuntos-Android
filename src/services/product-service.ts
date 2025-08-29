@@ -287,12 +287,22 @@ export async function updateGroupCart(groupId: string, product: Product, change:
     try {
         await runTransaction(db, async (transaction) => {
             const itemSnap = await transaction.get(cartItemRef);
+            const plainProduct: Omit<Product, 'createdAt'> = {
+                id: product.id,
+                name: product.name,
+                description: product.description,
+                price: product.price,
+                imageUrl: product.imageUrl || null,
+                aiHint: product.aiHint || null,
+                lojistaId: product.lojistaId || null
+            };
+
             if (change === 'add') {
                 if (itemSnap.exists()) {
                     const currentQuantity = itemSnap.data().quantity || 0;
                     transaction.update(cartItemRef, { quantity: currentQuantity + 1 });
                 } else {
-                    transaction.set(cartItemRef, { product, quantity: 1 });
+                    transaction.set(cartItemRef, { product: plainProduct, quantity: 1 });
                 }
             } else if (change === 'remove') {
                 transaction.delete(cartItemRef);
@@ -361,17 +371,22 @@ export async function seedDatabase() {
   try {
     const batch = writeBatch(db);
     const productsCol = collection(db, 'products');
+    
+    // Check for existing products before seeding
+    const productsSnapshot = await getDocs(productsCol);
+    if (!productsSnapshot.empty) {
+        return { success: true, message: 'A base de dados já contém produtos. Nenhuma ação foi tomada.' };
+    }
+
     mockProducts.forEach(product => {
-      const { id, ...data } = product;
-      const docRef = doc(productsCol, id);
-      batch.set(docRef, { ...data, createdAt: serverTimestamp() });
+      const docRef = doc(collection(db, "products"));
+      batch.set(docRef, { ...product, createdAt: serverTimestamp() });
     });
 
     const promotionsCol = collection(db, 'groupPromotions');
     mockGroupPromotions.forEach(promotion => {
-        const { id, ...data } = promotion;
-        const docRef = doc(promotionsCol, id);
-        batch.set(docRef, { ...data, status: 'active', createdAt: serverTimestamp() });
+        const docRef = doc(collection(db, "groupPromotions"));
+        batch.set(docRef, { ...promotion, status: 'active', createdAt: serverTimestamp() });
     });
 
     await batch.commit();

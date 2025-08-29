@@ -42,7 +42,7 @@ export function PromotionCard({ promotion, showJoinButton, onJoin }: PromotionCa
       <CardContent className="flex-grow space-y-4">
         <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
             {promotion.imageUrl ? (
-              <Image src={promotion.imageUrl} alt={promotion.name} fill className="object-cover" />
+              <Image src={promotion.imageUrl} alt={promotion.name} fill className="object-cover" data-ai-hint={promotion.aiHint}/>
             ) : (
               <Package className="w-16 h-16 text-muted-foreground"/>
             )}

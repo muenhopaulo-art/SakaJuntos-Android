@@ -39,7 +39,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
       <CardContent className="p-4 flex-grow flex flex-col">
         <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4 bg-muted flex items-center justify-center">
             {product.imageUrl ? (
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" data-ai-hint={product.aiHint} />
             ) : (
               <Package className="w-16 h-16 text-muted-foreground"/>
             )}
