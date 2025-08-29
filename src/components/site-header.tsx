@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetClose } from './ui/sheet';
-import { Menu, ShoppingCart, User, LogOut, LayoutDashboard, Shield, Package } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Shield, Package } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getUser, type User as AppUser } from '@/services/user-service';
 import { CartSheet } from './cart-sheet';
-import { OrdersSheet } from './orders-sheet';
+import { Logo } from './Logo';
 
 
 export function SiteHeader() {
@@ -57,29 +57,15 @@ export function SiteHeader() {
     { href: '/grupos', label: 'Grupos'},
   ];
 
-  const adminLinks = [
-    { href: '/admin', label: 'Admin', icon: Shield },
-  ];
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <ShoppingCart className="h-6 w-6" />
-            <span className="hidden font-bold sm:inline-block font-headline">SakaJuntos</span>
+            <Logo className="h-6 w-auto" />
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
-            {navLinks.map(link => (
-              <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
-                {link.label}
-              </Link>
-            ))}
-            {appUser?.role === 'admin' && adminLinks.map(link => (
-              <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center gap-1">
-                <link.icon size={16}/> {link.label}
-              </Link>
-            ))}
+             {/* Links removidos conforme solicitado */}
           </nav>
         </div>
 
@@ -94,25 +80,11 @@ export function SiteHeader() {
             <div className='flex flex-col h-full'>
             <Link href="/" className="mb-4 flex items-center space-x-2">
                 <SheetClose asChild>
-                  <ShoppingCart className="h-6 w-6" />
+                   <Logo className="h-8 w-auto" />
                 </SheetClose>
-                <span className="font-bold font-headline">SakaJuntos</span>
             </Link>
             <div className="flex flex-col space-y-3">
-                {navLinks.map(link => (
-                    <SheetClose asChild key={link.href}>
-                      <Link href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
-                          {link.label}
-                      </Link>
-                    </SheetClose>
-                ))}
-                 {appUser?.role === 'admin' && adminLinks.map(link => (
-                    <SheetClose asChild key={link.href}>
-                      <Link href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center gap-2">
-                        <link.icon size={16}/> {link.label}
-                      </Link>
-                    </SheetClose>
-                  ))}
+                {/* Links removidos do menu móvel também */}
                  {!user && (
                     <SheetClose asChild>
                       <Link href="/login" className="transition-colors hover:text-foreground/80 text-foreground/60">

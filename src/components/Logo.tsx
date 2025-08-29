@@ -1,10 +1,11 @@
-import { ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Logo({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center justify-center", className)}>
-      <ShoppingCart className="h-full w-full" />
+        <span className="font-bold text-4xl text-green-600 font-headline tracking-tighter">
+            SakaJuntos
+        </span>
     </div>
   );
 }

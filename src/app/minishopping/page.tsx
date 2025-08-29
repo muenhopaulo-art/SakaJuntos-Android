@@ -1,8 +1,13 @@
+
+'use client';
+
+import { useState, useMemo } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ProductCard } from '@/components/product-card';
 import { getProducts } from '@/services/product-service';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Search } from 'lucide-react';
 import type { Product } from '@/lib/types';
+import { Input } from '@/components/ui/input';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -17,24 +22,46 @@ function getErrorMessage(error: any): string {
     return "Ocorreu um erro desconhecido ao buscar os produtos.";
 }
 
-export default async function MiniShoppingPage() {
-  let products: Product[] = [];
-  let error: string | null = null;
+export default function MiniShoppingPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  try {
-    products = await getProducts();
-  } catch (e: any) {
-    console.error(e);
-    error = getErrorMessage(e);
-  }
+  useState(() => {
+    getProducts()
+      .then(setProducts)
+      .catch(e => {
+        console.error(e);
+        setError(getErrorMessage(e));
+      });
+  });
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) {
+      return products;
+    }
+    return products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [products, searchTerm]);
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="space-y-4 mb-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight font-headline">MiniShopping</h1>
-        <p className="text-xl text-muted-foreground">
-          Encontre tudo o que precisa, à distância de um clique.
-        </p>
+      <div className="space-y-4 mb-8">
+        <div className="text-center">
+            <h1 className="text-4xl font-bold tracking-tight font-headline">MiniShopping</h1>
+            <p className="text-xl text-muted-foreground">
+              Encontre tudo o que precisa, à distância de um clique.
+            </p>
+        </div>
+        <div className="relative w-full max-w-lg mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+                type="text"
+                placeholder="Pesquisar produtos..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
       </div>
        {error ? (
         <Alert variant="destructive">
@@ -54,11 +81,18 @@ export default async function MiniShoppingPage() {
           </a>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+            ))}
+            </div>
+        ) : (
+             <div className="text-center py-10">
+                <p className="text-lg font-semibold text-muted-foreground">Nenhum produto encontrado para "{searchTerm}".</p>
+                <p className="text-muted-foreground mt-2">Tente uma pesquisa diferente.</p>
+            </div>
+        )
       )}
     </div>
   );

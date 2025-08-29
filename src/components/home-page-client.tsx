@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,10 +14,55 @@ import { CreateGroupForm } from '@/components/create-group-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { requestToJoinGroup } from '@/services/product-service';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
 
 interface HomePageClientProps {
     allPromotions: GroupPromotion[];
     error: string | null;
+}
+
+function JoinByIdDialog() {
+    const [open, setOpen] = useState(false);
+    const [groupId, setGroupId] = useState('');
+    const router = useRouter();
+
+    const handleJoin = () => {
+        if(groupId.trim()) {
+            router.push(`/grupos/${groupId.trim()}`);
+            setOpen(false);
+        }
+    }
+
+    return (
+         <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto">
+                    <Users className="mr-2 h-4 w-4" />
+                    Aderir com ID
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Aderir a um Grupo com ID</DialogTitle>
+                    <DialogDescription>
+                        Insira o ID do grupo para aceder diretamente à sua página.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Input 
+                        placeholder="Insira o ID do grupo"
+                        value={groupId}
+                        onChange={(e) => setGroupId(e.target.value)}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button type="button" onClick={handleJoin} disabled={!groupId.trim()}>Aderir</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
 }
 
 export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
@@ -68,10 +114,7 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
                 Criar Novo Grupo
                 </Button>
             </CreateGroupForm>
-            <Button variant="outline" className="w-full sm:w-auto" onClick={() => alert('Funcionalidade de aderir com ID a ser implementada.')}>
-                <Users className="mr-2 h-4 w-4" />
-                Aderir com ID
-            </Button>
+            <JoinByIdDialog />
         </div>
         </div>
 
