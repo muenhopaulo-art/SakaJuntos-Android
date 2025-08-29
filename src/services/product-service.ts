@@ -105,33 +105,6 @@ export async function getProducts(lojistaId?: string): Promise<Product[]> {
   return productList;
 }
 
-/**
- * Sets up a real-time listener for a lojista's products.
- * @param lojistaId The ID of the lojista.
- * @param callback The function to call with the updated products list.
- * @param onError The function to call on error.
- * @returns An unsubscribe function to stop listening.
- */
-export async function onLojistaProductsChange(
-    lojistaId: string, 
-    callback: (products: Product[]) => void,
-    onError: (error: Error) => void
-): Promise<Unsubscribe> {
-    const productsCol = collection(db, 'products');
-    const q = query(productsCol, where('lojistaId', '==', lojistaId));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const productList = snapshot.docs.map(convertDocToProduct);
-        callback(productList);
-    }, (error) => {
-        console.error("Error in onLojistaProductsChange listener:", error);
-        onError(error);
-    });
-
-    return unsubscribe;
-}
-
-
 export async function getGroupPromotions(): Promise<GroupPromotion[]> {
     const promotionsCol = collection(db, 'groupPromotions');
     const promotionSnapshot = await getDocs(promotionsCol);

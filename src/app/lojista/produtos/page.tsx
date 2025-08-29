@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { onLojistaProductsChange } from '@/services/product-service';
 import type { Product } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ import { pt } from 'date-fns/locale';
 import { AddProductDialog } from './add-product-dialog';
 import { ProductActions } from './product-actions';
 import Image from 'next/image';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -22,6 +24,20 @@ function getErrorMessage(error: any): string {
     }
     return "Ocorreu um erro desconhecido ao buscar os produtos.";
 }
+
+const convertDocToProduct = (doc: any): Product => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    name: data.name,
+    description: data.description,
+    price: data.price,
+    imageUrl: data.imageUrl,
+    aiHint: data.aiHint,
+    lojistaId: data.lojistaId,
+    createdAt: data.createdAt?.toMillis(),
+  };
+};
 
 export default function LojistaProductsPage() {
     const [user, authLoading] = useAuthState(auth);
@@ -35,35 +51,22 @@ export default function LojistaProductsPage() {
             return;
         }
         
-        let unsubscribe: (() => void) | undefined;
+        setLoading(true);
+        const productsQuery = query(collection(db, 'products'), where('lojistaId', '==', user.uid));
         
-        const setupListener = async () => {
-            setLoading(true);
-            try {
-                unsubscribe = await onLojistaProductsChange(user.uid, (updatedProducts) => {
-                    // Sort products by creation date, most recent first
-                    updatedProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                    setProducts(updatedProducts);
-                    setLoading(false);
-                }, (err) => {
-                    console.error(err);
-                    setError(getErrorMessage(err));
-                    setLoading(false);
-                });
-            } catch (err) {
-                 setError(getErrorMessage(err));
-                 setLoading(false);
-            }
-        };
-
-        setupListener();
+        const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
+            const updatedProducts = snapshot.docs.map(convertDocToProduct);
+            updatedProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            setProducts(updatedProducts);
+            setLoading(false);
+        }, (err) => {
+            console.error(err);
+            setError(getErrorMessage(err));
+            setLoading(false);
+        });
 
         // Cleanup subscription on component unmount
-        return () => {
-            if (unsubscribe) {
-                unsubscribe();
-            }
-        };
+        return () => unsubscribe();
     }, [user, authLoading]);
 
     return (

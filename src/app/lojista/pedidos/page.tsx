@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
-import { onLojistaOrdersChange } from './actions';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
 import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,6 +23,22 @@ function getErrorMessage(error: any): string {
     return "Ocorreu um erro desconhecido ao buscar os seus pedidos.";
 }
 
+const convertDocToOrder = (doc: any): Order => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    creatorId: data.creatorId,
+    creatorName: data.creatorName,
+    items: data.items,
+    totalAmount: data.totalAmount,
+    status: data.status,
+    orderType: data.orderType,
+    createdAt: data.createdAt?.toMillis(),
+    lojistaId: data.lojistaId,
+    groupName: data.groupName,
+  };
+};
+
 export default function LojistaOrdersPage() {
     const [user, authLoading] = useAuthState(auth);
     const [orders, setOrders] = useState<Order[]>([]);
@@ -36,7 +52,10 @@ export default function LojistaOrdersPage() {
         }
 
         setLoading(true);
-        const unsubscribe = onLojistaOrdersChange(user.uid, (updatedOrders) => {
+        const ordersQuery = query(collection(db, 'orders'), where('lojistaId', '==', user.uid), orderBy('createdAt', 'desc'));
+
+        const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+            const updatedOrders = snapshot.docs.map(convertDocToOrder);
             setOrders(updatedOrders);
             setLoading(false);
         }, (err) => {

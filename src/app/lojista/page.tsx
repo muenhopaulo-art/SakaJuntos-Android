@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { getLojistaDashboardAnalytics } from './actions';
-import { onLojistaOrdersChange } from './pedidos/actions';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import type { Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DollarSign, Package, CreditCard, Activity, Loader2 } from 'lucide-react';
@@ -23,6 +23,21 @@ function getErrorMessage(error: any): string {
     }
     return "Ocorreu um erro desconhecido ao buscar os dados.";
 }
+
+const convertDocToOrder = (doc: any): Order => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    creatorId: data.creatorId,
+    creatorName: data.creatorName,
+    items: data.items,
+    totalAmount: data.totalAmount,
+    status: data.status,
+    orderType: data.orderType,
+    createdAt: data.createdAt?.toMillis(),
+    lojistaId: data.lojistaId,
+  };
+};
 
 export default function LojistaPage() {
     const [user, authLoading] = useAuthState(auth);
@@ -57,8 +72,16 @@ export default function LojistaPage() {
             return;
         }
 
-        const unsubscribe = onLojistaOrdersChange(user.uid, (orders) => {
-            setRecentOrders(orders.slice(0, 5)); // Always show the 5 most recent
+        const ordersQuery = query(
+            collection(db, 'orders'),
+            where('lojistaId', '==', user.uid),
+            orderBy('createdAt', 'desc'),
+            limit(5)
+        );
+
+        const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+            const updatedOrders = snapshot.docs.map(convertDocToOrder);
+            setRecentOrders(updatedOrders);
         }, (err) => {
             console.error(err);
             setError("Não foi possível carregar os pedidos recentes em tempo real.");
