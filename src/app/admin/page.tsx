@@ -162,7 +162,7 @@ export default function AdminPage() {
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="col-span-3">
+                    <Card className="col-span-4 md:col-span-3">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Bike />
@@ -209,4 +209,3 @@ export default function AdminPage() {
         </div>
     );
 }
-

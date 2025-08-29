@@ -49,6 +49,7 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
     contributions, // Add contributions here
     driverId: data.driverId,
     driverName: data.driverName,
+    lojistaId: data.lojistaId,
   };
 
   if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -136,10 +137,20 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
 
 export async function getDashboardAnalytics() {
     try {
-        const orders = await getOrders();
-        const usersCount = await getUsersCount();
-        const onlineDrivers = await getOnlineDeliveryDrivers();
+        const ordersCol = collection(db, 'orders');
+        const usersCol = collection(db, 'users');
 
+        const [
+            ordersSnapshot, 
+            usersCountSnapshot
+        ] = await Promise.all([
+            getDocs(query(ordersCol)),
+            getCountFromServer(usersCol)
+        ]);
+        
+        const orders = ordersSnapshot.docs.map(doc => doc.data() as Order);
+        const usersCount = usersCountSnapshot.data().count;
+        
         const totalRevenue = orders
             .filter(order => order.status === 'Entregue')
             .reduce((sum, order) => sum + order.totalAmount, 0);
@@ -155,7 +166,6 @@ export async function getDashboardAnalytics() {
             pendingSales,
             totalOrders,
             usersCount,
-            onlineDrivers
         };
 
     } catch (error) {
