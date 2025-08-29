@@ -13,7 +13,7 @@ import { OrdersSheet } from '../app/orders-sheet';
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
-const adminPaths = ['/admin', '/admin/orders', '/admin/users', '/admin/products'];
+const adminPaths = ['/admin', '/admin/orders', '/admin/products'];
 const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -46,7 +46,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading || isAppUserLoading) return; // Wait for both auth and user profile to load
 
-    const pathIsPublic = publicPaths.includes(pathname);
+    const pathIsPublic = publicPaths.includes(pathname) || pathname === '/';
     const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
     const pathIsLojista = lojistaPaths.some(p => pathname.startsWith(p));
 
@@ -56,35 +56,41 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    if (user) {
+    if (user && appUser) {
         // Redirect logged-in users from public pages to their respective dashboards
-        if (pathIsPublic) {
-             if (appUser?.role === 'admin') router.push('/admin');
-             else if (appUser?.role === 'lojista') router.push('/lojista');
+        if (publicPaths.includes(pathname) && pathname !== '/') {
+             if (appUser.role === 'admin') router.push('/admin');
+             else if (appUser.role === 'lojista') router.push('/lojista');
              else router.push('/');
              return;
         }
 
         // If a non-admin tries to access admin pages, redirect them
-        if (appUser?.role !== 'admin' && pathIsAdmin) {
+        if (appUser.role !== 'admin' && pathIsAdmin) {
             router.push('/dashboard');
             return;
         }
 
         // If an admin is on a non-admin page, redirect them to admin
-        if (appUser?.role === 'admin' && !pathIsAdmin) {
+        if (appUser.role === 'admin' && !pathIsAdmin) {
             router.push('/admin');
             return;
         }
         
         // If a non-lojista tries to access lojista pages, redirect them
-        if (appUser?.role !== 'lojista' && pathIsLojista) {
+        if (appUser.role !== 'lojista' && pathIsLojista) {
             router.push('/dashboard');
             return;
         }
 
+        // If a courier tries to access any page other than the home page, redirect them.
+        if (appUser.role === 'courier' && pathname !== '/') {
+            router.push('/');
+            return;
+        }
+
         // If user is a pending/rejected lojista, restrict access to other pages
-        if (appUser?.wantsToBecomeLojista && appUser.verificationStatus !== 'approved' && pathname !== '/dashboard') {
+        if (appUser.wantsToBecomeLojista && appUser.verificationStatus !== 'approved' && pathname !== '/dashboard') {
             router.push('/dashboard');
             return;
         }
