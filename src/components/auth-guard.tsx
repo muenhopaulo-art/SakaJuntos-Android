@@ -14,7 +14,7 @@ import { OrdersSheet } from './orders-sheet';
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
 const adminPaths = ['/admin', '/admin/orders', '/admin/users'];
-const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos'];
+const lojistaPaths = ['/lojista'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth);

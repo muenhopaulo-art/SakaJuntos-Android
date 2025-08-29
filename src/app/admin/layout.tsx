@@ -20,7 +20,6 @@ export default function AdminLayout({
     { href: '/admin', label: 'Dashboard', icon: Home },
     { href: '/admin/orders', label: 'Pedidos', icon: Package },
     { href: '/admin/users', label: 'Utilizadores', icon: Users },
-    { href: '/admin/products', label: 'Produtos', icon: Package },
   ];
   
   const handleLogout = async () => {
