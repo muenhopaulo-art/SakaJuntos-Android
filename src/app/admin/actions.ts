@@ -2,8 +2,8 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query, doc, getDoc, Timestamp,getCountFromServer, where } from 'firebase/firestore';
-import type { Order, Contribution, User } from '@/lib/types';
+import { collection, getDocs, orderBy, query, doc, getDoc, Timestamp,getCountFromServer, where, updateDoc } from 'firebase/firestore';
+import type { Order, Contribution, User, GroupPromotion } from '@/lib/types';
 
 
 // Helper function to convert Firestore contribution doc to a plain object
@@ -38,6 +38,7 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
 
   const order: Order = {
     id: doc.id,
+    creatorId: data.creatorId,
     groupId: data.groupId,
     groupName: data.groupName,
     creatorName: data.creatorName || 'N/A', // Add creatorName
@@ -54,11 +55,17 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
   return order;
 }
 
-export async function getOrders(): Promise<Order[]> {
+export async function getOrders(userId?: string): Promise<Order[]> {
   try {
     const ordersCol = collection(db, 'orders');
-    // Order by creation date, descending
-    const q = query(ordersCol, orderBy('createdAt', 'desc'));
+    let q;
+    if (userId) {
+      // Query for orders where the user is the creator
+      q = query(ordersCol, where('creatorId', '==', userId), orderBy('createdAt', 'desc'));
+    } else {
+      // Admin gets all orders
+      q = query(ordersCol, orderBy('createdAt', 'desc'));
+    }
     const orderSnapshot = await getDocs(q);
     const orderList = await Promise.all(orderSnapshot.docs.map(convertDocToOrder));
     return orderList;
@@ -67,6 +74,34 @@ export async function getOrders(): Promise<Order[]> {
     throw new Error("Failed to fetch orders.");
   }
 }
+
+export async function updateOrderStatus(orderId: string, status: Order['status']): Promise<{success: boolean, message?: string}> {
+  try {
+      const orderRef = doc(db, 'orders', orderId);
+      const orderSnap = await getDoc(orderRef);
+      if (!orderSnap.exists()) {
+          throw new Error("Pedido não encontrado.");
+      }
+      const orderData = orderSnap.data();
+
+      await updateDoc(orderRef, { status });
+
+      // If the order is delivered or cancelled, update the group status
+      if ((status === 'Entregue' || status === 'Cancelado') && orderData.groupId) {
+          const groupRef = doc(db, 'groupPromotions', orderData.groupId);
+          const groupSnap = await getDoc(groupRef);
+          if (groupSnap.exists()) {
+              await updateDoc(groupRef, { status: status === 'Entregue' ? 'delivered' : 'active' });
+          }
+      }
+
+      return { success: true };
+  } catch (error) {
+      console.error("Error updating order status:", error);
+      return { success: false, message: 'Não foi possível atualizar o estado do pedido.' };
+  }
+}
+
 
 export async function getDashboardAnalytics() {
     try {
@@ -79,7 +114,7 @@ export async function getDashboardAnalytics() {
             .reduce((sum, order) => sum + order.totalAmount, 0);
 
         const pendingSales = orders
-            .filter(order => order.status !== 'Entregue')
+            .filter(order => order.status !== 'Entregue' && order.status !== 'Cancelado')
             .reduce((sum, order) => sum + order.totalAmount, 0);
         
         const totalOrders = orders.length;

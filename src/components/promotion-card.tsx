@@ -3,9 +3,10 @@
 import type { GroupPromotion } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
-import { Users, UserPlus } from 'lucide-react';
+import { Users, UserPlus, Hourglass } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
 
 interface PromotionCardProps {
   promotion: GroupPromotion;
@@ -15,9 +16,23 @@ interface PromotionCardProps {
 
 export function PromotionCard({ promotion, showJoinButton, onJoin }: PromotionCardProps) {
   const progress = (promotion.participants / promotion.target) * 100;
+  const isFinalized = promotion.status === 'finalized';
+  const isDelivered = promotion.status === 'delivered';
 
   const cardContent = (
-    <Card className="flex flex-col h-full overflow-hidden bg-card transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
+    <Card className={cn("flex flex-col h-full overflow-hidden bg-card transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1", isFinalized && "bg-muted/50")}>
+       {isFinalized && (
+        <div className="p-2 text-xs bg-yellow-500/20 text-yellow-800 flex items-center gap-2 font-medium">
+          <Hourglass className="h-4 w-4" />
+          <span>Pedido em processamento</span>
+        </div>
+      )}
+      {isDelivered && (
+        <div className="p-2 text-xs bg-green-500/20 text-green-800 flex items-center gap-2 font-medium">
+          <Users className="h-4 w-4" />
+          <span>Pedido entregue</span>
+        </div>
+      )}
       <CardHeader>
         <CardTitle className="font-headline">{promotion.name}</CardTitle>
         <CardDescription className="line-clamp-2 h-[40px]">{promotion.description}</CardDescription>
@@ -41,7 +56,7 @@ export function PromotionCard({ promotion, showJoinButton, onJoin }: PromotionCa
       </CardContent>
       {showJoinButton && (
         <CardFooter>
-            <Button className='w-full' variant="outline" onClick={(e) => { e.stopPropagation(); e.preventDefault(); onJoin(promotion.id); }}>
+            <Button className='w-full' variant="outline" onClick={(e) => { e.stopPropagation(); e.preventDefault(); onJoin(promotion.id); }} disabled={isFinalized || isDelivered}>
                 <UserPlus className='mr-2' />
                 Pedir para Aderir
             </Button>

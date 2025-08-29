@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDocs } from 'firebase/firestore';
-import type { Order, Contribution, CartItem, GroupMember } from '@/lib/types';
+import type { Order, Contribution } from '@/lib/types';
 
 /**
  * Creates a final order in the 'orders' collection. This can be called either automatically

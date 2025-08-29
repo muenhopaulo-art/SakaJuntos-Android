@@ -29,6 +29,7 @@ export interface ChatMessage {
     createdAt: number;
 }
 
+export type GroupStatus = 'active' | 'finalized' | 'delivered';
 
 export interface GroupPromotion extends Omit<Product, 'image'> {
   participants: number;
@@ -38,6 +39,7 @@ export interface GroupPromotion extends Omit<Product, 'image'> {
   joinRequests: JoinRequest[];
   groupCart: CartItem[];
   contributions: Contribution[];
+  status: GroupStatus;
 }
 
 export interface CartItem {
@@ -70,6 +72,7 @@ export type OrderStatus =
 export interface Order {
   id: string;
   groupId: string;
+  creatorId: string;
   groupName: string;
   creatorName: string;
   items: CartItem[];

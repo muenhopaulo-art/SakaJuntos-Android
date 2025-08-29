@@ -7,7 +7,6 @@ import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation, User } from '@/lib/types';
 import { getUser, queryUserByPhone as queryUserByPhoneFromUserService } from './user-service';
-import { createFinalOrder, cleanupGroup } from './order-service';
 
 const SHIPPING_COST_PER_MEMBER = 1000;
 
@@ -72,6 +71,7 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
     const promotion: GroupPromotion = {
         id: id,
         name: data.name,
+        status: data.status || 'active',
         description: data.description,
         price: data.price,
         aiHint: data.aiHint,
@@ -125,6 +125,7 @@ export async function createGroupPromotion(
         const docRef = await addDoc(promotionsCol, {
             ...restOfGroupData,
             participants: 1, 
+            status: 'active',
             createdAt: serverTimestamp(),
         });
 
@@ -361,7 +362,7 @@ export async function seedDatabase() {
     mockGroupPromotions.forEach(promotion => {
         const { id, ...data } = promotion;
         const docRef = doc(promotionsCol, id);
-        batch.set(docRef, { ...data, createdAt: serverTimestamp() });
+        batch.set(docRef, { ...data, status: 'active', createdAt: serverTimestamp() });
     });
 
     await batch.commit();
@@ -371,6 +372,3 @@ export async function seedDatabase() {
     return { success: false, message: `Ocorreu um erro: ${(error as Error).message}` };
   }
 }
-
-
-    

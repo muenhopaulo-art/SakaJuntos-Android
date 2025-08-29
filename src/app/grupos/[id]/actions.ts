@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import { createFinalOrder, cleanupGroup } from '@/services/order-service';
 import type { CartItem, Contribution, GroupMember } from '@/lib/types';
 import { getUser } from '@/services/user-service';
@@ -52,6 +52,7 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
         const orderResult = await createFinalOrder({
             groupId: groupId,
             groupName: groupData.name,
+            creatorId: creatorId,
             creatorName: creator.name,
             items: cart,
             totalAmount: totalAmount,
@@ -63,6 +64,9 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
 
         // Clean up the group's cart and contributions for the next purchase
         await cleanupGroup(groupId);
+
+        // Update the group's status to 'finalized'
+        await updateDoc(groupRef, { status: 'finalized' });
 
         return { success: true, orderId: orderResult.id };
 

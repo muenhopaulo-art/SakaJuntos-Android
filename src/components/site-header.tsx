@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetClose } from './ui/sheet';
-import { Menu, ShoppingCart, User, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { Menu, ShoppingCart, User, LogOut, LayoutDashboard, Shield, Package } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -21,6 +21,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getUser, type User as AppUser } from '@/services/user-service';
 import { CartSheet } from './cart-sheet';
+import { OrdersSheet } from './orders-sheet';
+
 
 export function SiteHeader() {
   const { totalItems } = useCart();
@@ -155,6 +157,12 @@ export function SiteHeader() {
                             <span>Painel</span>
                         </Link>
                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/my-orders">
+                            <Package className="mr-2 h-4 w-4" />
+                            <span>Minhas Encomendas</span>
+                        </Link>
+                     </DropdownMenuItem>
                      <DropdownMenuSeparator />
                      <DropdownMenuItem onClick={handleLogout}>
                        <LogOut className="mr-2 h-4 w-4" />
@@ -162,6 +170,7 @@ export function SiteHeader() {
                      </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <OrdersSheet />
                 <CartSheet />
                 </>
              ) : (

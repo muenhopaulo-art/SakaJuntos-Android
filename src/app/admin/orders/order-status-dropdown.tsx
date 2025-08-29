@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { updateOrderStatus } from './actions';
+import { updateOrderStatus } from '../actions';
 import type { Order, OrderStatus } from '@/lib/types';
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -48,8 +49,10 @@ export function OrderStatusDropdown({ order }: { order: Order }) {
     if (result.success) {
       setCurrentStatus(newStatus);
       toast({ title: 'Status Atualizado!', description: `O pedido #${order.id.substring(0, 6)} foi atualizado para "${newStatus}".` });
+      // This will trigger a re-render of the page, fetching fresh data.
+      window.location.reload();
     } else {
-      toast({ variant: 'destructive', title: 'Erro!', description: 'Não foi possível atualizar o status do pedido.' });
+      toast({ variant: 'destructive', title: 'Erro!', description: result.message || 'Não foi possível atualizar o status do pedido.' });
     }
   };
 

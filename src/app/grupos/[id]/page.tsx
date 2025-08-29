@@ -8,7 +8,7 @@ import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contrib
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, Hourglass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -303,6 +303,7 @@ async function convertDocToGroupPromotion(id: string, data: DocumentData): Promi
     const promotion: GroupPromotion = {
         id: id,
         name: data.name,
+        status: data.status || 'active',
         description: data.description,
         price: data.price,
         aiHint: data.aiHint,
@@ -478,6 +479,10 @@ export default function GroupDetailPage() {
         toast({variant: "destructive", title: "Apenas membros do grupo podem modificar o carrinho."});
         return;
     }
+     if (group.status !== 'active') {
+        toast({variant: "destructive", title: "Ação não permitida", description: "Este grupo já foi finalizado e não pode ser modificado."});
+        return;
+    }
     
     // Create a plain product object to avoid passing complex objects to server actions
     const plainProduct: Product = {
@@ -617,6 +622,7 @@ export default function GroupDetailPage() {
   const totalMembers = group.members.length > 0 ? group.members.length : 1;
   const productsValuePerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
   const contributionPerMember = productsValuePerMember + SHIPPING_COST_PER_MEMBER;
+  const isGroupFinalized = group.status === 'finalized';
   
     return (
         <div className="container mx-auto px-4 py-8">
@@ -624,6 +630,17 @@ export default function GroupDetailPage() {
             <div className="grid md:grid-cols-3 gap-8">
                 <div className="md:col-span-2 space-y-8">
                     <Card>
+                         {isGroupFinalized && (
+                            <div className="p-4 bg-yellow-100 border-b border-yellow-200 text-yellow-800 rounded-t-lg">
+                                <div className="flex items-center gap-3">
+                                    <Hourglass />
+                                    <div>
+                                        <h4 className="font-bold">Este grupo foi finalizado.</h4>
+                                        <p className="text-sm">O pedido está a ser processado. Não é possível fazer mais alterações.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <CardHeader>
                             <CardTitle className="text-3xl font-headline">{group.name}</CardTitle>
                             <CardDescription>{group.description}</CardDescription>
@@ -641,7 +658,7 @@ export default function GroupDetailPage() {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <CardTitle>Produtos para o Grupo</CardTitle>
-                                    <CardDescription>O criador do grupo seleciona os produtos.</CardDescription>
+                                    <CardDescription>{isGroupFinalized ? 'Estes foram os produtos selecionados.' : 'O criador do grupo seleciona os produtos.'}</CardDescription>
                                 </div>
                                 <Sheet>
                                     <SheetTrigger asChild>
@@ -670,7 +687,7 @@ export default function GroupDetailPage() {
                                                                         <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
                                                                     </div>
                                                                 </div>
-                                                                {user?.uid === group.creatorId ? (
+                                                                {user?.uid === group.creatorId && !isGroupFinalized ? (
                                                                     <div className="flex items-center gap-1">
                                                                         <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
                                                                         <span className="w-4 text-center text-sm">{item.quantity}</span>
@@ -695,7 +712,7 @@ export default function GroupDetailPage() {
                                                             <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
                                                         </div>
                                                     </div>
-                                                    {user?.uid === group.creatorId && (
+                                                    {user?.uid === group.creatorId && !isGroupFinalized && (
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
                                                                 <Button className="w-full" disabled={isFinalizing || groupCart.length === 0 || !allMembersContributed}>
@@ -717,6 +734,9 @@ export default function GroupDetailPage() {
                                                             </AlertDialogContent>
                                                         </AlertDialog>
                                                     )}
+                                                     {isGroupFinalized && (
+                                                        <Button className="w-full" disabled>Compra Finalizada</Button>
+                                                    )}
                                                 </div>
                                             </>
                                             ) : (
@@ -729,30 +749,40 @@ export default function GroupDetailPage() {
                                     </SheetContent>
                                 </Sheet>
                             </div>
-                            <div className="mt-4">
+                           {!isGroupFinalized && (
+                             <div className="mt-4">
                                 <Input 
                                     placeholder="Pesquisar produtos..."
                                     value={productSearch}
                                     onChange={(e) => setProductSearch(e.target.value)}
                                 />
                             </div>
+                           )}
                         </CardHeader>
                         <CardContent>
-                            <ScrollArea className="h-96">
-                             {filteredProducts.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
-                                    {filteredProducts.map(product => (
-                                        <ProductCard 
-                                            key={product.id} 
-                                            product={product} 
-                                            onAddToCart={(p) => handleUpdateGroupCart(p, 'add')}
-                                        />
-                                    ))}
+                             {isGroupFinalized ? (
+                                <div className="h-96 flex flex-col items-center justify-center text-center text-muted-foreground bg-muted/50 rounded-md">
+                                    <Package className="w-16 h-16 mb-4" />
+                                    <h3 className="text-lg font-semibold">Pedido em Processamento</h3>
+                                    <p>Pode acompanhar o estado da sua encomenda no painel principal.</p>
                                 </div>
                             ) : (
-                                <p className="text-center text-muted-foreground pt-10">Nenhum produto encontrado.</p>
+                                <ScrollArea className="h-96">
+                                {filteredProducts.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
+                                        {filteredProducts.map(product => (
+                                            <ProductCard 
+                                                key={product.id} 
+                                                product={product} 
+                                                onAddToCart={(p) => handleUpdateGroupCart(p, 'add')}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-center text-muted-foreground pt-10">Nenhum produto encontrado.</p>
+                                )}
+                                </ScrollArea>
                             )}
-                            </ScrollArea>
                         </CardContent>
                     </Card>
                 </div>
@@ -783,7 +813,7 @@ export default function GroupDetailPage() {
                                 </div>
                             </div>
                         </CardContent>
-                        {groupCartTotal > 0 && (
+                        {groupCartTotal > 0 && !isGroupFinalized && (
                             <CardFooter>
                                 <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -819,7 +849,7 @@ export default function GroupDetailPage() {
                                 <CardTitle>Gestão de Membros</CardTitle>
                                  <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
                                       <DialogTrigger asChild>
-                                        <Button size="sm" variant="outline" onClick={handleOpenAddMemberDialog}>
+                                        <Button size="sm" variant="outline" onClick={handleOpenAddMemberDialog} disabled={isGroupFinalized}>
                                             <UserPlus className="mr-2"/>Adicionar
                                         </Button>
                                       </DialogTrigger>
@@ -866,8 +896,8 @@ export default function GroupDetailPage() {
                                                 <span>{req.name}</span>
                                                 {actionLoading[req.uid] ? <Loader2 className="animate-spin" /> : (
                                                     <div className="flex gap-2">
-                                                        <Button size="sm" variant="ghost" className="text-green-600" onClick={() => handleAction(req.uid, 'approve')}><UserCheck/></Button>
-                                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(req.uid, 'remove')}><UserMinus/></Button>
+                                                        <Button size="sm" variant="ghost" className="text-green-600" onClick={() => handleAction(req.uid, 'approve')} disabled={isGroupFinalized}><UserCheck/></Button>
+                                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(req.uid, 'remove')} disabled={isGroupFinalized}><UserMinus/></Button>
                                                     </div>
                                                 )}
                                             </div>
@@ -883,7 +913,7 @@ export default function GroupDetailPage() {
                                         {group.members.map(mem => (
                                             <div key={mem.uid} className="flex justify-between items-center">
                                                 <span>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
-                                                {actionLoading[mem.uid] ? <Loader2 className="animate-spin"/> : (<>{mem.uid !== group.creatorId && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(mem.uid, 'remove')}><UserMinus/></Button>}</>)}
+                                                {actionLoading[mem.uid] ? <Loader2 className="animate-spin"/> : (<>{mem.uid !== group.creatorId && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(mem.uid, 'remove')} disabled={isGroupFinalized}><UserMinus/></Button>}</>)}
                                             </div>
                                         ))}
                                     </div>
@@ -894,7 +924,7 @@ export default function GroupDetailPage() {
                             <CardFooter>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" className="w-full" disabled={actionLoading['delete']}>
+                                        <Button variant="destructive" className="w-full" disabled={actionLoading['delete'] || isGroupFinalized}>
                                             {actionLoading['delete'] ? <Loader2 className="animate-spin"/> : <Trash2/>}
                                             Eliminar Grupo
                                         </Button>
