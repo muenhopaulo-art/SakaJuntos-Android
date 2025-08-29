@@ -21,26 +21,25 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      if (user) {
-        try {
-          const profile = await getUser(user.uid);
-          setAppUser(profile);
-        } catch (error) {
-          console.error("Failed to fetch user profile, logging out.", error);
-          auth.signOut();
-        }
-      }
-      setLoading(false);
-    };
+    if (authLoading) return;
 
-    if (!authLoading) {
-      if (!user) {
+    if (!user) {
         router.push('/login');
-      } else {
-        fetchUser();
-      }
+        return;
     }
+
+    getUser(user.uid)
+        .then(profile => {
+            setAppUser(profile);
+        })
+        .catch(error => {
+            console.error("Failed to fetch user profile, logging out.", error);
+            auth.signOut();
+        })
+        .finally(() => {
+            setLoading(false);
+        });
+
   }, [user, authLoading, router]);
 
   const handleLogout = async () => {

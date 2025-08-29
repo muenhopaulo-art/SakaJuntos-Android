@@ -56,30 +56,38 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    // If user is logged in and on a public path, redirect to home
-    if (user && pathIsPublic) {
-      router.push('/');
-      return;
-    }
+    if (user) {
+        // Redirect logged-in users from public pages to their respective dashboards
+        if (pathIsPublic) {
+             if (appUser?.role === 'admin') router.push('/admin');
+             else if (appUser?.role === 'lojista') router.push('/lojista');
+             else router.push('/');
+             return;
+        }
 
-    // If user is a pending/rejected lojista, restrict access to other pages
-    if (appUser && appUser.wantsToBecomeLojista && appUser.verificationStatus !== 'approved') {
-        if (pathname !== '/dashboard') {
+        // If a non-admin tries to access admin pages, redirect them
+        if (appUser?.role !== 'admin' && pathIsAdmin) {
             router.push('/dashboard');
             return;
         }
-    }
 
-    // If a non-admin tries to access admin pages, redirect them
-    if (appUser && appUser.role !== 'admin' && pathIsAdmin) {
-      router.push('/dashboard'); // Or show an unauthorized page
-      return;
-    }
+        // If an admin is on a non-admin page, redirect them to admin
+        if (appUser?.role === 'admin' && !pathIsAdmin) {
+            router.push('/admin');
+            return;
+        }
+        
+        // If a non-lojista tries to access lojista pages, redirect them
+        if (appUser?.role !== 'lojista' && pathIsLojista) {
+            router.push('/dashboard');
+            return;
+        }
 
-    // If a non-lojista tries to access lojista pages, redirect them
-    if (appUser && appUser.role !== 'lojista' && pathIsLojista) {
-        router.push('/dashboard');
-        return;
+        // If user is a pending/rejected lojista, restrict access to other pages
+        if (appUser?.wantsToBecomeLojista && appUser.verificationStatus !== 'approved' && pathname !== '/dashboard') {
+            router.push('/dashboard');
+            return;
+        }
     }
 
 
