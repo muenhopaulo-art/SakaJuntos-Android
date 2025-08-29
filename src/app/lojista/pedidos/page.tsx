@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { getLojistaOrders } from './actions';
+import { onLojistaOrdersChange } from './actions';
 import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -30,22 +30,23 @@ export default function LojistaOrdersPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchOrders = async () => {
-            if (authLoading || !user) {
-                return;
-            }
-            try {
-                const lojistaOrders = await getLojistaOrders(user.uid);
-                setOrders(lojistaOrders);
-            } catch (e) {
-                console.error(e);
-                setError(getErrorMessage(e));
-            } finally {
-                setLoading(false);
-            }
-        };
+        if (authLoading || !user) {
+            if (!authLoading) setLoading(false);
+            return;
+        }
 
-        fetchOrders();
+        setLoading(true);
+        const unsubscribe = onLojistaOrdersChange(user.uid, (updatedOrders) => {
+            setOrders(updatedOrders);
+            setLoading(false);
+        }, (err) => {
+            console.error(err);
+            setError(getErrorMessage(err));
+            setLoading(false);
+        });
+
+        // Cleanup subscription on component unmount
+        return () => unsubscribe();
     }, [user, authLoading]);
     
     if (loading || authLoading) {

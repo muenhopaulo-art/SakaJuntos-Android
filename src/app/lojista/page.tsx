@@ -5,14 +5,13 @@ import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getLojistaDashboardAnalytics } from './actions';
+import { onLojistaOrdersChange } from './pedidos/actions';
 import type { Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DollarSign, Package, CreditCard, Activity, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -32,18 +31,15 @@ export default function LojistaPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Fetch one-time analytics data
     useEffect(() => {
-        if (authLoading) return;
-        if (!user) {
-            setLoading(false);
-            return;
-        }
-
+        if (authLoading || !user) return;
+        
         const fetchAnalytics = async () => {
+            setLoading(true);
             try {
                 const data = await getLojistaDashboardAnalytics(user.uid);
                 setAnalytics(data.analytics);
-                setRecentOrders(data.recentOrders);
             } catch (e) {
                 setError(getErrorMessage(e));
             } finally {
@@ -53,6 +49,24 @@ export default function LojistaPage() {
 
         fetchAnalytics();
     }, [user, authLoading]);
+
+    // Listen for real-time updates on recent orders
+     useEffect(() => {
+        if (!user) {
+            setRecentOrders([]);
+            return;
+        }
+
+        const unsubscribe = onLojistaOrdersChange(user.uid, (orders) => {
+            setRecentOrders(orders.slice(0, 5)); // Always show the 5 most recent
+        }, (err) => {
+            console.error(err);
+            setError("Não foi possível carregar os pedidos recentes em tempo real.");
+        });
+
+        // Cleanup subscription on component unmount
+        return () => unsubscribe();
+    }, [user]);
 
 
     const analyticsCards = [
@@ -162,7 +176,7 @@ export default function LojistaPage() {
                                                 Pedido #{order.id.substring(0, 6)}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {order.creatorName} - {format(new Date(order.createdAt!), "d MMM", { locale: pt })}
+                                                {order.creatorName} - {order.createdAt ? format(new Date(order.createdAt), "d MMM", { locale: pt }) : ''}
                                             </p>
                                         </div>
                                         <div className="ml-auto font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</div>

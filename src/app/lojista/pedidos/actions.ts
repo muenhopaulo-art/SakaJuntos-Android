@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, Timestamp, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import type { Order, OrderStatus } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -50,6 +50,38 @@ export async function getLojistaOrders(lojistaId: string): Promise<Order[]> {
   }
 }
 
+/**
+ * Sets up a real-time listener for a lojista's orders.
+ * @param lojistaId The ID of the lojista.
+ * @param callback The function to call with the updated orders list.
+ * @param onError The function to call on error.
+ * @returns An unsubscribe function to stop listening.
+ */
+export function onLojistaOrdersChange(
+    lojistaId: string, 
+    callback: (orders: Order[]) => void, 
+    onError: (error: Error) => void
+): Unsubscribe {
+    const ordersCol = collection(db, 'orders');
+    const q = query(ordersCol, where('lojistaId', '==', lojistaId));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+        try {
+            const orderList = await Promise.all(snapshot.docs.map(convertDocToOrder));
+            const sortedOrders = orderList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            callback(sortedOrders);
+        } catch (error) {
+            onError(error as Error);
+        }
+    }, (error) => {
+        console.error("Error in onLojistaOrdersChange listener:", error);
+        onError(error);
+    });
+
+    return unsubscribe;
+}
+
+
 export async function updateLojistaOrderStatus(orderId: string, status: OrderStatus, lojistaId: string): Promise<{success: boolean, message?: string}> {
   try {
       const orderRef = doc(db, 'orders', orderId);
@@ -64,6 +96,7 @@ export async function updateLojistaOrderStatus(orderId: string, status: OrderSta
       }
 
       await updateDoc(orderRef, { status });
+      // Revalidation is less critical now with real-time listeners, but good for backup
       revalidatePath('/lojista/pedidos');
       revalidatePath('/admin/orders');
 

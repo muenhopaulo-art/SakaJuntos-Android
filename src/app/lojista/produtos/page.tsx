@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { getProducts } from '@/services/product-service';
+import { onLojistaProductsChange } from '@/services/product-service';
 import type { Product } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -30,27 +30,40 @@ export default function LojistaProductsPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchProducts = async () => {
-            if (authLoading) return;
-            if (!user) {
-                setLoading(false);
-                return;
-            }
+        if (authLoading || !user) {
+             if (!authLoading) setLoading(false);
+            return;
+        }
+        
+        let unsubscribe: (() => void) | undefined;
+        
+        const setupListener = async () => {
+            setLoading(true);
             try {
-                setLoading(true);
-                const userProducts = await getProducts(user.uid);
-                // Sort products by creation date, most recent first
-                userProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                setProducts(userProducts);
-            } catch (e) {
-                console.error(e);
-                setError(getErrorMessage(e));
-            } finally {
-                setLoading(false);
+                unsubscribe = await onLojistaProductsChange(user.uid, (updatedProducts) => {
+                    // Sort products by creation date, most recent first
+                    updatedProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    setProducts(updatedProducts);
+                    setLoading(false);
+                }, (err) => {
+                    console.error(err);
+                    setError(getErrorMessage(err));
+                    setLoading(false);
+                });
+            } catch (err) {
+                 setError(getErrorMessage(err));
+                 setLoading(false);
             }
         };
 
-        fetchProducts();
+        setupListener();
+
+        // Cleanup subscription on component unmount
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
     }, [user, authLoading]);
 
     return (
