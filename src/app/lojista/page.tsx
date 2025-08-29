@@ -1,39 +1,114 @@
 
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { getLojistaDashboardAnalytics } from './actions';
+import type { Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, Package, CreditCard, Activity } from 'lucide-react';
+import { DollarSign, Package, CreditCard, Activity, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
+import { pt } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 
-export default async function LojistaPage() {
+function getErrorMessage(error: any): string {
+    if (error && typeof error.message === 'string') {
+        return error.message;
+    }
+    return "Ocorreu um erro desconhecido ao buscar os dados.";
+}
+
+export default function LojistaPage() {
+    const [user, authLoading] = useAuthState(auth);
+    const [analytics, setAnalytics] = useState<any>(null);
+    const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (authLoading) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
+        const fetchAnalytics = async () => {
+            try {
+                const data = await getLojistaDashboardAnalytics(user.uid);
+                setAnalytics(data.analytics);
+                setRecentOrders(data.recentOrders);
+            } catch (e) {
+                setError(getErrorMessage(e));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAnalytics();
+    }, [user, authLoading]);
+
 
     const analyticsCards = [
         {
             title: "Receita Total",
-            value: 0,
+            value: analytics?.totalRevenue,
             icon: DollarSign,
             description: "Total de vendas dos seus produtos."
         },
         {
             title: "Vendas",
-            value: 0,
+            value: analytics?.totalSales,
             icon: CreditCard,
             isCurrency: false,
             description: "Número total de vendas concluidas."
         },
         {
             title: "Produtos Ativos",
-            value: 0,
+            value: analytics?.activeProducts,
             icon: Package,
             isCurrency: false,
             description: "Número total de produtos na sua loja."
         },
         {
             title: "Pedidos Pendentes",
-            value: 0,
+            value: analytics?.pendingOrders,
             icon: Activity,
             isCurrency: false,
             description: "Pedidos que aguardam a sua preparação."
         }
     ];
+    
+    if (loading || authLoading) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                 <div className="space-y-2 mb-8">
+                    <Skeleton className="h-10 w-1/3" />
+                    <Skeleton className="h-6 w-1/2" />
+                </div>
+                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {Array.from({length: 4}).map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                               <Skeleton className="h-5 w-2/3" />
+                               <Skeleton className="h-4 w-4" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-8 w-1/2 mb-2" />
+                                <Skeleton className="h-4 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                 </div>
+            </div>
+        )
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -78,9 +153,32 @@ export default async function LojistaPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-80 flex items-center justify-center text-muted-foreground">
-                            (Lista de pedidos recentes em breve)
-                        </div>
+                        {recentOrders.length > 0 ? (
+                            <div className="space-y-4">
+                                {recentOrders.map(order => (
+                                    <div key={order.id} className="flex items-center">
+                                        <div className="flex-1 space-y-1">
+                                            <p className="text-sm font-medium leading-none">
+                                                Pedido #{order.id.substring(0, 6)}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {order.creatorName} - {format(new Date(order.createdAt!), "d MMM", { locale: pt })}
+                                            </p>
+                                        </div>
+                                        <div className="ml-auto font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</div>
+                                    </div>
+                                ))}
+                                <Link href="/lojista/pedidos" className={cn(buttonVariants({variant: 'outline', size: 'sm'}), "w-full mt-4")}>
+                                    Ver Todos os Pedidos
+                                </Link>
+                            </div>
+                        ) : (
+                             <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center space-y-2">
+                                <Package className="h-10 w-10" />
+                                <p className="font-medium">Nenhum pedido recente.</p>
+                                <p className="text-sm">Os seus novos pedidos aparecerão aqui.</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
           </div>
