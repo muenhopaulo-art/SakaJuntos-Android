@@ -55,10 +55,10 @@ export default async function AdminOrdersPage() {
                                     <TableHead>Grupo</TableHead>
                                     <TableHead>Criador</TableHead>
                                     <TableHead>Data</TableHead>
-                                    <TableHead>Entregador</TableHead>
                                     <TableHead>Total</TableHead>
                                     <TableHead>Estado</TableHead>
-                                    <TableHead className="text-center">Itens</TableHead>
+                                    <TableHead>Itens</TableHead>
+                                    <TableHead>Entregador</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -70,7 +70,12 @@ export default async function AdminOrdersPage() {
                                             <TableCell>{order.groupName}</TableCell>
                                             <TableCell>{order.creatorName}</TableCell>
                                             <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
+                                            <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
                                             <TableCell>
+                                                <OrderStatusDropdown order={order} />
+                                            </TableCell>
+                                            <TableCell className="text-center">{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</TableCell>
+                                             <TableCell>
                                                 {order.driverName ? (
                                                     <div className="flex items-center gap-2">
                                                         <Bike className="h-4 w-4 text-muted-foreground" />
@@ -80,11 +85,6 @@ export default async function AdminOrdersPage() {
                                                     <span className="text-muted-foreground">-</span>
                                                 )}
                                             </TableCell>
-                                            <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
-                                            <TableCell>
-                                                <OrderStatusDropdown order={order} />
-                                            </TableCell>
-                                            <TableCell className="text-center">{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</TableCell>
                                             <TableCell className="text-right flex items-center justify-end gap-2">
                                                 <AssignDriverDialog order={order} />
                                                 <OrderActions orderId={order.id} />
