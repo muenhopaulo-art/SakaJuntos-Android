@@ -82,6 +82,7 @@ export interface Order {
   status: OrderStatus;
   createdAt?: number;
   contributions: Contribution[];
+  lojistaId?: string; // ID of the lojista responsible for the order
   driverId?: string;
   driverName?: string;
 }

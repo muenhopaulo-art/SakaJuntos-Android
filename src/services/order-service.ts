@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -20,9 +21,18 @@ export async function createFinalOrder(
     
     // 1. Create the main order document
     const orderRef = doc(collection(db, 'orders'));
+
+    // Determine the lojistaId from the first item in the cart.
+    // This assumes all items in a group order come from the same lojista.
+    const lojistaId = orderData.items[0]?.product.lojistaId || null;
+    if (!lojistaId) {
+        console.warn("Order being created without a lojistaId. Items:", orderData.items);
+    }
+
     const finalOrderData = {
       ...orderData,
-      status: 'Pendente', // Initial status
+      lojistaId: lojistaId,
+      status: 'A aguardar lojista', // Initial status for lojista to see
       createdAt: serverTimestamp(),
     };
     batch.set(orderRef, finalOrderData);
