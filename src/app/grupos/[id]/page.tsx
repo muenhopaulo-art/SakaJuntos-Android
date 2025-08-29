@@ -528,7 +528,10 @@ export default function GroupDetailPage() {
   };
 
   const handleContribution = () => {
-    if (!user || !group) return;
+    if (!user || !group || !group.members.some(m => m.uid === user.uid)) {
+        toast({ variant: "destructive", title: "Ação não permitida", description: "Apenas membros podem contribuir." });
+        return;
+    }
     toast({ title: "A obter localização...", description: "Por favor, autorize o acesso à sua localização." });
     navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -616,6 +619,7 @@ export default function GroupDetailPage() {
   
   const groupCart = group.groupCart || [];
   const contributions = group.contributions || [];
+  const isMember = user ? group.members.some(m => m.uid === user.uid) : false;
   const hasContributed = user ? contributions.some(c => c.userId === user.uid) : false;
   const allMembersContributed = group.members.length > 0 && contributions.length === group.members.length;
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
@@ -817,7 +821,7 @@ export default function GroupDetailPage() {
                             <CardFooter>
                                 <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button className="w-full" disabled={hasContributed}>
+                                    <Button className="w-full" disabled={hasContributed || !isMember}>
                                         {hasContributed ? 'Já Contribuiu' : 'Contribuir'}
                                     </Button>
                                 </AlertDialogTrigger>
@@ -948,16 +952,18 @@ export default function GroupDetailPage() {
                 </div>
             </div>
 
-            <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
-                <DialogTrigger asChild>
-                    <Button className="fixed bottom-4 right-4 rounded-full h-16 w-16 shadow-lg z-20">
-                        <MessagesSquare/>
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="p-0 max-w-lg h-[80vh] flex flex-col">
-                     <ChatDialogContent groupId={groupId} user={appUser}/>
-                </DialogContent>
-            </Dialog>
+            {isMember && (
+                <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="fixed bottom-4 right-4 rounded-full h-16 w-16 shadow-lg z-20">
+                            <MessagesSquare/>
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="p-0 max-w-lg h-[80vh] flex flex-col">
+                        <ChatDialogContent groupId={groupId} user={appUser}/>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 }
