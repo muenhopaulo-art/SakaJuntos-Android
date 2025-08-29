@@ -21,7 +21,7 @@ export async function createUser(uid: string, data: UserProfileData) {
             role: 'client', // Default role
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
-            wantsToBecomeLojista: wantsToBeLojista || false,
+            wantsToBeLojista: wantsToBeLojista || false,
             verificationStatus: wantsToBeLojista ? 'pending' : 'none',
             isOnline: false, // Default online status
         });
