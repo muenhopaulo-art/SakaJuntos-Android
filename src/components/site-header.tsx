@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -170,7 +171,6 @@ export function SiteHeader() {
                      </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <OrdersSheet />
                 <CartSheet />
                 </>
              ) : (

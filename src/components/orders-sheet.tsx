@@ -7,14 +7,13 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescri
 import { Package, Truck, Loader2 } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
-import { getOrders } from '@/app/admin/actions';
 import type { Order, OrderStatus } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -61,6 +60,7 @@ export function OrdersSheet() {
   useEffect(() => {
     if (!user) {
         setOrders([]);
+        setLoading(false);
         return;
     }
 
@@ -106,8 +106,8 @@ export function OrdersSheet() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="relative ml-2">
-          <Truck className="h-5 w-5" />
+        <Button variant="outline" size="icon" className="relative ml-2 rounded-full h-14 w-14 shadow-lg">
+          <Truck className="h-6 w-6" />
           <span className="sr-only">Acompanhar Encomendas</span>
         </Button>
       </SheetTrigger>
