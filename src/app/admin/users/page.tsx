@@ -21,7 +21,7 @@ const roleTranslations: Record<User['role'], string> = {
     admin: 'Admin',
     lojista: 'Lojista',
     client: 'Cliente',
-    entregador: 'Entregador'
+    courier: 'Entregador'
 }
 
 const statusVariant: Record<VerificationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {

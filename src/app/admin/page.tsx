@@ -117,7 +117,7 @@ export default async function AdminPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {analytics && analytics.onlineDrivers.length > 0 ? (
+                        {analytics && analytics.onlineDrivers && analytics.onlineDrivers.length > 0 ? (
                             <div className="space-y-4">
                                 {analytics.onlineDrivers.map(driver => (
                                     <div key={driver.uid} className="flex items-center justify-between">

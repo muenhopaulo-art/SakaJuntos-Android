@@ -121,7 +121,7 @@ export async function getUsers(): Promise<User[]> {
                 wantsToBecomeLojista: data.wantsToBecomeLojista,
                 verificationStatus: data.verificationStatus || 'none',
                 createdAt: createdAt instanceof Timestamp ? createdAt.toMillis() : (createdAt || Date.now()),
-                isOnline: data.isOnline || false
+                online: data.online || false
             }
         });
     } catch (error) {
@@ -133,7 +133,7 @@ export async function getUsers(): Promise<User[]> {
 export async function getOnlineDeliveryDrivers(): Promise<User[]> {
     try {
         const usersCol = collection(db, 'users');
-        const q = query(usersCol, where('role', '==', 'courier'), where('isOnline', '==', true));
+        const q = query(usersCol, where('role', '==', 'courier'), where('online', '==', true));
         const driverSnapshot = await getDocs(q);
         return driverSnapshot.docs.map(doc => {
             const data = doc.data();
@@ -144,7 +144,7 @@ export async function getOnlineDeliveryDrivers(): Promise<User[]> {
                 email: data.email,
                 role: data.role,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
-                isOnline: data.isOnline
+                online: data.online
             }
         });
     } catch (error) {

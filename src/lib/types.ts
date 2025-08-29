@@ -79,7 +79,7 @@ export interface Order {
   contributions: Contribution[];
 }
 
-export type UserRole = 'client' | 'lojista' | 'admin' | 'entregador';
+export type UserRole = 'client' | 'lojista' | 'admin' | 'courier';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'none';
 
 export interface User {
@@ -91,5 +91,5 @@ export interface User {
     createdAt: number;
     wantsToBecomeLojista?: boolean;
     verificationStatus?: VerificationStatus;
-    isOnline?: boolean;
+    online?: boolean;
 }
