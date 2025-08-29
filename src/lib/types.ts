@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -80,6 +81,8 @@ export interface Order {
   status: OrderStatus;
   createdAt?: number;
   contributions: Contribution[];
+  driverId?: string;
+  driverName?: string;
 }
 
 export type UserRole = 'client' | 'lojista' | 'admin' | 'courier';

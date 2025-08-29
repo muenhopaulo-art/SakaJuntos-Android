@@ -46,6 +46,8 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
     totalAmount: data.totalAmount,
     status: data.status,
     contributions, // Add contributions here
+    driverId: data.driverId,
+    driverName: data.driverName,
   };
 
   if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -75,6 +77,27 @@ export async function getOrders(userId?: string): Promise<Order[]> {
   }
 }
 
+export async function assignDriverToOrder(orderId: string, driver: User): Promise<{success: boolean, message?: string}> {
+    try {
+        const orderRef = doc(db, 'orders', orderId);
+        
+        await updateDoc(orderRef, { 
+            status: 'A caminho',
+            driverId: driver.uid,
+            driverName: driver.name
+        });
+
+        // Here you would typically send a notification to the driver's app
+        // For now, we just update the status.
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error assigning driver to order:", error);
+        return { success: false, message: 'Não foi possível atribuir o entregador.' };
+    }
+}
+
+
 export async function updateOrderStatus(orderId: string, status: Order['status']): Promise<{success: boolean, message?: string}> {
   try {
       const orderRef = doc(db, 'orders', orderId);
@@ -83,6 +106,12 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
           throw new Error("Pedido não encontrado.");
       }
       const orderData = orderSnap.data();
+
+      // If status is being changed to 'On the way', ensure a driver is assigned first.
+      // This is handled by the assignDriverToOrder function, so we prevent direct change here.
+      if (status === 'A caminho' && !orderData.driverId) {
+          throw new Error("Não é possível alterar para 'A caminho' sem atribuir um entregador.");
+      }
 
       await updateDoc(orderRef, { status });
 
@@ -98,7 +127,8 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
       return { success: true };
   } catch (error) {
       console.error("Error updating order status:", error);
-      return { success: false, message: 'Não foi possível atualizar o estado do pedido.' };
+      const message = error instanceof Error ? error.message : 'Não foi possível atualizar o estado do pedido.';
+      return { success: false, message };
   }
 }
 
