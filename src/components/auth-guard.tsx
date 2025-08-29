@@ -9,12 +9,12 @@ import { Logo } from './Logo';
 import { getUser, User } from '@/services/user-service';
 import { SiteHeader } from './site-header';
 import { SiteFooter } from './site-footer';
-import { OrdersSheet } from './orders-sheet';
+import { OrdersSheet } from '../app/orders-sheet';
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
-const adminPaths = ['/admin', '/admin/orders', '/admin/users'];
-const lojistaPaths = ['/lojista'];
+const adminPaths = ['/admin', '/admin/orders', '/admin/users', '/admin/products'];
+const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth);
@@ -109,6 +109,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   
   const pathIsPublic = publicPaths.includes(pathname);
   const pathIsLayoutLess = adminPaths.some(p => pathname.startsWith(p)) || lojistaPaths.some(p => pathname.startsWith(p));
+  const pathIsGroupDetails = /^\/grupos\/[^/]+$/.test(pathname);
 
 
   // Render children without the main layout for public, admin and lojista pages
@@ -122,7 +123,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
-        {user && (
+        {user && !pathIsGroupDetails && (
           <div className="fixed bottom-4 right-4 z-50">
             <OrdersSheet />
           </div>
