@@ -133,7 +133,7 @@ export async function getUsers(): Promise<User[]> {
 export async function getOnlineDeliveryDrivers(): Promise<User[]> {
     try {
         const usersCol = collection(db, 'users');
-        const q = query(usersCol, where('role', '==', 'entregador'), where('isOnline', '==', true));
+        const q = query(usersCol, where('role', '==', 'courier'), where('isOnline', '==', true));
         const driverSnapshot = await getDocs(q);
         return driverSnapshot.docs.map(doc => {
             const data = doc.data();
