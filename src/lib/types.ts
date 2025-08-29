@@ -7,6 +7,7 @@ export interface Product {
   price: number;
   aiHint?: string;
   createdAt?: number;
+  lojistaId?: string; // ID of the lojista who owns the product
 }
 
 export interface GroupMember {

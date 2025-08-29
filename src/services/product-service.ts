@@ -19,6 +19,7 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     description: data.description,
     price: data.price,
     aiHint: data.aiHint,
+    lojistaId: data.lojistaId,
   };
 
   if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -91,12 +92,17 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
     return promotion;
 }
 
-export async function getProducts(): Promise<Product[]> {
+export async function getProducts(lojistaId?: string): Promise<Product[]> {
   const productsCol = collection(db, 'products');
-  const productSnapshot = await getDocs(productsCol);
+  let q = query(productsCol);
+  if (lojistaId) {
+      q = query(productsCol, where('lojistaId', '==', lojistaId));
+  }
+  const productSnapshot = await getDocs(q);
   const productList = productSnapshot.docs.map(convertDocToProduct);
   return productList;
 }
+
 
 export async function getGroupPromotions(): Promise<GroupPromotion[]> {
     const promotionsCol = collection(db, 'groupPromotions');
