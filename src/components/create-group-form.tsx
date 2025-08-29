@@ -35,6 +35,9 @@ import { getUser } from '@/services/user-service';
 const createGroupSchema = z.object({
   name: z.string().min(3, { message: 'O nome do grupo deve ter pelo menos 3 caracteres.' }),
   members: z.coerce.number().min(2, { message: 'O grupo deve ter pelo menos 2 membros.' }),
+  description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
+  price: z.coerce.number().min(1, { message: 'O preço deve ser maior que zero.' }),
+  imageUrl: z.string().url({ message: 'Por favor, insira um URL de imagem válido.' }).optional().or(z.literal('')),
 });
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
@@ -53,6 +56,9 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
     defaultValues: {
       name: '',
       members: 2,
+      description: '',
+      price: 0,
+      imageUrl: '',
     },
   });
 
@@ -79,9 +85,10 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
             target: data.members,
             creatorId: user.uid,
             creatorName: appUser.name,
-            description: "Arroz de alta qualidade para as suas refeições em família.",
-            price: 22000,
-            aiHint: "rice sack large",
+            description: data.description,
+            price: data.price,
+            imageUrl: data.imageUrl,
+            aiHint: "group purchase",
         });
 
         if (result.success) {
@@ -117,15 +124,54 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Grupo</FormLabel>
+                  <FormLabel>Nome do Grupo/Produto</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Compras do Mês" {...field} />
+                    <Input placeholder="Ex: Saco de Arroz 25kg" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Descreva o produto do grupo" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Preço Total (AOA)</FormLabel>
+                  <FormControl>
+                    <Input type="number" min="1" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL da Imagem</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://exemplo.com/imagem.png" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -136,7 +182,7 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
               name="members"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número de Membros</FormLabel>
+                  <FormLabel>Número de Membros Necessário</FormLabel>
                   <FormControl>
                     <Input type="number" min="2" {...field} />
                   </FormControl>
@@ -144,7 +190,7 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
                 </FormItem>
               )}
             />
-             <DialogFooter>
+             <DialogFooter className="sticky bottom-0 bg-background pt-4">
                 <Button type="submit" disabled={isLoading || !user} className="w-full sm:w-auto">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     {isLoading ? 'A criar...' : 'Criar Grupo'}

@@ -18,6 +18,7 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     name: data.name,
     description: data.description,
     price: data.price,
+    imageUrl: data.imageUrl,
     aiHint: data.aiHint,
     lojistaId: data.lojistaId,
   };
@@ -75,6 +76,7 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
         status: data.status || 'active',
         description: data.description,
         price: data.price,
+        imageUrl: data.imageUrl,
         aiHint: data.aiHint,
         participants: data.participants,
         target: data.target,
@@ -118,6 +120,7 @@ interface CreateGroupData {
     creatorName: string;
     description: string;
     price: number;
+    imageUrl?: string;
     aiHint: string;
 }
 

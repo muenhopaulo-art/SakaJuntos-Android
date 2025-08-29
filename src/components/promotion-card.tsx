@@ -1,12 +1,14 @@
+
 'use client';
 
 import type { GroupPromotion } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
-import { Users, UserPlus, Hourglass } from 'lucide-react';
+import { Users, UserPlus, Hourglass, Package } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface PromotionCardProps {
   promotion: GroupPromotion;
@@ -39,7 +41,11 @@ export function PromotionCard({ promotion, showJoinButton, onJoin }: PromotionCa
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
         <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-          <Users className="w-16 h-16 text-muted-foreground" />
+            {promotion.imageUrl ? (
+              <Image src={promotion.imageUrl} alt={promotion.name} fill className="object-cover" />
+            ) : (
+              <Package className="w-16 h-16 text-muted-foreground"/>
+            )}
         </div>
         <div className="space-y-2">
             <p className="text-2xl font-bold text-foreground">

@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { AddProductDialog } from './add-product-dialog';
 import { ProductActions } from './product-actions';
-
+import Image from 'next/image';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -68,8 +68,12 @@ export default async function AdminProductsPage() {
                                     products.map(product => (
                                         <TableRow key={product.id}>
                                             <TableCell>
-                                                <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
-                                                    <Package className="h-6 w-6 text-muted-foreground" />
+                                                <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                                    {product.imageUrl ? (
+                                                        <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
+                                                    ) : (
+                                                        <Package className="h-6 w-6 text-muted-foreground" />
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{product.name}</TableCell>
@@ -94,4 +98,3 @@ export default async function AdminProductsPage() {
         </div>
     );
 }
-

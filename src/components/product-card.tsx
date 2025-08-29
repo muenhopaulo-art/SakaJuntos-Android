@@ -7,6 +7,7 @@ import { Card, CardContent } from './ui/card';
 import { useCart } from '@/contexts/cart-context';
 import { ShoppingCart, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 interface ProductCardProps {
   product: Product;
@@ -37,7 +38,11 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 bg-card">
       <CardContent className="p-4 flex-grow flex flex-col">
         <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4 bg-muted flex items-center justify-center">
-            <Package className="w-16 h-16 text-muted-foreground"/>
+            {product.imageUrl ? (
+              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+            ) : (
+              <Package className="w-16 h-16 text-muted-foreground"/>
+            )}
         </div>
         <div className="flex-grow">
           <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>

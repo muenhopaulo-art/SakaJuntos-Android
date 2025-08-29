@@ -33,6 +33,7 @@ const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
+  imageUrl: z.string().url({ message: 'Por favor, insira um URL de imagem válido.' }).optional().or(z.literal('')),
 });
 
 export function AddProductDialog() {
@@ -45,6 +46,7 @@ export function AddProductDialog() {
       name: '',
       description: '',
       price: 0,
+      imageUrl: '',
     },
   });
 
@@ -111,6 +113,19 @@ export function AddProductDialog() {
                     <Input type="number" {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL da Imagem</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://exemplo.com/imagem.png" {...field} />
+                  </FormControl>
+                   <FormMessage />
                 </FormItem>
               )}
             />

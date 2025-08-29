@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCart } from '@/contexts/cart-context';
@@ -7,6 +8,7 @@ import { SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription, S
 import { Separator } from './ui/separator';
 import { Minus, Plus, Trash2, Package } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface CartSheetContentProps {
     side?: 'top' | 'bottom' | 'left' | 'right' | null | undefined;
@@ -43,7 +45,11 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
                 <div key={item.product.id} className="flex items-center justify-between space-x-4">
                   <div className="flex items-center space-x-4">
                     <div className="relative h-16 w-16 overflow-hidden rounded bg-muted flex items-center justify-center">
-                      <Package className="h-8 w-8 text-muted-foreground" />
+                        {item.product.imageUrl ? (
+                           <Image src={item.product.imageUrl} alt={item.product.name} width={64} height={64} className="object-cover h-full w-full" />
+                        ) : (
+                           <Package className="h-8 w-8 text-muted-foreground" />
+                        )}
                     </div>
                     <div>
                       <h3 className="font-medium">{item.product.name}</h3>
