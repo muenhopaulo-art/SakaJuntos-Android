@@ -23,6 +23,7 @@ export async function createUser(uid: string, data: UserProfileData) {
             createdAt: serverTimestamp(),
             wantsToBecomeLojista: wantsToBeLojista || false,
             verificationStatus: wantsToBeLojista ? 'pending' : 'none',
+            isOnline: false, // Default online status
         });
         return { success: true, uid };
     } catch (error) {
@@ -54,6 +55,7 @@ export async function getUser(uid: string): Promise<User> {
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
         wantsToBecomeLojista: data.wantsToBecomeLojista || false,
         verificationStatus: data.verificationStatus || 'none',
+        isOnline: data.isOnline || false,
     };
 }
 

@@ -3,7 +3,8 @@
 import { getDashboardAnalytics } from './actions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, DollarSign, Package, Users, Hourglass } from 'lucide-react';
+import { AlertTriangle, DollarSign, Package, Users, Hourglass, Bike } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
 function getErrorMessage(error: any): string {
@@ -11,6 +12,13 @@ function getErrorMessage(error: any): string {
         return error.message;
     }
     return "Ocorreu um erro desconhecido ao buscar os dados.";
+}
+
+const getInitials = (name: string) => {
+    if (!name) return '?';
+    const names = name.split(' ');
+    const initials = names.map(n => n[0]).join('');
+    return initials.substring(0, 2).toUpperCase();
 }
 
 
@@ -88,7 +96,6 @@ export default async function AdminPage() {
                 <p className="text-center text-muted-foreground">A carregar dados do dashboard...</p>
             )}
 
-            {/* Placeholder for future charts */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-8">
                 <Card className="col-span-4">
                     <CardHeader>
@@ -102,15 +109,43 @@ export default async function AdminPage() {
                 </Card>
                 <Card className="col-span-3">
                     <CardHeader>
-                        <CardTitle>Vendas Recentes</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <Bike />
+                            Entregadores Online
+                        </CardTitle>
                         <CardDescription>
-                            As 5 vendas mais recentes.
+                            Entregadores disponíveis para receber pedidos.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-80 flex items-center justify-center text-muted-foreground">
-                            (Lista de vendas recentes em breve)
-                        </div>
+                        {analytics && analytics.onlineDrivers.length > 0 ? (
+                            <div className="space-y-4">
+                                {analytics.onlineDrivers.map(driver => (
+                                    <div key={driver.uid} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar>
+                                                <AvatarFallback>{getInitials(driver.name)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-medium">{driver.name}</p>
+                                                <p className="text-sm text-muted-foreground">{driver.phone}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-green-500">
+                                            <span className="relative flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                            </span>
+                                            <span className="text-sm font-medium">Online</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                             <div className="h-full flex items-center justify-center text-muted-foreground">
+                                <p>Nenhum entregador online no momento.</p>
+                             </div>
+                        )}
                     </CardContent>
                 </Card>
           </div>

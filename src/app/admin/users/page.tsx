@@ -20,7 +20,8 @@ function getErrorMessage(error: any): string {
 const roleTranslations: Record<User['role'], string> = {
     admin: 'Admin',
     lojista: 'Lojista',
-    client: 'Cliente'
+    client: 'Cliente',
+    entregador: 'Entregador'
 }
 
 const statusVariant: Record<VerificationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {

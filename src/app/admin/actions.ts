@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query, doc, getDoc, Timestamp,getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, doc, getDoc, Timestamp,getCountFromServer, where } from 'firebase/firestore';
 import type { Order, Contribution, User } from '@/lib/types';
 
 
@@ -72,6 +72,7 @@ export async function getDashboardAnalytics() {
     try {
         const orders = await getOrders();
         const usersCount = await getUsersCount();
+        const onlineDrivers = await getOnlineDeliveryDrivers();
 
         const totalRevenue = orders
             .filter(order => order.status === 'Entregue')
@@ -88,6 +89,7 @@ export async function getDashboardAnalytics() {
             pendingSales,
             totalOrders,
             usersCount,
+            onlineDrivers
         };
 
     } catch (error) {
@@ -109,6 +111,7 @@ export async function getUsers(): Promise<User[]> {
         const userSnapshot = await getDocs(q);
         return userSnapshot.docs.map(doc => {
             const data = doc.data();
+            const createdAt = data.createdAt;
             return {
                 uid: doc.id,
                 name: data.name,
@@ -117,11 +120,35 @@ export async function getUsers(): Promise<User[]> {
                 role: data.role,
                 wantsToBecomeLojista: data.wantsToBecomeLojista,
                 verificationStatus: data.verificationStatus || 'none',
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
+                createdAt: createdAt instanceof Timestamp ? createdAt.toMillis() : (createdAt || Date.now()),
+                isOnline: data.isOnline || false
             }
         });
     } catch (error) {
         console.error("Error fetching users:", error);
         throw new Error("Failed to fetch users.");
+    }
+}
+
+export async function getOnlineDeliveryDrivers(): Promise<User[]> {
+    try {
+        const usersCol = collection(db, 'users');
+        const q = query(usersCol, where('role', '==', 'entregador'), where('isOnline', '==', true));
+        const driverSnapshot = await getDocs(q);
+        return driverSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                uid: doc.id,
+                name: data.name,
+                phone: data.phone,
+                email: data.email,
+                role: data.role,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
+                isOnline: data.isOnline
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching online drivers:", error);
+        return [];
     }
 }
