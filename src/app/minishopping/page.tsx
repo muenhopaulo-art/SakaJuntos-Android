@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ProductCard } from '@/components/product-card';
 import { getProducts } from '@/services/product-service';
@@ -27,14 +27,14 @@ export default function MiniShoppingPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useState(() => {
+  useEffect(() => {
     getProducts()
       .then(setProducts)
       .catch(e => {
         console.error(e);
         setError(getErrorMessage(e));
       });
-  });
+  }, []);
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm) {
