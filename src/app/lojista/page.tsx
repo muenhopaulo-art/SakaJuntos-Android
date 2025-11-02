@@ -75,12 +75,13 @@ export default function LojistaPage() {
         const ordersQuery = query(
             collection(db, 'orders'),
             where('lojistaId', '==', user.uid),
-            orderBy('createdAt', 'desc'),
             limit(5)
         );
 
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const updatedOrders = snapshot.docs.map(convertDocToOrder);
+            // Sort client-side
+            updatedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setRecentOrders(updatedOrders);
         }, (err) => {
             console.error(err);

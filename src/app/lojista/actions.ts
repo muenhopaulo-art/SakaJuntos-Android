@@ -42,10 +42,10 @@ export async function getLojistaDashboardAnalytics(lojistaId: string) {
 
         const newOrders = orders.filter(order => order.status === 'A aguardar lojista').length;
 
-        // Get 5 most recent orders
-        const recentOrdersQuery = query(ordersQuery, orderBy('createdAt', 'desc'), limit(5));
-        const recentOrdersSnapshot = await getDocs(recentOrdersQuery);
-        const recentOrders = recentOrdersSnapshot.docs.map(convertDocToOrder);
+        // Sort orders by date client-side
+        const recentOrders = orders
+            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+            .slice(0, 5);
 
 
         return {
