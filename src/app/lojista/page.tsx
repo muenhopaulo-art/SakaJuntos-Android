@@ -5,10 +5,9 @@ import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
 import { getLojistaDashboardAnalytics } from './actions';
-import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
-import type { Order } from '@/lib/types';
+import type { Order, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, Package, CreditCard, Activity, Bell, ListOrdered, BarChart, ChevronDown, ShoppingBag } from 'lucide-react';
+import { DollarSign, Package, Activity, Bell, ListOrdered, ShoppingBag, BarChart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -16,6 +15,7 @@ import Link from 'next/link';
 import { buttonVariants, Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import Image from 'next/image';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -24,29 +24,16 @@ function getErrorMessage(error: any): string {
     return "Ocorreu um erro desconhecido ao buscar os dados.";
 }
 
-const convertDocToOrder = (doc: any): Order => {
-  const data = doc.data();
-  return {
-    id: doc.id,
-    creatorId: data.creatorId,
-    creatorName: data.creatorName,
-    items: data.items,
-    totalAmount: data.totalAmount,
-    status: data.status,
-    orderType: data.orderType,
-    createdAt: data.createdAt?.toMillis(),
-    lojistaId: data.lojistaId,
-  };
-};
 
 export default function LojistaPage() {
     const [user, authLoading] = useAuthState(auth);
     const [analytics, setAnalytics] = useState<any>(null);
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+    const [recentProducts, setRecentProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch one-time analytics data
+    // Fetch analytics data
     useEffect(() => {
         if (authLoading || !user) return;
         
@@ -55,6 +42,8 @@ export default function LojistaPage() {
             try {
                 const data = await getLojistaDashboardAnalytics(user.uid);
                 setAnalytics(data.analytics);
+                setRecentOrders(data.recentOrders);
+                setRecentProducts(data.recentProducts);
             } catch (e) {
                 setError(getErrorMessage(e));
             } finally {
@@ -64,33 +53,6 @@ export default function LojistaPage() {
 
         fetchAnalytics();
     }, [user, authLoading]);
-
-    // Listen for real-time updates on recent orders
-     useEffect(() => {
-        if (!user) {
-            setRecentOrders([]);
-            return;
-        }
-
-        const ordersQuery = query(
-            collection(db, 'orders'),
-            where('lojistaId', '==', user.uid),
-            limit(5)
-        );
-
-        const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
-            const updatedOrders = snapshot.docs.map(convertDocToOrder);
-            // Sort client-side
-            updatedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            setRecentOrders(updatedOrders);
-        }, (err) => {
-            console.error(err);
-            setError("Não foi possível carregar os pedidos recentes em tempo real.");
-        });
-
-        // Cleanup subscription on component unmount
-        return () => unsubscribe();
-    }, [user]);
 
 
     const analyticsCards = [
@@ -149,8 +111,8 @@ export default function LojistaPage() {
                  </div>
                  <div className="space-y-4">
                     <Skeleton className="h-40 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-40 w-full" />
                  </div>
             </>
         )
@@ -187,7 +149,7 @@ export default function LojistaPage() {
                 ))}
             </div>
 
-            <Accordion type="multiple" defaultValue={['recent-orders']} className="w-full space-y-4">
+            <Accordion type="multiple" defaultValue={['recent-orders', 'recent-products']} className="w-full space-y-4">
                 <AccordionItem value="recent-orders" className="bg-card rounded-lg border shadow-sm">
                     <AccordionTrigger className="p-4">
                         <div className="flex items-center gap-2 font-semibold">
@@ -198,9 +160,9 @@ export default function LojistaPage() {
                             }
                         </div>
                     </AccordionTrigger>
-                    <AccordionContent className="p-4 pt-0">
+                    <AccordionContent className="p-0">
                          {recentOrders.length > 0 ? (
-                            <div className="space-y-2">
+                            <div className="space-y-2 p-4 pt-0">
                                 {recentOrders.map(order => (
                                     <div key={order.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                                         <div className="space-y-1">
@@ -214,18 +176,18 @@ export default function LojistaPage() {
                                         <div className="ml-auto font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</div>
                                     </div>
                                 ))}
-                                <div className="text-center pt-2">
-                                    <Link href="/lojista/pedidos" className={cn(buttonVariants({variant: 'link', size: 'sm'}))}>
-                                        Ver Todos os Pedidos
-                                    </Link>
-                                </div>
                             </div>
                         ) : (
-                             <div className="h-24 flex flex-col items-center justify-center text-muted-foreground text-center space-y-2">
+                             <div className="h-24 flex flex-col items-center justify-center text-muted-foreground text-center space-y-2 p-4">
                                 <Package className="h-8 w-8" />
-                                <p className="font-medium">Nenhum pedido recente.</p>
+                                <p className="font-medium">Nenhum pedido ativo recente.</p>
                             </div>
                         )}
+                        <div className="text-center p-2 border-t">
+                            <Link href="/lojista/pedidos" className={cn(buttonVariants({variant: 'link', size: 'sm'}))}>
+                                Ver Todos os Pedidos
+                            </Link>
+                        </div>
                     </AccordionContent>
                 </AccordionItem>
                 
@@ -236,9 +198,37 @@ export default function LojistaPage() {
                             <span>Produtos Recentes</span>
                         </div>
                     </AccordionTrigger>
-                    <AccordionContent className="p-4 pt-0">
-                        <div className="h-24 flex items-center justify-center text-muted-foreground">
-                            (Listagem de produtos recentes em breve)
+                    <AccordionContent className="p-0">
+                        {recentProducts.length > 0 ? (
+                           <div className="space-y-2 p-4 pt-0">
+                                {recentProducts.map(product => (
+                                    <div key={product.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative h-10 w-10 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                                {product.imageUrl ? (
+                                                    <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="object-cover h-full w-full" />
+                                                ) : (
+                                                    <Package className="h-5 w-5 text-muted-foreground" />
+                                                )}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-medium leading-none">{product.name}</p>
+                                                <p className="text-sm text-muted-foreground">{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="ml-auto font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="h-24 flex items-center justify-center text-muted-foreground p-4">
+                                <p>Nenhum produto adicionado recentemente.</p>
+                            </div>
+                        )}
+                         <div className="text-center p-2 border-t">
+                            <Link href="/lojista/produtos" className={cn(buttonVariants({variant: 'link', size: 'sm'}))}>
+                                Ver Todos os Produtos
+                            </Link>
                         </div>
                     </AccordionContent>
                 </AccordionItem>

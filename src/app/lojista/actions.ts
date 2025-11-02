@@ -21,18 +21,33 @@ const convertDocToOrder = (doc: any): Order => {
   };
 };
 
+const convertDocToProduct = (doc: any): Product => {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        imageUrl: data.imageUrl,
+        aiHint: data.aiHint,
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
+    };
+};
+
 export async function getLojistaDashboardAnalytics(lojistaId: string) {
     try {
         const ordersQuery = query(collection(db, 'orders'), where('lojistaId', '==', lojistaId));
         const productsQuery = query(collection(db, 'products'), where('lojistaId', '==', lojistaId));
+        const recentProductsQuery = query(productsQuery, orderBy('createdAt', 'desc'), limit(5));
         
-        const [ordersSnapshot, productsSnapshot] = await Promise.all([
+        const [ordersSnapshot, productsCountSnapshot, recentProductsSnapshot] = await Promise.all([
             getDocs(ordersQuery),
-            getCountFromServer(productsQuery)
+            getCountFromServer(productsQuery),
+            getDocs(recentProductsQuery),
         ]);
 
         const orders = ordersSnapshot.docs.map(convertDocToOrder);
-        const activeProducts = productsSnapshot.data().count;
+        const activeProducts = productsCountSnapshot.data().count;
 
         const totalRevenue = orders
             .filter(order => order.status === 'Entregue')
@@ -42,10 +57,13 @@ export async function getLojistaDashboardAnalytics(lojistaId: string) {
 
         const newOrders = orders.filter(order => order.status === 'A aguardar lojista').length;
 
-        // Sort orders by date client-side
+        // Sort orders by date client-side to avoid needing a composite index
         const recentOrders = orders
+            .filter(o => o.status === 'A aguardar lojista' || o.status === 'Pendente')
             .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
             .slice(0, 5);
+            
+        const recentProducts = recentProductsSnapshot.docs.map(convertDocToProduct);
 
 
         return {
@@ -55,7 +73,8 @@ export async function getLojistaDashboardAnalytics(lojistaId: string) {
                 activeProducts,
                 newOrders
             },
-            recentOrders
+            recentOrders,
+            recentProducts,
         };
 
     } catch (error) {
