@@ -52,10 +52,11 @@ export default function LojistaOrdersPage() {
         }
 
         setLoading(true);
-        const ordersQuery = query(collection(db, 'orders'), where('lojistaId', '==', user.uid), orderBy('createdAt', 'desc'));
+        const ordersQuery = query(collection(db, 'orders'), where('lojistaId', '==', user.uid));
 
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const updatedOrders = snapshot.docs.map(convertDocToOrder);
+            updatedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setOrders(updatedOrders);
             setLoading(false);
         }, (err) => {
