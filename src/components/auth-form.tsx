@@ -146,10 +146,7 @@ export function AuthForm() {
     <div className="w-full max-w-md mx-auto">
       <Card className="p-6 sm:p-8 md:p-12 rounded-2xl sm:rounded-3xl shadow-2xl">
         <header className="text-center mb-8">
-            <Logo className="h-24 w-24 sm:h-32 sm:w-32 mx-auto text-primary" />
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-wide uppercase mt-4">
-                SakaJuntos
-            </h1>
+            <Logo className="mx-auto" />
             <p className="text-sm font-light text-gray-500 mt-2 tracking-wide mb-6">
               {authMode === 'login' ? 'Compras em grupo inteligentes, entregas à sua porta.' : 'Junte-se. Contribua. Receba.'}
             </p>
