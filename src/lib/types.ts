@@ -8,7 +8,7 @@ export interface Product {
   imageUrl?: string; 
   aiHint?: string;
   createdAt?: number;
-  lojistaId?: string; // ID of the lojista who owns the product
+  lojistaId?: string;
 }
 
 export interface GroupMember {
@@ -46,7 +46,7 @@ export interface GroupPromotion extends Omit<Product, 'image'> {
 }
 
 export interface CartItem {
-  product: Product; // Keep it simple: always a Product
+  product: Product;
   quantity: number;
 }
 
@@ -80,12 +80,12 @@ export interface Order {
   totalAmount: number;
   status: OrderStatus;
   orderType: OrderType;
-  groupName?: string; // For group orders
-  groupId?: string; // For group orders
+  groupName?: string;
+  groupId?: string;
   creatorName: string;
   createdAt?: number;
   contributions?: Contribution[];
-  lojistaId?: string; // ID of the lojista responsible for the order
+  lojistaId?: string;
   driverId?: string;
   driverName?: string;
 }
@@ -102,5 +102,6 @@ export interface User {
     role: UserRole;
     createdAt: number;
     verificationStatus?: VerificationStatus;
+    ownerLojistaId?: string; // ID of the lojista this courier works for
     online?: boolean;
 }

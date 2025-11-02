@@ -11,6 +11,7 @@ interface UserProfileData {
     phone: string;
     province: string;
     role: UserRole;
+    lojistaPhone?: string;
 }
 
 export async function createUser(uid: string, data: UserProfileData) {
@@ -18,12 +19,24 @@ export async function createUser(uid: string, data: UserProfileData) {
         const userRef = doc(db, 'users', uid);
         
         let verificationStatus = 'none';
+        let ownerLojistaId: string | undefined = undefined;
+
         if (data.role === 'lojista') {
-            // Lojistas (Cliente/Vendedor) são aprovados automaticamente agora
             verificationStatus = 'approved';
         } else if (data.role === 'courier') {
-            // Entregadores ainda precisam de aprovação
-            verificationStatus = 'pending';
+             if (data.lojistaPhone) {
+                // Find the lojista by phone number
+                const lojistaQuery = query(collection(db, 'users'), where("phone", "==", data.lojistaPhone), where("role", "==", "lojista"), limit(1));
+                const lojistaSnapshot = await getDocs(lojistaQuery);
+                if (!lojistaSnapshot.empty) {
+                    ownerLojistaId = lojistaSnapshot.docs[0].id;
+                    verificationStatus = 'approved'; // Auto-approve if associated with a lojista
+                } else {
+                     throw new Error("O telemóvel do lojista fornecido não foi encontrado ou não pertence a um vendedor válido.");
+                }
+            } else {
+                 throw new Error("O telemóvel do lojista é obrigatório para o registo de entregador.");
+            }
         }
 
 
@@ -35,7 +48,8 @@ export async function createUser(uid: string, data: UserProfileData) {
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
             verificationStatus: verificationStatus,
-            online: false, // Default online status
+            ownerLojistaId: ownerLojistaId,
+            online: false,
         });
         return { success: true, uid };
     } catch (error) {
@@ -67,6 +81,7 @@ export async function getUser(uid: string): Promise<User> {
         role: data.role || 'client',
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
         verificationStatus: data.verificationStatus || 'none',
+        ownerLojistaId: data.ownerLojistaId,
         online: data.online || false,
     };
 }

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -48,9 +48,20 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['lojista', 'courier'], { // 'client' is now represented by 'lojista'
+  role: z.enum(['lojista', 'courier'], {
     required_error: "Precisa de selecionar um tipo de conta."
   }),
+  lojistaPhone: z.string().optional(),
+}).refine(data => {
+    // Se o role for 'courier', o lojistaPhone é obrigatório e deve ser válido
+    if (data.role === 'courier') {
+        return data.lojistaPhone && phoneRegex.test(data.lojistaPhone);
+    }
+    // Caso contrário, não é obrigatório
+    return true;
+}, {
+    message: "O telemóvel do lojista é obrigatório e deve ser um número válido.",
+    path: ["lojistaPhone"], // Campo onde o erro será exibido
 });
 
 
@@ -62,16 +73,21 @@ export function AuthForm() {
 
   const formSchema = authMode === 'login' ? loginSchema : registerSchema;
   
-  // Need to use any here because the types from zod can't be easily reconciled
-  const form = useForm<any>({
+  const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '', province: '', role: 'lojista' },
+    defaultValues: { name: '', phone: '', password: '', province: '', role: 'lojista', lojistaPhone: '' },
   });
+
+  const selectedRole = useWatch({
+    control: form.control,
+    name: 'role',
+  });
+
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
      setIsLoading(true);
      try {
-        const email = `+244${values.phone}@sakajuntos.com`; // Use phone number to create a unique email
+        const email = `+244${values.phone}@sakajuntos.com`;
         
         if (authMode === 'register') {
             const registerValues = values as z.infer<typeof registerSchema>;
@@ -85,6 +101,7 @@ export function AuthForm() {
                 phone: values.phone,
                 province: registerValues.province,
                 role: registerValues.role,
+                lojistaPhone: registerValues.lojistaPhone,
             });
             
             toast({
@@ -97,7 +114,6 @@ export function AuthForm() {
             const userCredential = await signInWithEmailAndPassword(auth, email, values.password);
             const user = userCredential.user;
             
-            // Fetch user profile to check role for redirection
             const appUser = await getUser(user.uid);
 
             toast({
@@ -135,6 +151,8 @@ export function AuthForm() {
                 default:
                     errorMessage = `Erro: ${error.message}`;
             }
+        } else if (error.message) {
+            errorMessage = error.message;
         }
         toast({
             variant: "destructive",
@@ -229,6 +247,7 @@ export function AuthForm() {
                 )}
               />
               {authMode === 'register' && (
+                <>
                 <FormField
                     control={form.control}
                     name="role"
@@ -264,6 +283,25 @@ export function AuthForm() {
                         </FormItem>
                     )}
                     />
+                  {selectedRole === 'courier' && (
+                      <FormField
+                          control={form.control}
+                          name="lojistaPhone"
+                          render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Telemóvel do Lojista</FormLabel>
+                                  <FormControl>
+                                      <Input placeholder="9xx xxx xxx do seu lojista" {...field} disabled={isLoading} className="py-3 px-4 rounded-xl" />
+                                  </FormControl>
+                                  <FormDescription>
+                                      Se trabalha para uma loja, insira o número dela aqui.
+                                  </FormDescription>
+                                  <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                  )}
+                </>
               )}
               <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
