@@ -27,9 +27,16 @@ import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { createUser, getUser } from '@/services/user-service';
 import { useRouter } from 'next/navigation';
-import { Checkbox } from './ui/checkbox';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const phoneRegex = /^9\d{8}$/; // Aceita números de 9 dígitos que começam com 9
+
+const provinces = [
+    "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango", "Cuanza Norte",
+    "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte",
+    "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"
+];
 
 const loginSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
@@ -39,8 +46,11 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres.' }),
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
+  province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  wantsToBeLojista: z.boolean().default(false),
+  role: z.enum(['client', 'lojista', 'courier'], {
+    required_error: "Precisa de selecionar um tipo de conta."
+  }),
 });
 
 
@@ -55,7 +65,7 @@ export function AuthForm() {
   // Need to use any here because the types from zod can't be easily reconciled
   const form = useForm<any>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '', wantsToBeLojista: false },
+    defaultValues: { name: '', phone: '', password: '', province: '', role: 'client' },
   });
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -73,14 +83,13 @@ export function AuthForm() {
             await createUser(user.uid, {
                 name: registerValues.name,
                 phone: values.phone,
-                wantsToBeLojista: registerValues.wantsToBeLojista,
+                province: registerValues.province,
+                role: registerValues.role,
             });
             
             toast({
                 title: "Conta Criada!",
-                description: registerValues.wantsToBeLojista 
-                  ? "O seu pedido de verificação foi enviado. Entraremos em contacto."
-                  : "O seu registo foi concluído com sucesso. A entrar...",
+                description: "O seu registo foi concluído com sucesso. A entrar...",
             });
             router.push('/');
         } else {
@@ -161,7 +170,6 @@ export function AuthForm() {
                         name="name"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="sr-only">Nome Completo</FormLabel>
                             <FormControl>
                             <Input placeholder="O seu nome completo" {...field}  disabled={isLoading} className="py-3 px-4 rounded-xl"/>
                             </FormControl>
@@ -176,7 +184,6 @@ export function AuthForm() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="sr-only">Número de Telemóvel</FormLabel>
                     <FormControl>
                       <Input type="tel" placeholder="O seu número (9xx xxx xxx)" {...field} disabled={isLoading} className="py-3 px-4 rounded-xl"/>
                     </FormControl>
@@ -184,12 +191,36 @@ export function AuthForm() {
                   </FormItem>
                 )}
               />
+
+              {authMode === 'register' && (
+                 <FormField
+                    control={form.control}
+                    name="province"
+                    render={({ field }) => (
+                        <FormItem>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                                <FormControl>
+                                    <SelectTrigger className="py-3 px-4 rounded-xl">
+                                        <SelectValue placeholder="Selecione a sua província" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {provinces.map(province => (
+                                        <SelectItem key={province} value={province}>{province}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+              )}
+
                <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="sr-only">Senha</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="A sua senha" {...field} disabled={isLoading} className="py-3 px-4 rounded-xl"/>
                     </FormControl>
@@ -200,27 +231,47 @@ export function AuthForm() {
               {authMode === 'register' && (
                 <FormField
                     control={form.control}
-                    name="wantsToBeLojista"
+                    name="role"
                     render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                        <FormControl>
-                        <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={isLoading}
-                        />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                        <FormLabel>
-                            Quero ser um lojista
-                        </FormLabel>
-                        <FormDescription>
-                           Irá submeter um pedido para vender os seus produtos na plataforma.
-                        </FormDescription>
-                        </div>
-                    </FormItem>
+                        <FormItem className="space-y-3">
+                            <FormLabel>Deseja registar-se como:</FormLabel>
+                            <FormControl>
+                                <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex flex-col space-y-2"
+                                    disabled={isLoading}
+                                >
+                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                        <FormControl>
+                                            <RadioGroupItem value="client" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">
+                                            Cliente
+                                        </FormLabel>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                        <FormControl>
+                                            <RadioGroupItem value="lojista" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">
+                                            Lojista (Vendedor)
+                                        </FormLabel>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                        <FormControl>
+                                            <RadioGroupItem value="courier" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">
+                                            Entregador
+                                        </FormLabel>
+                                    </FormItem>
+                                </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
                     )}
-                />
+                    />
               )}
               <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

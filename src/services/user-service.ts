@@ -3,26 +3,34 @@
 
 import { db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
-import type { User } from '@/lib/types';
+import type { User, UserRole } from '@/lib/types';
 
 
 interface UserProfileData {
     name: string;
     phone: string;
-    wantsToBeLojista?: boolean;
+    province: string;
+    role: UserRole;
 }
 
 export async function createUser(uid: string, data: UserProfileData) {
     try {
         const userRef = doc(db, 'users', uid);
-        const { wantsToBeLojista, ...restData } = data;
+        
+        // Determine verification status based on role
+        let verificationStatus = 'none';
+        if (data.role === 'lojista' || data.role === 'courier') {
+            verificationStatus = 'pending';
+        }
+
         await setDoc(userRef, {
-            ...restData,
-            role: 'client', // Default role
+            name: data.name,
+            phone: data.phone,
+            province: data.province,
+            role: data.role,
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
-            wantsToBeLojista: wantsToBeLojista || false,
-            verificationStatus: wantsToBeLojista ? 'pending' : 'none',
+            verificationStatus: verificationStatus,
             online: false, // Default online status
         });
         return { success: true, uid };
@@ -51,6 +59,7 @@ export async function getUser(uid: string): Promise<User> {
         name: data.name,
         phone: data.phone,
         email: data.email,
+        province: data.province,
         role: data.role || 'client',
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
         wantsToBecomeLojista: data.wantsToBecomeLojista || false,
