@@ -37,10 +37,10 @@ export async function getLojistaDashboardAnalytics(lojistaId: string) {
         const totalRevenue = orders
             .filter(order => order.status === 'Entregue')
             .reduce((sum, order) => sum + order.totalAmount, 0);
+            
+        const processedOrders = orders.filter(order => order.status === 'Pronto para recolha' || order.status === 'A caminho' || order.status === 'Entregue').length;
 
-        const totalSales = orders.filter(order => order.status === 'Entregue').length;
-
-        const pendingOrders = orders.filter(order => order.status === 'A aguardar lojista').length;
+        const newOrders = orders.filter(order => order.status === 'A aguardar lojista').length;
 
         // Get 5 most recent orders
         const recentOrdersQuery = query(ordersQuery, orderBy('createdAt', 'desc'), limit(5));
@@ -51,9 +51,9 @@ export async function getLojistaDashboardAnalytics(lojistaId: string) {
         return {
             analytics: {
                 totalRevenue,
-                totalSales,
+                processedOrders,
                 activeProducts,
-                pendingOrders
+                newOrders
             },
             recentOrders
         };

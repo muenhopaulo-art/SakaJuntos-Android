@@ -8,14 +8,14 @@ import { getLojistaDashboardAnalytics } from './actions';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import type { Order } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, Package, CreditCard, Activity, Loader2 } from 'lucide-react';
+import { DollarSign, Package, CreditCard, Activity, Bell, ListOrdered, BarChart, ChevronDown, ShoppingBag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants, Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -75,13 +75,12 @@ export default function LojistaPage() {
         const ordersQuery = query(
             collection(db, 'orders'),
             where('lojistaId', '==', user.uid),
+            orderBy('createdAt', 'desc'),
             limit(5)
         );
 
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const updatedOrders = snapshot.docs.map(convertDocToOrder);
-            // Sort client-side
-            updatedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setRecentOrders(updatedOrders);
         }, (err) => {
             console.error(err);
@@ -98,26 +97,26 @@ export default function LojistaPage() {
             title: "Receita Total",
             value: analytics?.totalRevenue,
             icon: DollarSign,
-            description: "Total de vendas dos seus produtos."
+            description: "Total de ganhos dos pedidos processados."
         },
         {
-            title: "Vendas",
-            value: analytics?.totalSales,
-            icon: CreditCard,
+            title: "Pedidos Processados",
+            value: analytics?.processedOrders,
+            icon: Activity,
             isCurrency: false,
-            description: "Número total de vendas concluidas."
+            description: "Nº de pedidos em separação ou já entregues."
         },
         {
             title: "Produtos Ativos",
             value: analytics?.activeProducts,
-            icon: Package,
+            icon: ShoppingBag,
             isCurrency: false,
-            description: "Número total de produtos na sua loja."
+            description: "Total de produtos na sua loja."
         },
         {
-            title: "Pedidos Pendentes",
-            value: analytics?.pendingOrders,
-            icon: Activity,
+            title: "Novos Pedidos",
+            value: analytics?.newOrders,
+            icon: Bell,
             isCurrency: false,
             description: "Pedidos que aguardam a sua preparação."
         }
@@ -125,10 +124,13 @@ export default function LojistaPage() {
     
     if (loading || authLoading) {
         return (
-            <div className="container mx-auto px-4 py-8">
-                 <div className="space-y-2 mb-8">
-                    <Skeleton className="h-10 w-1/3" />
-                    <Skeleton className="h-6 w-1/2" />
+            <>
+                <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <Skeleton className="h-8 w-64" />
+                        <Skeleton className="h-5 w-80" />
+                    </div>
+                    <Skeleton className="h-10 w-48" />
                 </div>
                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     {Array.from({length: 4}).map((_, i) => (
@@ -144,17 +146,29 @@ export default function LojistaPage() {
                         </Card>
                     ))}
                  </div>
-            </div>
+                 <div className="space-y-4">
+                    <Skeleton className="h-40 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                 </div>
+            </>
         )
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="space-y-2 mb-8">
-                <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard do Lojista</h1>
-                <p className="text-muted-foreground">Uma visão geral do desempenho da sua loja.</p>
+        <>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold">Dashboard do Lojista</h1>
+                <p className="text-sm text-muted-foreground">
+                  Uma visão geral do desempenho da sua loja.
+                </p>
+              </div>
+               <Link href="/lojista/produtos" className={cn(buttonVariants({ variant: 'default' }))}>
+                  Adicionar Produto/Serviço
+              </Link>
             </div>
-
+            
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {analyticsCards.map(card => (
                     <Card key={card.title}>
@@ -172,31 +186,24 @@ export default function LojistaPage() {
                 ))}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-8">
-                <Card className="col-span-4">
-                    <CardHeader>
-                        <CardTitle>Visão Geral das Vendas</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                         <div className="h-80 flex items-center justify-center text-muted-foreground">
-                            (Gráfico de vendas em breve)
-                         </div>
-                    </CardContent>
-                </Card>
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Pedidos Recentes</CardTitle>
-                        <CardDescription>
-                            Os seus 5 pedidos mais recentes.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {recentOrders.length > 0 ? (
-                            <div className="space-y-4">
+            <Accordion type="multiple" defaultValue={['recent-orders']} className="w-full space-y-4">
+                <AccordionItem value="recent-orders" className="bg-card rounded-lg border shadow-sm">
+                    <AccordionTrigger className="p-4">
+                        <div className="flex items-center gap-2 font-semibold">
+                            <ListOrdered className="h-5 w-5" />
+                            <span>Pedidos Ativos Recentes</span>
+                            {analytics?.newOrders > 0 && 
+                              <Badge className="ml-2">{analytics.newOrders}</Badge>
+                            }
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-4 pt-0">
+                         {recentOrders.length > 0 ? (
+                            <div className="space-y-2">
                                 {recentOrders.map(order => (
-                                    <div key={order.id} className="flex items-center">
-                                        <div className="flex-1 space-y-1">
-                                            <p className="text-sm font-medium leading-none">
+                                    <div key={order.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium leading-none font-mono">
                                                 Pedido #{order.id.substring(0, 6)}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
@@ -206,20 +213,49 @@ export default function LojistaPage() {
                                         <div className="ml-auto font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</div>
                                     </div>
                                 ))}
-                                <Link href="/lojista/pedidos" className={cn(buttonVariants({variant: 'outline', size: 'sm'}), "w-full mt-4")}>
-                                    Ver Todos os Pedidos
-                                </Link>
+                                <div className="text-center pt-2">
+                                    <Link href="/lojista/pedidos" className={cn(buttonVariants({variant: 'link', size: 'sm'}))}>
+                                        Ver Todos os Pedidos
+                                    </Link>
+                                </div>
                             </div>
                         ) : (
-                             <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center space-y-2">
-                                <Package className="h-10 w-10" />
+                             <div className="h-24 flex flex-col items-center justify-center text-muted-foreground text-center space-y-2">
+                                <Package className="h-8 w-8" />
                                 <p className="font-medium">Nenhum pedido recente.</p>
-                                <p className="text-sm">Os seus novos pedidos aparecerão aqui.</p>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
-          </div>
-        </div>
+                    </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="recent-products" className="bg-card rounded-lg border shadow-sm">
+                    <AccordionTrigger className="p-4">
+                        <div className="flex items-center gap-2 font-semibold">
+                            <ShoppingBag className="h-5 w-5" />
+                            <span>Produtos Recentes</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-4 pt-0">
+                        <div className="h-24 flex items-center justify-center text-muted-foreground">
+                            (Listagem de produtos recentes em breve)
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="sales-overview" className="bg-card rounded-lg border shadow-sm">
+                    <AccordionTrigger className="p-4">
+                        <div className="flex items-center gap-2 font-semibold">
+                            <BarChart className="h-5 w-5" />
+                            <span>Visão Geral das Vendas</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-4 pt-0">
+                        <div className="h-40 flex items-center justify-center text-muted-foreground">
+                            (Gráfico de vendas em breve)
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+        </>
     );
 }

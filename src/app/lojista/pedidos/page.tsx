@@ -52,12 +52,10 @@ export default function LojistaOrdersPage() {
         }
 
         setLoading(true);
-        const ordersQuery = query(collection(db, 'orders'), where('lojistaId', '==', user.uid));
+        const ordersQuery = query(collection(db, 'orders'), where('lojistaId', '==', user.uid), orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const updatedOrders = snapshot.docs.map(convertDocToOrder);
-            // Sort client-side
-            updatedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setOrders(updatedOrders);
             setLoading(false);
         }, (err) => {
@@ -79,8 +77,8 @@ export default function LojistaOrdersPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="space-y-2 mb-8">
+        <>
+             <div className="space-y-2 mb-8">
                 <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Pedidos</h1>
                 <p className="text-muted-foreground">Prepare os pedidos que aguardam a sua atenção.</p>
             </div>
@@ -136,6 +134,6 @@ export default function LojistaOrdersPage() {
                     </CardContent>
                 </Card>
              )}
-        </div>
+        </>
     );
 }
