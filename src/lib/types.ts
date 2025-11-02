@@ -101,7 +101,6 @@ export interface User {
     province: string;
     role: UserRole;
     createdAt: number;
-    wantsToBecomeLojista?: boolean;
     verificationStatus?: VerificationStatus;
     online?: boolean;
 }

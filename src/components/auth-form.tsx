@@ -48,7 +48,7 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['client', 'lojista', 'courier'], {
+  role: z.enum(['lojista', 'courier'], { // 'client' is now represented by 'lojista'
     required_error: "Precisa de selecionar um tipo de conta."
   }),
 });
@@ -65,7 +65,7 @@ export function AuthForm() {
   // Need to use any here because the types from zod can't be easily reconciled
   const form = useForm<any>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '', province: '', role: 'client' },
+    defaultValues: { name: '', phone: '', password: '', province: '', role: 'lojista' },
   });
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -244,18 +244,10 @@ export function AuthForm() {
                                 >
                                     <FormItem className="flex items-center space-x-3 space-y-0">
                                         <FormControl>
-                                            <RadioGroupItem value="client" />
-                                        </FormControl>
-                                        <FormLabel className="font-normal">
-                                            Cliente
-                                        </FormLabel>
-                                    </FormItem>
-                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                        <FormControl>
                                             <RadioGroupItem value="lojista" />
                                         </FormControl>
                                         <FormLabel className="font-normal">
-                                            Lojista (Vendedor)
+                                            Cliente / Vendedor
                                         </FormLabel>
                                     </FormItem>
                                     <FormItem className="flex items-center space-x-3 space-y-0">

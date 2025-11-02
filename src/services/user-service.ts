@@ -17,11 +17,15 @@ export async function createUser(uid: string, data: UserProfileData) {
     try {
         const userRef = doc(db, 'users', uid);
         
-        // Determine verification status based on role
         let verificationStatus = 'none';
-        if (data.role === 'lojista' || data.role === 'courier') {
+        if (data.role === 'lojista') {
+            // Lojistas (Cliente/Vendedor) são aprovados automaticamente agora
+            verificationStatus = 'approved';
+        } else if (data.role === 'courier') {
+            // Entregadores ainda precisam de aprovação
             verificationStatus = 'pending';
         }
+
 
         await setDoc(userRef, {
             name: data.name,
@@ -62,7 +66,6 @@ export async function getUser(uid: string): Promise<User> {
         province: data.province,
         role: data.role || 'client',
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
-        wantsToBecomeLojista: data.wantsToBecomeLojista || false,
         verificationStatus: data.verificationStatus || 'none',
         online: data.online || false,
     };
