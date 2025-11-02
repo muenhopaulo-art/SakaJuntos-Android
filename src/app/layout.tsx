@@ -19,6 +19,7 @@ const ptSans = PT_Sans({
 export const metadata: Metadata = {
   title: 'SakaJuntos Web',
   description: 'Compras individuais e em grupo, mais perto de si.',
+  manifest: '/manifest.webmanifest',
 };
 
 export default function RootLayout({
@@ -28,6 +29,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`light ${ptSans.variable}`}>
+      <head>
+        <meta name="theme-color" content="#ADD8E6" />
+      </head>
       <body className="font-body antialiased">
         <CartProvider>
           <AuthGuard>
