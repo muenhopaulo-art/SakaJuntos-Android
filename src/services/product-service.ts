@@ -1,9 +1,10 @@
 
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentData, serverTimestamp, onSnapshot, DocumentSnapshot, Unsubscribe } from 'firebase/firestore';
+import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc, deleteDoc, runTransaction, query, where, DocumentData, serverTimestamp, onSnapshot, DocumentSnapshot, Unsubscribe, orderBy, limit, startAt, endAt } from 'firebase/firestore';
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation, User } from '@/lib/types';
 import { getUser, queryUserByPhone as queryUserByPhoneFromUserService } from './user-service';
@@ -94,20 +95,28 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
     return promotion;
 }
 
-export async function getProducts(lojistaId?: string): Promise<Product[]> {
-  const productsCol = collection(db, 'products');
-  let q = query(productsCol);
-  if (lojistaId) {
-      q = query(productsCol, where('lojistaId', '==', lojistaId));
+export async function getProducts(searchTerm?: string): Promise<Product[]> {
+  let q = query(collection(db, 'products'), orderBy("name"));
+
+  if (searchTerm && searchTerm.trim() !== '') {
+      const normalizedSearch = searchTerm.toLowerCase();
+      q = query(q, where('name', '>=', normalizedSearch), where('name', '<=', normalizedSearch + '\uf8ff'));
   }
+
   const productSnapshot = await getDocs(q);
   const productList = productSnapshot.docs.map(convertDocToProduct);
   return productList;
 }
 
-export async function getGroupPromotions(): Promise<GroupPromotion[]> {
-    const promotionsCol = collection(db, 'groupPromotions');
-    const promotionSnapshot = await getDocs(promotionsCol);
+export async function getGroupPromotions(searchTerm?: string): Promise<GroupPromotion[]> {
+    let q = query(collection(db, 'groupPromotions'), orderBy("name"));
+
+    if (searchTerm && searchTerm.trim() !== '') {
+      const normalizedSearch = searchTerm.toLowerCase();
+      q = query(q, where('name', '>=', normalizedSearch), where('name', '<=', normalizedSearch + '\uf8ff'));
+    }
+
+    const promotionSnapshot = await getDocs(q);
     const promotionList = await Promise.all(promotionSnapshot.docs.map(doc => convertDocToGroupPromotion(doc.id, doc.data())));
     return promotionList;
 }
