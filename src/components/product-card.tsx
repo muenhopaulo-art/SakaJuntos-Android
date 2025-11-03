@@ -5,9 +5,11 @@ import type { Product } from '@/lib/types';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { useCart } from '@/contexts/cart-context';
-import { ShoppingCart, Package } from 'lucide-react';
+import { ShoppingCart, Package, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { getUser } from '@/services/user-service';
+import { useEffect, useState } from 'react';
 
 interface ProductCardProps {
   product: Product;
@@ -17,15 +19,36 @@ interface ProductCardProps {
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const { addItem: addPersonalItem } = useCart();
   const { toast } = useToast();
+  const [lojistaPhone, setLojistaPhone] = useState<string | null>(null);
 
-  const handleAddToCart = () => {
-    // When onAddToCart is provided, it means we are in the context of a group.
-    // The parent component (e.g., the group page) is responsible for handling the logic.
+  useEffect(() => {
+    if (product.category === 'serviço' && product.lojistaId) {
+      getUser(product.lojistaId).then(lojista => {
+        if (lojista && lojista.phone) {
+          setLojistaPhone(lojista.phone);
+        }
+      }).catch(err => console.error("Failed to fetch lojista phone", err));
+    }
+  }, [product.category, product.lojistaId]);
+
+  const handleAction = () => {
+    if (product.category === 'serviço') {
+      if (lojistaPhone) {
+        window.location.href = `tel:${lojistaPhone}`;
+      } else {
+        toast({
+          title: "Contacto indisponível",
+          description: "Não foi possível encontrar o contacto para este serviço.",
+          variant: "destructive"
+        });
+      }
+      return;
+    }
+
+    // Default to product logic
     if (onAddToCart) {
       onAddToCart(product);
-      // The group page will show its own toast.
     } else {
-      // Otherwise, it's a personal shopping context, so we add to the global cart.
       addPersonalItem(product);
       toast({
         title: "Adicionado ao Carrinho!",
@@ -33,6 +56,25 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
       });
     }
   };
+
+  const getButtonContent = () => {
+    if (product.category === 'serviço') {
+      return (
+        <>
+          <Phone className="mr-2 h-4 w-4" />
+          Ligar
+        </>
+      );
+    }
+    return (
+      <>
+        <ShoppingCart className="mr-2 h-4 w-4" />
+        {onAddToCart ? 'Adicionar ao Grupo' : 'Adicionar'}
+      </>
+    );
+  };
+  
+  const isActionDisabled = product.category === 'serviço' && !lojistaPhone;
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 bg-card">
@@ -48,11 +90,14 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>
         </div>
         <p className="text-lg font-bold text-foreground mb-4">
-          {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}
+          {product.category === 'serviço' && product.price > 0 && 'A partir de '}
+          {product.price > 0 
+            ? new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)
+            : 'Preço sob consulta'
+          }
         </p>
-        <Button className="w-full mt-auto" onClick={handleAddToCart} disabled={!onAddToCart && !addPersonalItem}>
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          {onAddToCart ? 'Adicionar ao Grupo' : 'Adicionar'}
+        <Button className="w-full mt-auto" onClick={handleAction} disabled={isActionDisabled}>
+          {getButtonContent()}
         </Button>
       </CardContent>
     </Card>

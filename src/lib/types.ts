@@ -5,6 +5,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  category: 'produto' | 'serviço';
   imageUrl?: string; 
   aiHint?: string;
   createdAt?: number;
@@ -34,7 +35,7 @@ export interface ChatMessage {
 
 export type GroupStatus = 'active' | 'finalized' | 'delivered';
 
-export interface GroupPromotion extends Omit<Product, 'image'> {
+export interface GroupPromotion extends Omit<Product, 'image' | 'category'> {
   participants: number;
   target: number;
   creatorId: string;
@@ -43,6 +44,7 @@ export interface GroupPromotion extends Omit<Product, 'image'> {
   groupCart: CartItem[];
   contributions: Contribution[];
   status: GroupStatus;
+  category: 'produto';
 }
 
 export interface CartItem {

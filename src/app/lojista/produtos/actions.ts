@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -13,6 +14,8 @@ export async function addProduct(productData: Omit<Product, 'id' | 'createdAt'>)
             createdAt: serverTimestamp()
         });
         revalidatePath('/lojista/produtos');
+        revalidatePath('/minishopping');
+        revalidatePath('/');
         return { success: true };
     } catch (error) {
         console.error("Error adding product:", error);
@@ -25,6 +28,8 @@ export async function deleteProduct(productId: string) {
         const productRef = doc(db, 'products', productId);
         await deleteDoc(productRef);
         revalidatePath('/lojista/produtos');
+        revalidatePath('/minishopping');
+        revalidatePath('/');
         return { success: true };
     } catch (error) {
         console.error("Error deleting product:", error);

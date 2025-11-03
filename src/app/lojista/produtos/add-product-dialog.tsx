@@ -30,6 +30,7 @@ import { Loader2, Upload } from 'lucide-react';
 import { addProduct } from './actions';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -40,6 +41,7 @@ const productSchema = z.object({
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   imageUrl: z.string().optional(),
+  category: z.enum(['produto', 'serviço'], { required_error: 'Por favor, selecione uma categoria.' }),
 });
 
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
@@ -55,6 +57,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       description: '',
       price: 0,
       imageUrl: '',
+      category: 'produto',
     },
   });
 
@@ -86,7 +89,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
     const result = await addProduct({ ...values, lojistaId });
     if (result.success) {
-      toast({ title: 'Produto Adicionado!', description: 'O novo produto foi adicionado com sucesso.' });
+      toast({ title: 'Publicação Adicionada!', description: 'O seu produto/serviço foi adicionado com sucesso.' });
       setOpen(false);
       form.reset();
       setImagePreview(null);
@@ -103,21 +106,52 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Produto</DialogTitle>
+          <DialogTitle>Adicionar Novo Produto ou Serviço</DialogTitle>
           <DialogDescription>
-            Preencha os detalhes do novo produto que deseja adicionar à sua loja.
+            Preencha os detalhes do que deseja adicionar à sua loja.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+             <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Categoria</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex gap-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="produto" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Produto</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="serviço" />
+                        </FormControl>
+                        <FormLabel className="font-normal">Serviço</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Produto</FormLabel>
+                  <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Saco de Arroz 25kg" {...field} />
+                    <Input placeholder="Ex: Saco de Arroz 25kg / Canalização" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -130,7 +164,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Descreva o produto..." {...field} />
+                    <Textarea placeholder="Descreva o produto ou serviço..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -154,7 +188,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Imagem do Produto</FormLabel>
+                  <FormLabel>Imagem</FormLabel>
                   <FormControl>
                     <div>
                       <Input
@@ -185,7 +219,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             <DialogFooter className="sticky bottom-0 bg-background pt-4 z-10">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Adicionar Produto
+                Adicionar
               </Button>
             </DialogFooter>
           </form>
