@@ -99,7 +99,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Adicionar Produto</Button>
+        <Button>Adicionar Produto/Serviço</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
