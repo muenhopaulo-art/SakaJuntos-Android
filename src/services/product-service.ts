@@ -2,6 +2,7 @@
 
 
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -24,6 +25,7 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     imageUrl: data.imageUrl,
     aiHint: data.aiHint,
     lojistaId: data.lojistaId,
+    contactPhone: data.contactPhone,
   };
 
   if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -307,7 +309,8 @@ export async function updateGroupCart(groupId: string, product: Product, change:
                 imageUrl: product.imageUrl || null,
                 aiHint: product.aiHint || null,
                 lojistaId: product.lojistaId || null,
-                category: product.category || 'produto'
+                category: product.category || 'produto',
+                contactPhone: product.contactPhone || null,
             };
 
             if (change === 'add') {

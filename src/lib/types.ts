@@ -1,5 +1,4 @@
 
-
 export interface Product {
   id: string;
   name: string;
@@ -10,6 +9,7 @@ export interface Product {
   aiHint?: string;
   createdAt?: number;
   lojistaId?: string;
+  contactPhone?: string;
 }
 
 export interface GroupMember {
@@ -35,7 +35,7 @@ export interface ChatMessage {
 
 export type GroupStatus = 'active' | 'finalized' | 'delivered';
 
-export interface GroupPromotion extends Omit<Product, 'image' | 'category'> {
+export interface GroupPromotion extends Omit<Product, 'image' | 'category' | 'contactPhone'> {
   participants: number;
   target: number;
   creatorId: string;

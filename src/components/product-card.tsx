@@ -8,8 +8,6 @@ import { useCart } from '@/contexts/cart-context';
 import { ShoppingCart, Package, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { getUser } from '@/services/user-service';
-import { useEffect, useState } from 'react';
 
 interface ProductCardProps {
   product: Product;
@@ -19,22 +17,11 @@ interface ProductCardProps {
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const { addItem: addPersonalItem } = useCart();
   const { toast } = useToast();
-  const [lojistaPhone, setLojistaPhone] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (product.category === 'serviço' && product.lojistaId) {
-      getUser(product.lojistaId).then(lojista => {
-        if (lojista && lojista.phone) {
-          setLojistaPhone(lojista.phone);
-        }
-      }).catch(err => console.error("Failed to fetch lojista phone", err));
-    }
-  }, [product.category, product.lojistaId]);
 
   const handleAction = () => {
     if (product.category === 'serviço') {
-      if (lojistaPhone) {
-        window.location.href = `tel:${lojistaPhone}`;
+      if (product.contactPhone) {
+        window.location.href = `tel:${product.contactPhone}`;
       } else {
         toast({
           title: "Contacto indisponível",
@@ -74,7 +61,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     );
   };
   
-  const isActionDisabled = product.category === 'serviço' && !lojistaPhone;
+  const isActionDisabled = product.category === 'serviço' && !product.contactPhone;
 
   return (
     <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 bg-card">

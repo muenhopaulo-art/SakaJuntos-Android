@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-
+const phoneRegex = /^9\d{8}$/;
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
@@ -42,6 +42,15 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   imageUrl: z.string().optional(),
   category: z.enum(['produto', 'serviço'], { required_error: 'Por favor, selecione uma categoria.' }),
+  contactPhone: z.string().optional(),
+}).refine(data => {
+    if (data.category === 'serviço') {
+        return !!data.contactPhone && phoneRegex.test(data.contactPhone);
+    }
+    return true;
+}, {
+    message: 'O telefone para contacto é obrigatório para serviços e deve ser válido.',
+    path: ['contactPhone'],
 });
 
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
@@ -58,10 +67,16 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       price: 0,
       imageUrl: '',
       category: 'produto',
+      contactPhone: '',
     },
   });
 
   const { isSubmitting } = form.formState;
+
+  const selectedCategory = useWatch({
+    control: form.control,
+    name: 'category',
+  });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -170,6 +185,23 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 </FormItem>
               )}
             />
+            
+            {selectedCategory === 'serviço' && (
+               <FormField
+                control={form.control}
+                name="contactPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone para Contacto</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="9xx xxx xxx" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="price"
