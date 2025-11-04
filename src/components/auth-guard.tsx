@@ -83,6 +83,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        // If a lojista is on a non-lojista page, redirect them to the lojista dashboard
+        if (appUser.role === 'lojista' && !pathIsLojista) {
+            router.push('/lojista');
+            return;
+        }
+
         // If a courier tries to access any page other than the home page, redirect them.
         if (appUser.role === 'courier' && pathname !== '/') {
             router.push('/');
