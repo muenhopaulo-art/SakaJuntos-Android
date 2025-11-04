@@ -1,11 +1,12 @@
 
+
 export interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
   category: 'produto' | 'serviço';
-  imageUrl?: string; 
+  imageUrls: string[]; 
   aiHint?: string;
   createdAt?: number;
   lojistaId?: string;
@@ -35,7 +36,7 @@ export interface ChatMessage {
 
 export type GroupStatus = 'active' | 'finalized' | 'delivered';
 
-export interface GroupPromotion extends Omit<Product, 'image' | 'category' | 'contactPhone'> {
+export interface GroupPromotion extends Omit<Product, 'imageUrls' | 'category' | 'contactPhone'> {
   participants: number;
   target: number;
   creatorId: string;
@@ -45,6 +46,7 @@ export interface GroupPromotion extends Omit<Product, 'image' | 'category' | 'co
   contributions: Contribution[];
   status: GroupStatus;
   category: 'produto';
+  imageUrl?: string; // Keep for backward compatibility with existing group promotions mock data
 }
 
 export interface CartItem {
@@ -107,3 +109,4 @@ export interface User {
     ownerLojistaId?: string; // ID of the lojista this courier works for
     online?: boolean;
 }
+

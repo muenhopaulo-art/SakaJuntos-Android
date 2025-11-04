@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,11 +27,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import { addProduct } from './actions';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -40,7 +42,7 @@ const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
-  imageUrl: z.string().optional(),
+  imageUrls: z.array(z.string()).min(1, 'É necessário carregar pelo menos uma imagem.').max(4, 'Pode carregar no máximo 4 imagens.'),
   category: z.enum(['produto', 'serviço'], { required_error: 'Por favor, selecione uma categoria.' }),
   contactPhone: z.string().optional(),
 }).refine(data => {
@@ -57,15 +59,15 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       description: '',
       price: 0,
-      imageUrl: '',
+      imageUrls: [],
       category: 'produto',
       contactPhone: '',
     },
@@ -73,33 +75,71 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
 
   const { isSubmitting } = form.formState;
 
+  const imageUrls = useWatch({
+    control: form.control,
+    name: 'imageUrls',
+  });
+
   const selectedCategory = useWatch({
     control: form.control,
     name: 'category',
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (!files) return;
+
+    const currentImageCount = imageUrls.length;
+    const filesToProcess = Array.from(files).slice(0, 4 - currentImageCount);
+
+    if (files.length + currentImageCount > 4) {
+        toast({
+            variant: "destructive",
+            title: "Limite de Imagens Excedido",
+            description: "Só pode carregar um máximo de 4 imagens."
+        });
+    }
+
+    let validationError = false;
+    filesToProcess.forEach(file => {
         if (file.size > MAX_FILE_SIZE) {
-            form.setError("imageUrl", { message: "O ficheiro é demasiado grande (máx 4.5MB)." });
-            return;
+            form.setError("imageUrls", { message: `O ficheiro ${file.name} é demasiado grande (máx 4.5MB).` });
+            validationError = true;
         }
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-            form.setError("imageUrl", { message: "Formato de ficheiro inválido (apenas JPG, PNG, WEBP)." });
-            return;
+            form.setError("imageUrls", { message: `Formato de ficheiro inválido em ${file.name}.` });
+            validationError = true;
         }
+    });
+
+    if (validationError) return;
+
+    const newImageUrls = [...imageUrls];
+    let processedCount = 0;
+
+    filesToProcess.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
-            const base64String = reader.result as string;
-            form.setValue('imageUrl', base64String);
-            setImagePreview(base64String);
-            form.clearErrors("imageUrl");
+            newImageUrls.push(reader.result as string);
+            processedCount++;
+            if (processedCount === filesToProcess.length) {
+                form.setValue('imageUrls', newImageUrls);
+                form.clearErrors("imageUrls");
+            }
         };
         reader.readAsDataURL(file);
+    });
+
+    // Reset file input
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
     }
   };
 
+  const removeImage = (index: number) => {
+    const newImageUrls = imageUrls.filter((_, i) => i !== index);
+    form.setValue('imageUrls', newImageUrls);
+  };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
     const result = await addProduct({ ...values, lojistaId });
@@ -107,7 +147,6 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       toast({ title: 'Publicação Adicionada!', description: 'O seu produto/serviço foi adicionado com sucesso.' });
       setOpen(false);
       form.reset();
-      setImagePreview(null);
       router.refresh();
     } else {
       toast({ variant: 'destructive', title: 'Erro!', description: result.message });
@@ -115,7 +154,12 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        if(!isOpen) {
+            form.reset();
+        }
+        setOpen(isOpen);
+    }}>
       <DialogTrigger asChild>
         <Button>Adicionar Produto/Serviço</Button>
       </DialogTrigger>
@@ -217,10 +261,23 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             />
             <FormField
               control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
+              name="imageUrls"
+              render={() => (
                 <FormItem>
-                  <FormLabel>Imagem</FormLabel>
+                  <FormLabel>Imagens (mín. 1, máx. 4)</FormLabel>
+                  {imageUrls && imageUrls.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {imageUrls.map((url, index) => (
+                              <div key={index} className="relative aspect-square">
+                                  <Image src={url} alt={`Pré-visualização ${index + 1}`} fill className="rounded-md object-cover"/>
+                                  <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
+                                      <X className="h-4 w-4" />
+                                  </Button>
+                                  {index === 0 && <div className="absolute bottom-0 left-0 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded-br-md rounded-tl-md">Capa</div>}
+                              </div>
+                          ))}
+                      </div>
+                  )}
                   <FormControl>
                     <div>
                       <Input
@@ -228,14 +285,20 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                         id="image-upload"
                         className="hidden"
                         accept="image/*"
+                        multiple
                         onChange={handleImageChange}
+                        ref={fileInputRef}
+                        disabled={imageUrls.length >= 4}
                       />
                       <label
                         htmlFor="image-upload"
-                        className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
+                        className={cn(
+                            "cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full",
+                            imageUrls.length >= 4 && "opacity-50 cursor-not-allowed"
+                        )}
                       >
                         <Upload className="mr-2 h-4 w-4" />
-                        Carregar Imagem
+                        {imageUrls.length > 0 ? 'Adicionar mais' : 'Carregar Imagens'}
                       </label>
                     </div>
                   </FormControl>
@@ -243,11 +306,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 </FormItem>
               )}
             />
-            {imagePreview && (
-                <div className="flex justify-center p-2 border rounded-md">
-                    <Image src={imagePreview} alt="Pré-visualização da imagem" width={100} height={100} className="rounded-md object-contain" />
-                </div>
-            )}
+            
             <DialogFooter className="sticky bottom-0 bg-background pt-4 z-10">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,9 +31,11 @@ const convertDocToProduct = (doc: any): Product => {
     name: data.name,
     description: data.description,
     price: data.price,
-    imageUrl: data.imageUrl,
+    imageUrls: data.imageUrls || [],
     aiHint: data.aiHint,
     lojistaId: data.lojistaId,
+    category: data.category,
+    contactPhone: data.contactPhone,
     createdAt: data.createdAt?.toMillis(),
   };
 };
@@ -71,8 +74,8 @@ export default function LojistaProductsPage() {
         <div className="container mx-auto px-4 py-8">
             <div className="flex justify-between items-center mb-8">
                 <div className="space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Produtos</h1>
-                    <p className="text-muted-foreground">Adicione, edite e gira os seus produtos.</p>
+                    <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Produtos e Serviços</h1>
+                    <p className="text-muted-foreground">Adicione, edite e gira as suas publicações.</p>
                 </div>
                 {user && <AddProductDialog lojistaId={user.uid} />}
             </div>
@@ -94,8 +97,8 @@ export default function LojistaProductsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-16">Imagem</TableHead>
-                                    <TableHead>Nome do Produto</TableHead>
-                                    <TableHead>Descrição</TableHead>
+                                    <TableHead>Nome</TableHead>
+                                    <TableHead>Categoria</TableHead>
                                     <TableHead>Preço</TableHead>
                                     <TableHead>Data de Criação</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
@@ -107,15 +110,15 @@ export default function LojistaProductsPage() {
                                         <TableRow key={product.id}>
                                             <TableCell>
                                                 <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                                    {product.imageUrl ? (
-                                                        <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
+                                                    {product.imageUrls && product.imageUrls[0] ? (
+                                                        <Image src={product.imageUrls[0]} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
                                                     ) : (
                                                         <Package className="h-6 w-6 text-muted-foreground" />
                                                     )}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{product.name}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{product.description}</TableCell>
+                                            <TableCell className="capitalize">{product.category}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</TableCell>
                                             <TableCell>{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                             <TableCell className="text-right">
@@ -125,7 +128,7 @@ export default function LojistaProductsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center h-24">Nenhum produto encontrado.</TableCell>
+                                        <TableCell colSpan={6} className="text-center h-24">Nenhum produto ou serviço encontrado.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

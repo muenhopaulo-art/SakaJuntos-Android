@@ -3,6 +3,7 @@
 
 
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -22,7 +23,7 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     description: data.description,
     price: data.price,
     category: data.category || 'produto',
-    imageUrl: data.imageUrl,
+    imageUrls: data.imageUrls || [],
     aiHint: data.aiHint,
     lojistaId: data.lojistaId,
     contactPhone: data.contactPhone,
@@ -306,7 +307,7 @@ export async function updateGroupCart(groupId: string, product: Product, change:
                 name: product.name,
                 description: product.description,
                 price: product.price,
-                imageUrl: product.imageUrl || null,
+                imageUrls: product.imageUrls || [],
                 aiHint: product.aiHint || null,
                 lojistaId: product.lojistaId || null,
                 category: product.category || 'produto',
@@ -396,7 +397,12 @@ export async function seedDatabase() {
 
     mockProducts.forEach(product => {
       const docRef = doc(collection(db, "products"));
-      batch.set(docRef, { ...product, createdAt: serverTimestamp(), category: 'produto' });
+      batch.set(docRef, { 
+          ...product, 
+          imageUrls: product.imageUrl ? [product.imageUrl] : [],
+          createdAt: serverTimestamp(), 
+          category: 'produto' 
+        });
     });
 
     const promotionsCol = collection(db, 'groupPromotions');

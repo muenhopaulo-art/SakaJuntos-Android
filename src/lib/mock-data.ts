@@ -1,4 +1,5 @@
 
+
 import type { Product, GroupPromotion } from './types';
 
 export const products: Omit<Product, 'id' | 'createdAt'>[] = [
@@ -6,43 +7,49 @@ export const products: Omit<Product, 'id' | 'createdAt'>[] = [
     name: 'Café de Angola',
     description: 'Grãos de café arábica de alta qualidade, cultivados nas terras altas de Angola.',
     price: 1500,
-    imageUrl: 'https://picsum.photos/400/400?random=1',
+    imageUrls: ['https://picsum.photos/400/400?random=1'],
     aiHint: 'coffee beans',
+    category: 'produto',
   },
   {
     name: 'Ginguba Torrada',
     description: 'Amendoim torrado e salgado, um snack perfeito para qualquer hora do dia.',
     price: 500,
-    imageUrl: 'https://picsum.photos/400/400?random=2',
+    imageUrls: ['https://picsum.photos/400/400?random=2'],
     aiHint: 'roasted peanuts',
+    category: 'produto',
   },
   {
     name: 'Sabão Azul',
     description: 'Tradicional sabão azul para lavagem de roupa, eficaz e económico.',
     price: 300,
-    imageUrl: 'https://picsum.photos/400/400?random=3',
+    imageUrls: ['https://picsum.photos/400/400?random=3'],
     aiHint: 'soap bar',
+    category: 'produto',
   },
   {
     name: 'Óleo de Palma',
     description: 'Óleo de palma puro, essencial na culinária angolana.',
     price: 2500,
-    imageUrl: 'https://picsum.photos/400/400?random=4',
+    imageUrls: ['https://picsum.photos/400/400?random=4'],
     aiHint: 'palm oil',
+    category: 'produto',
   },
   {
     name: 'Farinha de Milho',
     description: 'Farinha de milho amarela para um funge perfeito.',
     price: 800,
-    imageUrl: 'https://picsum.photos/400/400?random=5',
+    imageUrls: ['https://picsum.photos/400/400?random=5'],
     aiHint: 'corn flour',
+    category: 'produto',
   },
   {
     name: 'Pano Samakaka',
     description: 'Tecido tradicional com padrões vibrantes.',
     price: 5000,
-    imageUrl: 'https://picsum.photos/400/400?random=6',
+    imageUrls: ['https://picsum.photos/400/400?random=6'],
     aiHint: 'african fabric',
+    category: 'produto',
   },
 ];
 

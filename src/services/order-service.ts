@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -35,7 +36,7 @@ export async function createOrder(
             name: item.product.name,
             description: item.product.description,
             price: item.product.price,
-            imageUrl: item.product.imageUrl || null,
+            imageUrls: item.product.imageUrls || [],
             aiHint: item.product.aiHint || null,
             lojistaId: item.product.lojistaId || null,
         }

@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -28,8 +29,10 @@ const convertDocToProduct = (doc: any): Product => {
         name: data.name,
         description: data.description,
         price: data.price,
-        imageUrl: data.imageUrl,
+        imageUrls: data.imageUrls || [],
         aiHint: data.aiHint,
+        category: data.category,
+        contactPhone: data.contactPhone,
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
     };
 };

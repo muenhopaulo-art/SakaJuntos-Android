@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -30,6 +31,7 @@ export async function deleteProduct(productId: string) {
         revalidatePath('/lojista/produtos');
         revalidatePath('/minishopping');
         revalidatePath('/');
+        revalidatePath(`/produto/${productId}`); // Revalidate detail page
         return { success: true };
     } catch (error) {
         console.error("Error deleting product:", error);

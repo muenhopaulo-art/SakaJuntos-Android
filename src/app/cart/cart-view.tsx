@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -101,8 +102,8 @@ export function CartView() {
                     <TableRow key={item.product.id}>
                       <TableCell>
                          <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                            {item.product.imageUrl ? (
-                                <Image src={item.product.imageUrl} alt={item.product.name} width={64} height={64} className="object-cover h-full w-full" />
+                            {item.product.imageUrls && item.product.imageUrls[0] ? (
+                                <Image src={item.product.imageUrls[0]} alt={item.product.name} width={64} height={64} className="object-cover h-full w-full" />
                             ) : (
                                 <Package className="h-8 w-8 text-muted-foreground" />
                             )}
