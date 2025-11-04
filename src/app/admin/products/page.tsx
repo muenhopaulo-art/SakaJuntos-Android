@@ -1,6 +1,5 @@
 
 
-
 import { getProducts } from '@/services/product-service';
 import type { Product } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';

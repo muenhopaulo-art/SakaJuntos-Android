@@ -1,9 +1,5 @@
 
 
-
-
-
-
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -399,9 +395,7 @@ export async function seedDatabase() {
       const docRef = doc(collection(db, "products"));
       batch.set(docRef, { 
           ...product, 
-          imageUrls: product.imageUrl ? [product.imageUrl] : [],
           createdAt: serverTimestamp(), 
-          category: 'produto' 
         });
     });
 
