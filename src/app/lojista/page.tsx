@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Image from 'next/image';
 import { AddProductDialog } from '../lojista/produtos/add-product-dialog';
+import { Badge } from '@/components/ui/badge';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
