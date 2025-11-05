@@ -33,14 +33,15 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
   const loaderRef = useRef(null);
 
   const loadMoreProducts = useCallback(async () => {
+    // Não carregar mais se já estiver a buscar, se não houver mais produtos, ou se houver uma pesquisa ativa
     if (isFetchingMore || !hasMore || debouncedSearchTerm) return;
     
     setIsFetchingMore(true);
-    // In a real app, you'd fetch from an API with pagination.
-    // Here we simulate it by slicing the initial full list.
+    // Em uma app real, você faria um fetch paginado.
+    // Aqui simulamos isso fatiando a lista inicial completa.
     const newProducts = initialProducts.slice(offset, offset + ITEMS_PER_PAGE);
     
-    // Simulate network delay
+    // Simula um atraso de rede
     await new Promise(resolve => setTimeout(resolve, 500));
     
     setProducts(prev => [...prev, ...newProducts]);
@@ -62,7 +63,7 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
     );
 
     const loader = loaderRef.current;
-    if (loader) {
+    if (loader && !debouncedSearchTerm) { // Só observar se não houver pesquisa
       observer.observe(loader);
     }
 
@@ -71,30 +72,32 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
         observer.unobserve(loader);
       }
     };
-  }, [loadMoreProducts]);
+  }, [loadMoreProducts, debouncedSearchTerm]);
 
 
-  // Handle search term changes
+  // Lidar com mudanças no termo de pesquisa
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
     const path = window.location.pathname; 
 
+    // Se o utilizador está a pesquisar, atualiza a URL, o que fará com que o Next.js recarregue a página do servidor com os novos dados.
     if (debouncedSearchTerm) {
       params.set('q', debouncedSearchTerm);
       const targetPath = path === '/' ? '/minishopping' : path;
       startTransition(() => {
         router.push(`${targetPath}?${params.toString()}`);
       });
-    } else if (path.startsWith('/minishopping')) {
+    } else if (!debouncedSearchTerm && searchParams.has('q')) {
+      // Se o campo de pesquisa for limpo, remove o parâmetro 'q' e recarrega para mostrar todos os produtos.
       params.delete('q');
        startTransition(() => {
-          router.replace(`${path}?${params.toString()}`);
+          router.push(`${path}?${params.toString()}`);
         });
     }
   }, [debouncedSearchTerm, router, searchParams]);
 
   useEffect(() => {
-    // When the initialProducts list changes (due to search), reset the local state
+    // Quando a lista initialProducts muda (devido à pesquisa), reinicia o estado local
     setProducts(initialProducts.slice(0, ITEMS_PER_PAGE));
     setOffset(ITEMS_PER_PAGE);
     setHasMore(initialProducts.length > ITEMS_PER_PAGE);
@@ -138,7 +141,8 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
                 <ProductCard key={product.id} product={product} />
             ))}
             </div>
-             {hasMore && (
+             {/* O ref do loader para o scroll infinito */}
+             {hasMore && !debouncedSearchTerm && (
                 <div ref={loaderRef} className="flex justify-center items-center py-8">
                   {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
                 </div>

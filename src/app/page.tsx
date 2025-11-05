@@ -1,5 +1,4 @@
 
-
 import { getGroupPromotions, getProducts } from '@/services/product-service';
 import type { GroupPromotion, Product } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -41,6 +40,7 @@ export default async function HomePage() {
   }
 
   const hasData = products.length > 0 || groupPromotions.length > 0;
+  // Embaralha a lista de produtos para que o carrossel e a lista de exploração sejam dinâmicos
   const shuffledProducts = products.sort(() => 0.5 - Math.random());
 
   return (
@@ -71,6 +71,7 @@ export default async function HomePage() {
         </div>
       ) : (
         <div className="space-y-12">
+            {/* Secção 1: MiniShopping como Carrossel */}
             {products.length > 0 && (
                  <section>
                     <div className="flex justify-between items-center mb-6">
@@ -83,14 +84,18 @@ export default async function HomePage() {
                 </section>
             )}
 
+            {/* Separador */}
             {products.length > 0 && groupPromotions.length > 0 && <Separator/>}
 
+            {/* Secção 2: Grupos de Compras */}
             {groupPromotions.length > 0 && (
                 <HomePageClient allPromotions={groupPromotions} error={error} />
             )}
 
+            {/* Separador */}
             <Separator/>
             
+            {/* Secção 3: Explore Mais com Pesquisa e Scroll Infinito */}
             <section>
                  <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold tracking-tight font-headline">Explore Mais</h2>
@@ -98,6 +103,7 @@ export default async function HomePage() {
                         Encontre tudo o que precisa, à distância de um clique.
                     </p>
                 </div>
+                {/* O ProductList já contém a barra de pesquisa e a lógica de scroll infinito */}
                 <ProductList initialProducts={shuffledProducts} />
             </section>
         </div>
