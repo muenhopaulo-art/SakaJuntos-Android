@@ -12,6 +12,7 @@ export async function addProduct(productData: Omit<Product, 'id' | 'createdAt'>)
     try {
         await addDoc(collection(db, 'products'), {
             ...productData,
+            contactPhone: productData.contactPhone || null, // Ensure contactPhone is saved
             createdAt: serverTimestamp()
         });
         revalidatePath('/lojista/produtos');
