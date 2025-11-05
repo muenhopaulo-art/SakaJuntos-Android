@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,12 +9,13 @@ import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, User as UserIcon, Users } from 'lucide-react';
+import { AlertTriangle, Loader2, User as UserIcon, Users, DollarSign, Calendar, List, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { LojistaOrderStatusButton } from './lojista-order-status-button';
 import { Badge } from '@/components/ui/badge';
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -51,11 +53,10 @@ export default function LojistaOrdersPage() {
         }
 
         setLoading(true);
-        const ordersQuery = query(collection(db, 'orders'), where('lojistaId', '==', user.uid));
+        const ordersQuery = query(collection(db, 'orders'), where('lojistaId', '==', user.uid), orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const updatedOrders = snapshot.docs.map(convertDocToOrder);
-            updatedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setOrders(updatedOrders);
             setLoading(false);
         }, (err) => {
@@ -90,50 +91,103 @@ export default function LojistaOrdersPage() {
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
              ) : (
-                <Card>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Pedido ID</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Cliente</TableHead>
-                                    <TableHead>Data</TableHead>
-                                    <TableHead>Total</TableHead>
-                                    <TableHead>Itens</TableHead>
-                                    <TableHead className="text-right">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {orders.length > 0 ? (
-                                    orders.map(order => (
-                                        <TableRow key={order.id}>
-                                            <TableCell className="font-mono text-xs">#{order.id.substring(0, 6)}</TableCell>
-                                             <TableCell>
-                                                <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
-                                                     {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
-                                                     {order.groupName || 'Individual'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>{order.creatorName}</TableCell>
-                                            <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
-                                            <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
-                                            <TableCell className="text-center">{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</TableCell>
-                                            <TableCell className="text-right">
-                                                <LojistaOrderStatusButton order={order} />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
+                <>
+                    {/* Mobile View - List of Cards */}
+                    <div className="md:hidden space-y-4">
+                        {orders.length > 0 ? (
+                            orders.map(order => (
+                                <Card key={order.id}>
+                                    <CardHeader>
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <CardTitle className="text-base">Pedido #{order.id.substring(0, 6)}</CardTitle>
+                                                <CardDescription>{order.creatorName}</CardDescription>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                         <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><List className="h-4 w-4" /> Tipo</span>
+                                            <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
+                                                {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
+                                                {order.groupName || 'Individual'}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Data</span>
+                                            <span>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</span>
+                                        </div>
+                                         <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><DollarSign className="h-4 w-4" /> Total</span>
+                                            <span className="font-semibold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><List className="h-4 w-4" /> Itens</span>
+                                            <span>{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</span>
+                                        </div>
+                                        <div>
+                                            <LojistaOrderStatusButton order={order} />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                             <Card className="text-center h-48 flex items-center justify-center">
+                                <CardContent>
+                                    <p>Nenhum pedido encontrado.</p>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+
+                    {/* Desktop View - Table */}
+                    <Card className="hidden md:block">
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
+                                        <TableHead>Pedido ID</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Cliente</TableHead>
+                                        <TableHead>Data</TableHead>
+                                        <TableHead>Total</TableHead>
+                                        <TableHead>Itens</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {orders.length > 0 ? (
+                                        orders.map(order => (
+                                            <TableRow key={order.id}>
+                                                <TableCell className="font-mono text-xs">#{order.id.substring(0, 6)}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
+                                                        {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
+                                                        {order.groupName || 'Individual'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>{order.creatorName}</TableCell>
+                                                <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
+                                                <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
+                                                <TableCell className="text-center">{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <LojistaOrderStatusButton order={order} />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </>
              )}
         </>
     );
 }
+
+    

@@ -1,22 +1,22 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
 import type { Product } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Package, Loader2 } from 'lucide-react';
+import { AlertTriangle, Package, Loader2, DollarSign, Calendar, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { AddProductDialog } from './add-product-dialog';
 import { ProductActions } from './product-actions';
 import Image from 'next/image';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -54,11 +54,10 @@ export default function LojistaProductsPage() {
         }
         
         setLoading(true);
-        const productsQuery = query(collection(db, 'products'), where('lojistaId', '==', user.uid));
+        const productsQuery = query(collection(db, 'products'), where('lojistaId', '==', user.uid), orderBy('createdAt', 'desc'));
         
         const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
             const updatedProducts = snapshot.docs.map(convertDocToProduct);
-            updatedProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setProducts(updatedProducts);
             setLoading(false);
         }, (err) => {
@@ -72,7 +71,7 @@ export default function LojistaProductsPage() {
     }, [user, authLoading]);
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <>
             <div className="flex justify-between items-center mb-8">
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Produtos e Serviços</h1>
@@ -92,7 +91,67 @@ export default function LojistaProductsPage() {
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </div>
             ) : (
-                <Card>
+              <>
+                 {/* Mobile View - List of Cards */}
+                 <div className="md:hidden space-y-4">
+                        {products.length > 0 ? (
+                            products.map(product => (
+                                <Card key={product.id}>
+                                    <CardHeader>
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                                    {product.imageUrl ? (
+                                                        <Image src={product.imageUrl} alt={product.name} width={64} height={64} className="object-cover h-full w-full" />
+                                                    ) : (
+                                                        <Package className="h-8 w-8 text-muted-foreground" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <CardTitle className="text-base line-clamp-2">{product.name}</CardTitle>
+                                                    <CardDescription className="capitalize">{product.productType === 'product' ? 'Produto' : 'Serviço'}</CardDescription>
+                                                </div>
+                                            </div>
+                                             <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild>
+                                                       <div className="text-destructive w-full">
+                                                         <ProductActions productId={product.id} />
+                                                       </div>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                         <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><DollarSign className="h-4 w-4" /> Preço</span>
+                                            <span className="font-semibold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Criado em</span>
+                                            <span>{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</span>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                             <Card className="text-center h-48 flex items-center justify-center">
+                                <CardContent>
+                                    <p>Nenhum produto ou serviço encontrado.</p>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+
+
+                {/* Desktop View - Table */}
+                <Card className="hidden md:block">
                     <CardContent>
                         <Table>
                             <TableHeader>
@@ -101,7 +160,7 @@ export default function LojistaProductsPage() {
                                     <TableHead>Nome</TableHead>
                                     <TableHead>Tipo</TableHead>
                                     <TableHead>Preço</TableHead>
-                                    <TableHead>Data de Criação</TableHead>
+                                    <TableHead className="hidden lg:table-cell">Data de Criação</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -121,7 +180,7 @@ export default function LojistaProductsPage() {
                                             <TableCell className="font-medium">{product.name}</TableCell>
                                             <TableCell className="capitalize">{product.productType === 'product' ? 'Produto' : 'Serviço'}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</TableCell>
-                                            <TableCell>{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
+                                            <TableCell className="hidden lg:table-cell">{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                             <TableCell className="text-right">
                                                 <ProductActions productId={product.id} />
                                             </TableCell>
@@ -136,7 +195,10 @@ export default function LojistaProductsPage() {
                         </Table>
                     </CardContent>
                 </Card>
+              </>
             )}
-        </div>
+        </>
     );
 }
+
+    

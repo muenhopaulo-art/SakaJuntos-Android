@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { getLojistaDashboardAnalytics } from './actions';
 import type { Order, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,9 +29,11 @@ function getErrorMessage(error: any): string {
 
 export default function LojistaPage() {
     const [user, authLoading] = useAuthState(auth);
-    const [analytics, setAnalytics] = useState<any>(null);
-    const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-    const [recentProducts, setRecentProducts] = useState<Product[]>([]);
+    const [data, setData] = useState<{
+        analytics: any;
+        recentOrders: Order[];
+        recentProducts: Product[];
+    } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -42,10 +44,8 @@ export default function LojistaPage() {
         const fetchAnalytics = async () => {
             setLoading(true);
             try {
-                const data = await getLojistaDashboardAnalytics(user.uid);
-                setAnalytics(data.analytics);
-                setRecentOrders(data.recentOrders);
-                setRecentProducts(data.recentProducts);
+                const result = await getLojistaDashboardAnalytics(user.uid);
+                setData(result);
             } catch (e) {
                 setError(getErrorMessage(e));
             } finally {
@@ -60,27 +60,27 @@ export default function LojistaPage() {
     const analyticsCards = [
         {
             title: "Receita Total",
-            value: analytics?.totalRevenue,
+            value: data?.analytics?.totalRevenue,
             icon: DollarSign,
             description: "Total de ganhos dos pedidos processados."
         },
         {
             title: "Pedidos Processados",
-            value: analytics?.processedOrders,
+            value: data?.analytics?.processedOrders,
             icon: Activity,
             isCurrency: false,
             description: "Nº de pedidos em separação ou já entregues."
         },
         {
             title: "Produtos Ativos",
-            value: analytics?.activeProducts,
+            value: data?.analytics?.activeProducts,
             icon: ShoppingBag,
             isCurrency: false,
             description: "Total de produtos na sua loja."
         },
         {
             title: "Novos Pedidos",
-            value: analytics?.newOrders,
+            value: data?.analytics?.newOrders,
             icon: Bell,
             isCurrency: false,
             description: "Pedidos que aguardam a sua preparação."
@@ -155,15 +155,15 @@ export default function LojistaPage() {
                         <div className="flex items-center gap-2 font-semibold">
                             <ListOrdered className="h-5 w-5" />
                             <span>Pedidos Ativos Recentes</span>
-                            {analytics?.newOrders > 0 && 
-                              <Badge className="ml-2">{analytics.newOrders}</Badge>
+                            {data?.analytics?.newOrders > 0 && 
+                              <Badge className="ml-2">{data.analytics.newOrders}</Badge>
                             }
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="p-0">
-                         {recentOrders.length > 0 ? (
+                         {data?.recentOrders && data.recentOrders.length > 0 ? (
                             <div className="space-y-2 p-4 pt-0">
-                                {recentOrders.map(order => (
+                                {data.recentOrders.map(order => (
                                     <div key={order.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                                         <div className="space-y-1">
                                             <p className="text-sm font-medium leading-none font-mono">
@@ -199,9 +199,9 @@ export default function LojistaPage() {
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="p-0">
-                        {recentProducts.length > 0 ? (
+                        {data?.recentProducts && data.recentProducts.length > 0 ? (
                            <div className="space-y-2 p-4 pt-0">
-                                {recentProducts.map(product => (
+                                {data.recentProducts.map(product => (
                                     <div key={product.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 gap-4">
                                         <div className="flex items-center gap-4">
                                             <div className="relative h-10 w-10 bg-muted rounded-md flex items-center justify-center overflow-hidden">
@@ -250,3 +250,5 @@ export default function LojistaPage() {
         </>
     );
 }
+
+    
