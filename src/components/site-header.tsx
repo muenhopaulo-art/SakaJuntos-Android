@@ -68,7 +68,11 @@ export function SiteHeader() {
             <Logo className="h-6 w-auto" />
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
-             {/* Links removidos conforme solicitado */}
+             {navLinks.map((link) => (
+                <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                    {link.label}
+                </Link>
+             ))}
           </nav>
         </div>
 
@@ -87,7 +91,13 @@ export function SiteHeader() {
                 </SheetClose>
             </Link>
             <div className="flex flex-col space-y-3">
-                {/* Links removidos do menu móvel também */}
+                {navLinks.map((link) => (
+                    <SheetClose asChild key={link.href}>
+                      <Link href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                        {link.label}
+                      </Link>
+                    </SheetClose>
+                 ))}
                  {!user && (
                     <SheetClose asChild>
                       <Link href="/login" className="transition-colors hover:text-foreground/80 text-foreground/60">
