@@ -7,15 +7,12 @@ import { useParams } from 'next/navigation';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Product } from '@/lib/types';
-import { Loader2, ShoppingCart, Phone, CalendarClock, Package, AlertTriangle } from 'lucide-react';
+import { Loader2, ShoppingCart, CalendarClock, Package, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/contexts/cart-context';
-import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const ProductSkeleton = () => (
@@ -42,10 +39,8 @@ export default function ProductDetailPage() {
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isScheduling, setIsScheduling] = useState(false);
     
     const { addItem } = useCart();
-    const { toast } = useToast();
 
     useEffect(() => {
         if (typeof id === 'string') {
@@ -57,13 +52,9 @@ export default function ProductDetailPage() {
                     const productSnap = await getDoc(productRef);
                     if (productSnap.exists()) {
                         const productData = { id: productSnap.id, ...productSnap.data() } as Product;
-                        // Ensure productType is set, default to 'product' if not present
-                        if (!productData.productType) {
-                            productData.productType = 'product';
-                        }
                         setProduct(productData);
                     } else {
-                        setError('Produto ou serviço não encontrado.');
+                        setError('Produto não encontrado.');
                     }
                 } catch (e) {
                     console.error("Error fetching product:", e);
@@ -81,24 +72,6 @@ export default function ProductDetailPage() {
         }
     };
     
-    const handleCall = () => {
-        if (product?.serviceContactPhone) {
-            window.location.href = `tel:${product.serviceContactPhone}`;
-        } else {
-            toast({ variant: 'destructive', title: 'Contacto indisponível.'});
-        }
-    };
-
-    const handleSchedule = () => {
-        // Here you would typically handle the scheduling logic, e.g., send a notification to the seller.
-        // For now, we'll just simulate it.
-        setIsScheduling(true);
-        setTimeout(() => {
-            toast({ title: 'Pedido de Agendamento Enviado!', description: 'O prestador de serviço entrará em contacto consigo em breve.' });
-            setIsScheduling(false);
-        }, 1500);
-    };
-
     if (loading) {
         return <div className="container mx-auto px-4 py-8"><ProductSkeleton /></div>;
     }
@@ -136,14 +109,11 @@ export default function ProductDetailPage() {
                 <div className="flex flex-col">
                     <Card className="flex-grow">
                         <CardHeader>
+                            <p className='text-sm text-muted-foreground'>{product.category}</p>
                             <CardTitle className="text-3xl font-bold font-headline">{product.name}</CardTitle>
-                             <CardDescription className="capitalize">
-                                {product.productType === 'product' ? 'Produto' : 'Serviço'}
-                            </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <p className="text-3xl font-bold">
-                                {product.productType === 'service' && product.price > 0 && 'A partir de '}
                                 {product.price > 0 
                                     ? new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)
                                     : 'Preço sob consulta'
@@ -153,46 +123,15 @@ export default function ProductDetailPage() {
                                 <h3 className="font-semibold text-foreground">Descrição</h3>
                                 <p className="whitespace-pre-wrap">{product.description}</p>
                             </div>
+                            <div className="text-sm text-muted-foreground">
+                                Stock: {product.stock > 0 ? `${product.stock} unidades` : 'Indisponível'}
+                            </div>
                         </CardContent>
                         <CardFooter>
-                            {product.productType === 'product' ? (
-                                <Button size="lg" className="w-full" onClick={handleAddToCart}>
-                                    <ShoppingCart className="mr-2" />
-                                    Adicionar ao Carrinho
-                                </Button>
-                            ) : (
-                                <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                     <Button size="lg" variant="outline" onClick={handleCall} disabled={!product.serviceContactPhone}>
-                                        <Phone className="mr-2" />
-                                        Ligar
-                                    </Button>
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button size="lg">
-                                                <CalendarClock className="mr-2" />
-                                                Agendar Serviço
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Agendar Serviço: {product.name}</DialogTitle>
-                                                <DialogDescription>
-                                                    Envie uma mensagem ao prestador com detalhes sobre o que precisa. Eles entrarão em contacto consigo para confirmar.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="py-4">
-                                                <Textarea placeholder="Ex: Preciso de uma reparação urgente no cano da cozinha. Qual a vossa disponibilidade?" />
-                                            </div>
-                                            <DialogFooter>
-                                                <Button onClick={handleSchedule} disabled={isScheduling}>
-                                                    {isScheduling && <Loader2 className="mr-2 animate-spin"/>}
-                                                    Enviar Pedido
-                                                </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
-                            )}
+                            <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
+                                <ShoppingCart className="mr-2" />
+                                Adicionar ao Carrinho
+                            </Button>
                         </CardFooter>
                     </Card>
                 </div>

@@ -18,11 +18,12 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     name: data.name,
     description: data.description,
     price: data.price,
-    productType: data.productType || 'product',
+    category: data.category,
+    stock: data.stock,
+    isPromoted: data.isPromoted,
     imageUrl: data.imageUrl,
-    aiHint: data.aiHint,
     lojistaId: data.lojistaId,
-    serviceContactPhone: data.serviceContactPhone,
+    promotionPaymentId: data.promotionPaymentId,
   };
 
   if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -79,15 +80,16 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
         description: data.description,
         price: data.price,
         imageUrl: data.imageUrl,
-        aiHint: data.aiHint,
-        productType: 'product',
         participants: data.participants,
         target: data.target,
         creatorId: data.creatorId,
         members,
         joinRequests,
         groupCart,
-        contributions
+        contributions,
+        category: data.category,
+        stock: data.stock,
+        isPromoted: data.isPromoted,
     };
 
     if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -97,20 +99,9 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
     return promotion;
 }
 
-export async function getProducts(searchTerm?: string): Promise<Product[]> {
-  let q;
+export async function getProducts(): Promise<Product[]> {
   const productsCollection = collection(db, 'products');
-
-  if (searchTerm && searchTerm.trim() !== '') {
-      const normalizedSearch = searchTerm.toLowerCase();
-      // Use the new `name_lowercase` field for case-insensitive search
-      q = query(productsCollection, 
-                orderBy("name_lowercase"), 
-                where('name_lowercase', '>=', normalizedSearch), 
-                where('name_lowercase', '<=', normalizedSearch + '\uf8ff'));
-  } else {
-      q = query(productsCollection, orderBy("createdAt", "desc"));
-  }
+  const q = query(productsCollection, orderBy("createdAt", "desc"));
 
   const productSnapshot = await getDocs(q);
   const productList = productSnapshot.docs.map(convertDocToProduct);
@@ -138,7 +129,9 @@ interface CreateGroupData {
     description: string;
     price: number;
     imageUrl?: string;
-    aiHint: string;
+    category: string;
+    stock: number;
+    isPromoted: 'active' | 'inactive';
 }
 
 
@@ -152,7 +145,6 @@ export async function createGroupPromotion(
             ...restOfGroupData,
             participants: 1, 
             status: 'active',
-            productType: 'product', // Group promotions are always products
             createdAt: serverTimestamp(),
         });
 
@@ -305,16 +297,16 @@ export async function updateGroupCart(groupId: string, product: Product, change:
     try {
         await runTransaction(db, async (transaction) => {
             const itemSnap = await transaction.get(cartItemRef);
-            const plainProduct: Omit<Product, 'createdAt'> = {
+            const plainProduct: Product = {
                 id: product.id,
                 name: product.name,
                 description: product.description,
                 price: product.price,
-                imageUrl: product.imageUrl || undefined,
-                aiHint: product.aiHint || undefined,
-                lojistaId: product.lojistaId || undefined,
-                productType: product.productType || 'product',
-                serviceContactPhone: product.serviceContactPhone || undefined,
+                imageUrl: product.imageUrl,
+                lojistaId: product.lojistaId,
+                category: product.category,
+                stock: product.stock,
+                isPromoted: product.isPromoted,
             };
 
             if (change === 'add') {
@@ -402,7 +394,6 @@ export async function seedDatabase() {
       const docRef = doc(collection(db, "products"));
       batch.set(docRef, { 
           ...product, 
-          name_lowercase: product.name.toLowerCase(),
           createdAt: serverTimestamp(), 
         });
     });
@@ -410,7 +401,7 @@ export async function seedDatabase() {
     const promotionsCol = collection(db, 'groupPromotions');
     mockGroupPromotions.forEach(promotion => {
         const docRef = doc(collection(db, "groupPromotions"));
-        batch.set(docRef, { ...promotion, status: 'active', productType: 'product', createdAt: serverTimestamp() });
+        batch.set(docRef, { ...promotion, status: 'active', createdAt: serverTimestamp() });
     });
 
     await batch.commit();

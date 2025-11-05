@@ -28,31 +28,25 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardContent className="p-4 flex-grow flex flex-col">
             <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4 bg-muted flex items-center justify-center">
                 {product.imageUrl ? (
-                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover" data-ai-hint={product.aiHint} />
+                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
                 ) : (
                     <Package className="w-16 h-16 text-muted-foreground"/>
                 )}
             </div>
             <div className="flex-grow">
-            <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>
+              <p className="text-xs text-muted-foreground">{product.category}</p>
+              <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>
             </div>
             <p className="text-lg font-bold text-foreground mb-4">
-            {product.productType === 'service' && product.price > 0 && 'A partir de '}
             {product.price > 0 
                 ? new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)
                 : 'Preço sob consulta'
             }
             </p>
-            {product.productType === 'product' ? (
-                 <Button onClick={handleAddToCart} className="w-full mt-auto">
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Adicionar
-                </Button>
-            ) : (
-                 <Button variant="outline" className="w-full mt-auto" onClick={(e) => e.preventDefault()}>
-                    Ver Detalhes
-                </Button>
-            )}
+            <Button onClick={handleAddToCart} className="w-full mt-auto" disabled={product.stock === 0}>
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Adicionar
+            </Button>
         </CardContent>
         </Card>
     </Link>

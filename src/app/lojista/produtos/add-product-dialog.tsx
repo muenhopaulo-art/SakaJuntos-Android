@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -31,28 +31,20 @@ import { Loader2, Upload, X } from 'lucide-react';
 import { addProduct } from './actions';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-const phoneRegex = /^9\d{8}$/;
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   imageUrl: z.string().optional(),
-  productType: z.enum(['product', 'service'], { required_error: 'Por favor, selecione um tipo.' }),
-  serviceContactPhone: z.string().optional(),
-}).refine(data => {
-    if (data.productType === 'service') {
-        return !!data.serviceContactPhone && phoneRegex.test(data.serviceContactPhone);
-    }
-    return true;
-}, {
-    message: 'O telefone para contacto é obrigatório para serviços e deve ser válido.',
-    path: ['serviceContactPhone'],
+  category: z.string().min(2, { message: 'A categoria é obrigatória.'}),
+  stock: z.coerce.number().min(0, { message: 'O stock deve ser um número positivo.' }),
+  isPromoted: z.boolean().default(false),
 });
 
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
@@ -68,22 +60,15 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       description: '',
       price: 0,
       imageUrl: '',
-      productType: 'product',
-      serviceContactPhone: '',
+      category: '',
+      stock: 0,
+      isPromoted: false,
     },
   });
 
-  const { isSubmitting } = form.formState;
+  const { isSubmitting, watch } = form.formState;
 
-  const imageUrl = useWatch({
-    control: form.control,
-    name: 'imageUrl',
-  });
-
-  const selectedType = useWatch({
-    control: form.control,
-    name: 'productType',
-  });
+  const imageUrl = watch('imageUrl');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,7 +100,12 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
-    const result = await addProduct({ ...values, lojistaId });
+    const productData = {
+        ...values,
+        lojistaId: lojistaId,
+        isPromoted: values.isPromoted ? 'active' : 'inactive',
+    }
+    const result = await addProduct(productData);
     if (result.success) {
       toast({ title: 'Publicação Adicionada!', description: 'O seu produto/serviço foi adicionado com sucesso.' });
       setOpen(false);
@@ -134,48 +124,18 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         setOpen(isOpen);
     }}>
       <DialogTrigger asChild>
-        <Button>Adicionar Produto/Serviço</Button>
+        <Button>Adicionar Produto</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Produto ou Serviço</DialogTitle>
+          <DialogTitle>Adicionar Novo Produto</DialogTitle>
           <DialogDescription>
             Preencha os detalhes do que deseja adicionar à sua loja.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-             <FormField
-              control={form.control}
-              name="productType"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Tipo de Publicação</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex gap-4"
-                    >
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="product" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Produto</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="service" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Serviço</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            
             <FormField
               control={form.control}
               name="name"
@@ -183,7 +143,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Saco de Arroz 25kg / Canalização" {...field} />
+                    <Input placeholder="Ex: Sapatilhas Nike Air" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,42 +156,56 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Descreva o produto ou serviço..." {...field} />
+                    <Textarea placeholder="Descreva o produto..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            {selectedType === 'service' && (
-               <FormField
-                control={form.control}
-                name="serviceContactPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone para Contacto</FormLabel>
-                    <FormControl>
-                      <Input type="tel" placeholder="9xx xxx xxx" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
             <FormField
               control={form.control}
-              name="price"
+              name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Preço (AOA)</FormLabel>
+                  <FormLabel>Categoria</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input placeholder="Ex: Vestuário" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Preço (AOA)</FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Stock</FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
+
             <FormField
               control={form.control}
               name="imageUrl"
@@ -273,6 +247,28 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="isPromoted"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Promover Produto?</FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Produtos promovidos aparecem no carrossel da página inicial.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
             
             <DialogFooter className="sticky bottom-0 bg-background pt-4 z-10">
               <Button type="submit" disabled={isSubmitting}>

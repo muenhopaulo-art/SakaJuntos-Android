@@ -12,8 +12,6 @@ export async function addProduct(productData: Omit<Product, 'id' | 'createdAt'>)
     try {
         await addDoc(collection(db, 'products'), {
             ...productData,
-            name_lowercase: productData.name.toLowerCase(), // Add lowercase name for searching
-            serviceContactPhone: productData.serviceContactPhone || null, // Ensure serviceContactPhone is saved
             createdAt: serverTimestamp()
         });
         revalidatePath('/lojista/produtos');

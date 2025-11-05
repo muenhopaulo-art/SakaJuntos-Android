@@ -33,6 +33,8 @@ const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
+  category: z.string().min(2, { message: 'A categoria é obrigatória.'}),
+  stock: z.coerce.number().min(0, { message: 'O stock deve ser um número positivo.' }),
   imageUrl: z.string().url({ message: 'Por favor, insira um URL de imagem válido.' }).optional().or(z.literal('')),
 });
 
@@ -47,13 +49,20 @@ export function AddProductDialog() {
       description: '',
       price: 0,
       imageUrl: '',
+      category: '',
+      stock: 0,
     },
   });
 
   const { isSubmitting } = form.formState;
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
-    const result = await addProduct(values);
+    // We pass isPromoted and lojistaId statically for this admin version
+    const productData = {
+        ...values,
+        isPromoted: 'inactive',
+    };
+    const result = await addProduct(productData);
     if (result.success) {
       toast({ title: 'Produto Adicionado!', description: 'O novo produto foi adicionado com sucesso.' });
       setOpen(false);
@@ -76,7 +85,7 @@ export function AddProductDialog() {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
             <FormField
               control={form.control}
               name="name"
@@ -103,19 +112,47 @@ export function AddProductDialog() {
                 </FormItem>
               )}
             />
-            <FormField
+             <FormField
               control={form.control}
-              name="price"
+              name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Preço (AOA)</FormLabel>
+                  <FormLabel>Categoria</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input placeholder="Ex: Bebidas" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Preço (AOA)</FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Stock</FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
              <FormField
               control={form.control}
               name="imageUrl"

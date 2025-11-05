@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -33,10 +34,11 @@ const convertDocToProduct = (doc: any): Product => {
     description: data.description,
     price: data.price,
     imageUrl: data.imageUrl,
-    aiHint: data.aiHint,
     lojistaId: data.lojistaId,
-    productType: data.productType || 'product',
-    serviceContactPhone: data.serviceContactPhone,
+    category: data.category,
+    stock: data.stock,
+    isPromoted: data.isPromoted,
+    promotionPaymentId: data.promotionPaymentId,
     createdAt: data.createdAt?.toMillis(),
   };
 };
@@ -74,7 +76,7 @@ export default function LojistaProductsPage() {
         <>
             <div className="flex justify-between items-center mb-8">
                 <div className="space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Produtos e Serviços</h1>
+                    <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Produtos</h1>
                     <p className="text-muted-foreground">Adicione, edite e gira as suas publicações.</p>
                 </div>
                 {user && <AddProductDialog lojistaId={user.uid} />}
@@ -109,7 +111,7 @@ export default function LojistaProductsPage() {
                                                 </div>
                                                 <div>
                                                     <CardTitle className="text-base line-clamp-2">{product.name}</CardTitle>
-                                                    <CardDescription className="capitalize">{product.productType === 'product' ? 'Produto' : 'Serviço'}</CardDescription>
+                                                    <CardDescription className="capitalize">{product.category}</CardDescription>
                                                 </div>
                                             </div>
                                              <DropdownMenu>
@@ -158,8 +160,10 @@ export default function LojistaProductsPage() {
                                 <TableRow>
                                     <TableHead className="w-16">Imagem</TableHead>
                                     <TableHead>Nome</TableHead>
-                                    <TableHead>Tipo</TableHead>
+                                    <TableHead>Categoria</TableHead>
                                     <TableHead>Preço</TableHead>
+                                    <TableHead>Stock</TableHead>
+                                    <TableHead>Promovido</TableHead>
                                     <TableHead className="hidden lg:table-cell">Data de Criação</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
@@ -178,8 +182,14 @@ export default function LojistaProductsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{product.name}</TableCell>
-                                            <TableCell className="capitalize">{product.productType === 'product' ? 'Produto' : 'Serviço'}</TableCell>
+                                            <TableCell className="capitalize">{product.category}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</TableCell>
+                                            <TableCell>{product.stock}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={product.isPromoted === 'active' ? 'default' : 'outline'}>
+                                                    {product.isPromoted === 'active' ? 'Sim' : 'Não'}
+                                                </Badge>
+                                            </TableCell>
                                             <TableCell className="hidden lg:table-cell">{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                             <TableCell className="text-right">
                                                 <ProductActions productId={product.id} />
@@ -188,7 +198,7 @@ export default function LojistaProductsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center h-24">Nenhum produto ou serviço encontrado.</TableCell>
+                                        <TableCell colSpan={8} className="text-center h-24">Nenhum produto encontrado.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -200,5 +210,3 @@ export default function LojistaProductsPage() {
         </>
     );
 }
-
-    

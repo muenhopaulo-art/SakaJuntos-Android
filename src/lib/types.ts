@@ -3,15 +3,15 @@
 export interface Product {
   id: string;
   name: string;
-  name_lowercase?: string; // For case-insensitive search
   description: string;
   price: number;
-  productType: 'product' | 'service';
+  category: string;
+  stock: number;
+  isPromoted: 'active' | 'inactive';
   imageUrl?: string;
-  aiHint?: string;
   createdAt?: number;
   lojistaId?: string;
-  serviceContactPhone?: string;
+  promotionPaymentId?: string; // Mantido para compatibilidade, caso seja usado
 }
 
 export interface GroupMember {
@@ -38,7 +38,7 @@ export interface ChatMessage {
 export type GroupStatus = 'active' | 'finalized' | 'delivered';
 
 // A promoção de grupo é um tipo de produto, mas com campos adicionais
-export interface GroupPromotion extends Omit<Product, 'productType' | 'serviceContactPhone' | 'name_lowercase'> {
+export interface GroupPromotion extends Product {
   participants: number;
   target: number;
   creatorId: string;
@@ -47,7 +47,6 @@ export interface GroupPromotion extends Omit<Product, 'productType' | 'serviceCo
   groupCart: CartItem[];
   contributions: Contribution[];
   status: GroupStatus;
-  productType: 'product'; // Grupos são sempre produtos
 }
 
 export interface CartItem {

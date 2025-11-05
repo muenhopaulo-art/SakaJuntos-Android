@@ -1,4 +1,5 @@
 
+
 import { getGroupPromotions, getProducts } from '@/services/product-service';
 import type { GroupPromotion, Product } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -41,7 +42,8 @@ export default async function HomePage() {
 
   const hasData = products.length > 0 || groupPromotions.length > 0;
   // Embaralha a lista de produtos para que o carrossel e a lista de exploração sejam dinâmicos
-  const shuffledProducts = products.sort(() => 0.5 - Math.random());
+  const shuffledProducts = [...products].sort(() => 0.5 - Math.random());
+  const promotedProducts = products.filter(p => p.isPromoted === 'active');
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -72,20 +74,20 @@ export default async function HomePage() {
       ) : (
         <div className="space-y-12">
             {/* Secção 1: MiniShopping como Carrossel */}
-            {products.length > 0 && (
+            {promotedProducts.length > 0 && (
                  <section>
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> MiniShopping</h2>
+                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> Produtos em Destaque</h2>
                         <Link href="/minishopping" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
                             Ver Tudo
                         </Link>
                     </div>
-                    <ProductsCarousel products={shuffledProducts} />
+                    <ProductsCarousel products={promotedProducts} />
                 </section>
             )}
 
             {/* Separador */}
-            {products.length > 0 && groupPromotions.length > 0 && <Separator/>}
+            {promotedProducts.length > 0 && groupPromotions.length > 0 && <Separator/>}
 
             {/* Secção 2: Grupos de Compras */}
             {groupPromotions.length > 0 && (

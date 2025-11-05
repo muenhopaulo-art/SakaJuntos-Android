@@ -1,4 +1,5 @@
 
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getProducts } from '@/services/product-service';
 import { AlertTriangle } from 'lucide-react';
@@ -29,14 +30,13 @@ export default async function MiniShoppingPage({
   let error: string | null = null;
 
   try {
-    products = await getProducts(searchTerm);
-    
-    // Client-side fallback for existing data without 'name_lowercase'
-    if (searchTerm && products.length === 0) {
-        const allProducts = await getProducts(); // Fetch all products
+    const allProducts = await getProducts();
+    if (searchTerm) {
         products = allProducts.filter(p => 
             p.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
+    } else {
+        products = allProducts;
     }
     
   } catch (e) {
