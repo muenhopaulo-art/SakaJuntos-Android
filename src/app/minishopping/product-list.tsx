@@ -9,7 +9,6 @@ import { Search, Loader2 } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import Link from 'next/link';
 import { useDebounce } from 'use-debounce';
-import { getProducts } from '@/services/product-service';
 
 interface ProductListProps {
     initialProducts: Product[];
@@ -78,25 +77,18 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
   // Handle search term changes
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
-    const path = window.location.pathname; // check if we are on homepage or minishopping
+    const path = window.location.pathname; 
 
     if (debouncedSearchTerm) {
       params.set('q', debouncedSearchTerm);
-      if (path === '/') {
-        // If on homepage and user starts typing, redirect to minishopping
-        startTransition(() => {
-          router.push(`/minishopping?${params.toString()}`);
-        });
-      } else {
-        // If on minishopping, just update URL
-        startTransition(() => {
-          router.replace(`/minishopping?${params.toString()}`);
-        });
-      }
-    } else if (path === '/minishopping') {
+      const targetPath = path === '/' ? '/minishopping' : path;
+      startTransition(() => {
+        router.push(`${targetPath}?${params.toString()}`);
+      });
+    } else if (path.startsWith('/minishopping')) {
       params.delete('q');
        startTransition(() => {
-          router.replace(`/minishopping?${params.toString()}`);
+          router.replace(`${path}?${params.toString()}`);
         });
     }
   }, [debouncedSearchTerm, router, searchParams]);
