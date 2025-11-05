@@ -8,13 +8,23 @@ import { Card, CardContent } from './ui/card';
 import { ShoppingCart, Package } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useCart } from '@/contexts/cart-context';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart?: (product: Product) => void;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { addItem } = useCart();
+  const { toast } = useToast();
+
+  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem(product);
+  };
+  
   return (
     <Link href={`/produto/${product.id}`} className="block h-full group">
         <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-xl group-hover:-translate-y-1 bg-card">
@@ -36,14 +46,21 @@ export function ProductCard({ product }: ProductCardProps) {
                 : 'Preço sob consulta'
             }
             </p>
-            <Button className="w-full mt-auto" asChild>
-              <div>
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Ver Detalhes
-              </div>
-            </Button>
+            {product.category === 'produto' ? (
+                 <Button onClick={handleAddToCart} className="w-full mt-auto">
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Adicionar
+                </Button>
+            ) : (
+                <Button className="w-full mt-auto" asChild>
+                    <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); document.getElementById(`link-to-${product.id}`)?.click(); }}>
+                        Ver Detalhes
+                    </div>
+                </Button>
+            )}
         </CardContent>
         </Card>
+        <a id={`link-to-${product.id}`} href={`/produto/${product.id}`} className="hidden"></a>
     </Link>
   );
 }

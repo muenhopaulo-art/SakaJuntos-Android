@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -62,7 +63,12 @@ export default function ProductDetailPage() {
                     const productRef = doc(db, 'products', id);
                     const productSnap = await getDoc(productRef);
                     if (productSnap.exists()) {
-                        setProduct({ id: productSnap.id, ...productSnap.data() } as Product);
+                        const productData = { id: productSnap.id, ...productSnap.data() } as Product;
+                        // Ensure category is set, default to 'produto' if not present
+                        if (!productData.category) {
+                            productData.category = 'produto';
+                        }
+                        setProduct(productData);
                         setSelectedImage(0);
                     } else {
                         setError('Produto ou serviço não encontrado.');
@@ -155,8 +161,8 @@ export default function ProductDetailPage() {
                     <Card className="flex-grow">
                         <CardHeader>
                             <CardTitle className="text-3xl font-bold font-headline">{product.name}</CardTitle>
-                             <CardDescription>
-                                {product.category === 'produto' ? 'Produto' : 'Serviço'}
+                             <CardDescription className="capitalize">
+                                {product.category}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
