@@ -33,6 +33,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -43,6 +44,7 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   imageUrl: z.string().optional(),
   category: z.string().min(2, { message: 'A categoria é obrigatória.'}),
+  productType: z.enum(['product', 'service'], { required_error: 'Por favor, selecione o tipo.' }),
   stock: z.coerce.number().min(0, { message: 'O stock deve ser um número positivo.' }),
   isPromoted: z.boolean().default(false),
 });
@@ -61,13 +63,14 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       price: 0,
       imageUrl: '',
       category: '',
+      productType: 'product',
       stock: 0,
       isPromoted: false,
     },
   });
 
   const { isSubmitting, watch } = form.formState;
-
+  const productType = watch('productType');
   const imageUrl = watch('imageUrl');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,6 +105,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
     const productData = {
         ...values,
+        stock: values.productType === 'service' ? Infinity : values.stock, // Services have infinite stock
         lojistaId: lojistaId,
         isPromoted: values.isPromoted ? 'active' : ('inactive' as 'active' | 'inactive'),
     }
@@ -124,11 +128,11 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         setOpen(isOpen);
     }}>
       <DialogTrigger asChild>
-        <Button>Adicionar Produto</Button>
+        <Button>Adicionar Publicação</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Produto</DialogTitle>
+          <DialogTitle>Adicionar Nova Publicação</DialogTitle>
           <DialogDescription>
             Preencha os detalhes do que deseja adicionar à sua loja.
           </DialogDescription>
@@ -138,12 +142,34 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             
             <FormField
               control={form.control}
+              name="productType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Publicação</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="product">Produto</SelectItem>
+                          <SelectItem value="service">Serviço</SelectItem>
+                        </SelectContent>
+                    </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Sapatilhas Nike Air" {...field} />
+                    <Input placeholder={productType === 'product' ? "Ex: Sapatilhas Nike Air" : "Ex: Serviço de Limpeza"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -156,7 +182,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Descreva o produto..." {...field} />
+                    <Textarea placeholder="Descreva a sua publicação..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -170,7 +196,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 <FormItem>
                   <FormLabel>Categoria</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Vestuário" {...field} />
+                    <Input placeholder="Ex: Vestuário ou Serviços Domésticos" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,10 +222,11 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 name="stock"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Stock</FormLabel>
+                    <FormLabel>{productType === 'product' ? 'Stock' : 'Disponibilidade'}</FormLabel>
                     <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" {...field} disabled={productType === 'service'} />
                     </FormControl>
+                    {productType === 'service' && <FormDescription className="text-xs">Serviços têm stock ilimitado.</FormDescription>}
                     <FormMessage />
                     </FormItem>
                 )}
@@ -254,9 +281,9 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
-                    <FormLabel>Promover Produto?</FormLabel>
+                    <FormLabel>Promover Publicação?</FormLabel>
                     <p className="text-xs text-muted-foreground">
-                      Produtos promovidos aparecem no carrossel da página inicial.
+                      Publicações promovidas aparecem no carrossel da página inicial.
                     </p>
                   </div>
                   <FormControl>

@@ -19,6 +19,7 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     description: data.description,
     price: data.price,
     category: data.category,
+    productType: data.productType || 'product',
     stock: data.stock,
     isPromoted: data.isPromoted,
     imageUrl: data.imageUrl,
@@ -88,6 +89,7 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
         groupCart,
         contributions,
         category: data.category,
+        productType: data.productType || 'product',
         stock: data.stock,
         isPromoted: data.isPromoted,
     };
@@ -108,8 +110,8 @@ export async function getProducts(searchTerm?: string): Promise<Product[]> {
   if (searchTerm) {
     const lowercasedTerm = searchTerm.toLowerCase();
     productList = productList.filter(p => 
-        p.name.toLowerCase().includes(lowercasedTerm) ||
-        p.category.toLowerCase().includes(lowercasedTerm)
+        (p.name?.toLowerCase() || '').includes(lowercasedTerm) ||
+        (p.category?.toLowerCase() || '').includes(lowercasedTerm)
     );
   }
   
@@ -141,6 +143,7 @@ interface CreateGroupData {
     category: string;
     stock: number;
     isPromoted: 'active' | 'inactive';
+    productType: 'product' | 'service';
 }
 
 
@@ -314,6 +317,7 @@ export async function updateGroupCart(groupId: string, product: Product, change:
                 imageUrl: product.imageUrl,
                 lojistaId: product.lojistaId,
                 category: product.category,
+                productType: product.productType,
                 stock: product.stock,
                 isPromoted: product.isPromoted,
             };
@@ -403,6 +407,7 @@ export async function seedDatabase() {
       const docRef = doc(collection(db, "products"));
       batch.set(docRef, { 
           ...product, 
+          name_lowercase: product.name.toLowerCase(),
           createdAt: serverTimestamp(), 
         });
     });

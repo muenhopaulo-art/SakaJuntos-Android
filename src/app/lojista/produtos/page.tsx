@@ -19,6 +19,7 @@ import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestor
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -37,6 +38,7 @@ const convertDocToProduct = (doc: any): Product => {
     imageUrl: data.imageUrl,
     lojistaId: data.lojistaId,
     category: data.category,
+    productType: data.productType || 'product',
     stock: data.stock,
     isPromoted: data.isPromoted,
     promotionPaymentId: data.promotionPaymentId,
@@ -161,6 +163,7 @@ export default function LojistaProductsPage() {
                                 <TableRow>
                                     <TableHead className="w-16">Imagem</TableHead>
                                     <TableHead>Nome</TableHead>
+                                    <TableHead>Tipo</TableHead>
                                     <TableHead>Categoria</TableHead>
                                     <TableHead>Preço</TableHead>
                                     <TableHead>Stock</TableHead>
@@ -183,9 +186,12 @@ export default function LojistaProductsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{product.name}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={product.productType === 'service' ? 'secondary' : 'outline'} className="capitalize">{product.productType}</Badge>
+                                            </TableCell>
                                             <TableCell className="capitalize">{product.category}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</TableCell>
-                                            <TableCell>{product.stock}</TableCell>
+                                            <TableCell>{product.productType === 'service' ? 'N/A' : product.stock}</TableCell>
                                             <TableCell>
                                                 <Badge variant={product.isPromoted === 'active' ? 'default' : 'outline'}>
                                                     {product.isPromoted === 'active' ? 'Sim' : 'Não'}
@@ -199,7 +205,7 @@ export default function LojistaProductsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center h-24">Nenhum produto encontrado.</TableCell>
+                                        <TableCell colSpan={9} className="text-center h-24">Nenhum produto encontrado.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

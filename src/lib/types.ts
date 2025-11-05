@@ -3,15 +3,17 @@
 export interface Product {
   id: string;
   name: string;
+  name_lowercase?: string;
   description: string;
   price: number;
   category: string;
+  productType: 'product' | 'service';
   stock: number;
   isPromoted: 'active' | 'inactive';
   imageUrl?: string;
   createdAt?: number;
   lojistaId?: string;
-  promotionPaymentId?: string; // Mantido para compatibilidade, caso seja usado
+  promotionPaymentId?: string; 
 }
 
 export interface GroupMember {

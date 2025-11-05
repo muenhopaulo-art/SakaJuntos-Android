@@ -10,8 +10,10 @@ import type { Product } from '@/lib/types';
 
 export async function addProduct(productData: Omit<Product, 'id' | 'createdAt'>) {
     try {
+        const name_lowercase = productData.name.toLowerCase();
         await addDoc(collection(db, 'products'), {
             ...productData,
+            name_lowercase,
             createdAt: serverTimestamp()
         });
         revalidatePath('/lojista/produtos');

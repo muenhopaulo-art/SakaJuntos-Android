@@ -11,6 +11,7 @@ export const products: Omit<Product, 'id' | 'createdAt'>[] = [
     category: 'Bebidas',
     stock: 100,
     isPromoted: 'active',
+    productType: 'product',
   },
   {
     name: 'Ginguba Torrada',
@@ -20,6 +21,7 @@ export const products: Omit<Product, 'id' | 'createdAt'>[] = [
     category: 'Snacks',
     stock: 200,
     isPromoted: 'inactive',
+    productType: 'product',
   },
   {
     name: 'Sabão Azul',
@@ -29,6 +31,7 @@ export const products: Omit<Product, 'id' | 'createdAt'>[] = [
     category: 'Limpeza',
     stock: 50,
     isPromoted: 'active',
+    productType: 'product',
   },
   {
     name: 'Óleo de Palma',
@@ -38,6 +41,7 @@ export const products: Omit<Product, 'id' | 'createdAt'>[] = [
     category: 'Culinária',
     stock: 30,
     isPromoted: 'inactive',
+    productType: 'product',
   },
   {
     name: 'Farinha de Milho',
@@ -47,6 +51,7 @@ export const products: Omit<Product, 'id' | 'createdAt'>[] = [
     category: 'Mercearia',
     stock: 80,
     isPromoted: 'active',
+    productType: 'product',
   },
   {
     name: 'Pano Samakaka',
@@ -56,6 +61,27 @@ export const products: Omit<Product, 'id' | 'createdAt'>[] = [
     category: 'Têxteis',
     stock: 15,
     isPromoted: 'active',
+    productType: 'product',
+  },
+  {
+    name: 'Serviço de Entrega Expresso',
+    description: 'Entrega rápida para a sua encomenda em qualquer ponto da cidade.',
+    price: 1500,
+    imageUrl: 'https://picsum.photos/400/400?random=10',
+    category: 'Serviços',
+    stock: Infinity,
+    isPromoted: 'active',
+    productType: 'service',
+  },
+  {
+    name: 'Consultoria de Negócios',
+    description: 'Sessão de consultoria de 1 hora para ajudar a alavancar o seu negócio.',
+    price: 25000,
+    imageUrl: 'https://picsum.photos/400/400?random=11',
+    category: 'Serviços',
+    stock: Infinity,
+    isPromoted: 'inactive',
+    productType: 'service',
   },
 ];
 
@@ -72,6 +98,7 @@ export const groupPromotions: Omit<GroupPromotion, 'id'| 'members' | 'joinReques
     category: 'Bebidas',
     stock: 10, // Stock para promoções de grupo também
     isPromoted: 'active',
+    productType: 'product',
   },
   {
     name: 'Saco de Arroz 25kg',
@@ -85,6 +112,7 @@ export const groupPromotions: Omit<GroupPromotion, 'id'| 'members' | 'joinReques
     category: 'Mercearia',
     stock: 20,
     isPromoted: 'active',
+    productType: 'product',
   },
   {
     name: 'Kit de Limpeza',
@@ -98,5 +126,6 @@ export const groupPromotions: Omit<GroupPromotion, 'id'| 'members' | 'joinReques
     category: 'Limpeza',
     stock: 15,
     isPromoted: 'active',
+    productType: 'product',
   },
 ];
