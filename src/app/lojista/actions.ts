@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -11,8 +10,8 @@ const convertDocToOrder = (doc: any): Order => {
   const data = doc.data();
   return {
     id: doc.id,
-    creatorId: data.creatorId,
-    creatorName: data.creatorName,
+    clientId: data.clientId,
+    clientName: data.clientName,
     items: data.items,
     totalAmount: data.totalAmount,
     status: data.status,
@@ -29,10 +28,10 @@ const convertDocToProduct = (doc: any): Product => {
         name: data.name,
         description: data.description,
         price: data.price,
-        imageUrls: data.imageUrls || [],
+        imageUrl: data.imageUrl,
         aiHint: data.aiHint,
-        category: data.category,
-        contactPhone: data.contactPhone,
+        productType: data.productType,
+        serviceContactPhone: data.serviceContactPhone,
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
     };
 };
@@ -53,16 +52,16 @@ export async function getLojistaDashboardAnalytics(lojistaId: string) {
         const activeProducts = productsCountSnapshot.data().count;
 
         const totalRevenue = orders
-            .filter(order => order.status === 'Entregue')
+            .filter(order => order.status === 'entregue')
             .reduce((sum, order) => sum + order.totalAmount, 0);
             
-        const processedOrders = orders.filter(order => order.status === 'Pronto para recolha' || order.status === 'A caminho' || order.status === 'Entregue').length;
+        const processedOrders = orders.filter(order => order.status === 'pronto para recolha' || order.status === 'a caminho' || order.status === 'entregue').length;
 
-        const newOrders = orders.filter(order => order.status === 'A aguardar lojista').length;
+        const newOrders = orders.filter(order => order.status === 'a aguardar lojista').length;
 
         // Sort orders by date client-side to avoid needing a composite index
         const recentOrders = orders
-            .filter(o => o.status === 'A aguardar lojista' || o.status === 'Pendente')
+            .filter(o => o.status === 'a aguardar lojista' || o.status === 'pendente')
             .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
             .slice(0, 5);
             

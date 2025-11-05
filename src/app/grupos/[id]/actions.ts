@@ -53,8 +53,8 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
             orderType: 'group',
             groupId: groupId,
             groupName: groupData.name,
-            creatorId: creatorId,
-            creatorName: creator.name,
+            clientId: creatorId,
+            clientName: creator.name,
             items: cart,
             totalAmount: totalAmount,
         }, contributions);

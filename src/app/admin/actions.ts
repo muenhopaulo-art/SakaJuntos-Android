@@ -38,17 +38,17 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
 
   const order: Order = {
     id: doc.id,
-    creatorId: data.creatorId,
+    clientId: data.clientId,
     groupId: data.groupId,
     groupName: data.groupName,
-    creatorName: data.creatorName || 'N/A', // Add creatorName
+    clientName: data.clientName || 'N/A', // Use clientName
     items: data.items,
     totalAmount: data.totalAmount,
     status: data.status,
     orderType: data.orderType || 'group',
     contributions, // Add contributions here
-    driverId: data.driverId,
-    driverName: data.driverName,
+    courierId: data.courierId,
+    courierName: data.courierName,
     lojistaId: data.lojistaId,
   };
 
@@ -65,7 +65,7 @@ export async function getOrders(userId?: string): Promise<Order[]> {
     let q;
     if (userId) {
       // Query for orders where the user is the creator
-      q = query(ordersCol, where('creatorId', '==', userId), orderBy('createdAt', 'desc'));
+      q = query(ordersCol, where('clientId', '==', userId), orderBy('createdAt', 'desc'));
     } else {
       // Admin gets all orders
       q = query(ordersCol, orderBy('createdAt', 'desc'));
@@ -84,9 +84,9 @@ export async function assignDriverToOrder(orderId: string, driver: User): Promis
         const orderRef = doc(db, 'orders', orderId);
         
         await updateDoc(orderRef, { 
-            status: 'A caminho',
-            driverId: driver.uid,
-            driverName: driver.name
+            status: 'a caminho', // lowercase status
+            courierId: driver.uid,
+            courierName: driver.name
         });
 
         // Here you would typically send a notification to the driver's app
@@ -109,20 +109,19 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
       }
       const orderData = orderSnap.data();
 
-      // If status is being changed to 'On the way', ensure a driver is assigned first.
-      // This is handled by the assignDriverToOrder function, so we prevent direct change here.
-      if (status === 'A caminho' && !orderData.driverId) {
-          throw new Error("Não é possível alterar para 'A caminho' sem atribuir um entregador.");
+      // If status is being changed to 'a caminho', ensure a driver is assigned first.
+      if (status === 'a caminho' && !orderData.courierId) {
+          throw new Error("Não é possível alterar para 'a caminho' sem atribuir um entregador.");
       }
 
       await updateDoc(orderRef, { status });
 
       // If the order is delivered or cancelled, update the group status
-      if ((status === 'Entregue' || status === 'Cancelado') && orderData.groupId) {
+      if ((status === 'entregue' || status === 'cancelado') && orderData.groupId) {
           const groupRef = doc(db, 'groupPromotions', orderData.groupId);
           const groupSnap = await getDoc(groupRef);
           if (groupSnap.exists()) {
-              await updateDoc(groupRef, { status: status === 'Entregue' ? 'delivered' : 'active' });
+              await updateDoc(groupRef, { status: status === 'entregue' ? 'delivered' : 'active' });
           }
       }
 
@@ -152,11 +151,11 @@ export async function getDashboardAnalytics() {
         const usersCount = usersCountSnapshot.data().count;
         
         const totalRevenue = orders
-            .filter(order => order.status === 'Entregue')
+            .filter(order => order.status === 'entregue')
             .reduce((sum, order) => sum + order.totalAmount, 0);
 
         const pendingSales = orders
-            .filter(order => order.status !== 'Entregue' && order.status !== 'Cancelado')
+            .filter(order => order.status !== 'entregue' && order.status !== 'cancelado')
             .reduce((sum, order) => sum + order.totalAmount, 0);
         
         const totalOrders = orders.length;

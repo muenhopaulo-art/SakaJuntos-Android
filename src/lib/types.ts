@@ -1,5 +1,4 @@
 
-
 export interface Product {
   id: string;
   name: string;
@@ -50,7 +49,9 @@ export interface GroupPromotion extends Omit<Product, 'productType' | 'serviceCo
 }
 
 export interface CartItem {
-  product: Product;
+  id: string;
+  name: string;
+  price: number;
   quantity: number;
 }
 
@@ -67,31 +68,38 @@ export interface Contribution {
     createdAt: number;
 }
 
-export type OrderStatus = 
-  | 'Pendente' 
-  | 'A aguardar lojista' 
-  | 'Pronto para recolha' 
-  | 'A caminho' 
-  | 'Entregue' 
-  | 'Cancelado';
+export type OrderStatus =
+  | 'pendente'
+  | 'a aguardar lojista'
+  | 'pronto para recolha'
+  | 'a caminho'
+  | 'entregue'
+  | 'cancelado';
 
 export type OrderType = 'individual' | 'group';
 
 export interface Order {
   id: string;
-  creatorId: string;
+  clientId: string;
   items: CartItem[];
   totalAmount: number;
   status: OrderStatus;
   orderType: OrderType;
   groupName?: string;
   groupId?: string;
-  creatorName: string;
+  clientName: string;
   createdAt?: number;
   contributions?: Contribution[];
   lojistaId?: string;
-  driverId?: string;
-  driverName?: string;
+  courierId?: string;
+  courierName?: string;
+  deliveryLocation?: Geolocation;
+  pickupLocation?: Geolocation;
+  platformFee?: number;
+  courierEarning?: number;
+  paymentId?: string;
+  completedAt?: number;
+  updatedAt?: number;
 }
 
 export type UserRole = 'client' | 'lojista' | 'admin' | 'courier';
@@ -102,7 +110,7 @@ export interface User {
     name: string;
     phone: string;
     email: string;
-    province: string;
+    province?: string;
     role: UserRole;
     createdAt: number;
     verificationStatus?: VerificationStatus;

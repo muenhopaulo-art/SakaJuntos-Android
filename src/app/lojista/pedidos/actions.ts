@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -10,21 +11,19 @@ import { revalidatePath } from 'next/cache';
 const convertDocToOrder = async (doc: any): Promise<Order> => {
   const data = doc.data();
 
-  // For lojista, we might not need to fetch contributions unless displaying them.
-  // Kept it simple for now.
   const order: Order = {
     id: doc.id,
-    creatorId: data.creatorId,
+    clientId: data.clientId,
     groupId: data.groupId,
     groupName: data.groupName,
-    creatorName: data.creatorName || 'N/A',
+    clientName: data.clientName || 'N/A',
     items: data.items,
     totalAmount: data.totalAmount,
     status: data.status,
     orderType: data.orderType || 'group',
     lojistaId: data.lojistaId,
-    driverId: data.driverId,
-    driverName: data.driverName,
+    courierId: data.courierId,
+    courierName: data.courierName,
     contributions: [], // Not loading contributions for lojista view by default
   };
 
@@ -57,9 +56,9 @@ export async function updateLojistaOrderStatus(orderId: string, status: OrderSta
           throw new Error("Pedido não encontrado ou não tem permissão para o atualizar.");
       }
 
-      // Lojista can only move the order to "Pronto para recolha"
-      if (status !== 'Pronto para recolha') {
-        throw new Error("Ação não permitida. Apenas pode marcar o pedido como 'Pronto para recolha'.");
+      // Lojista can only move the order to "pronto para recolha"
+      if (status !== 'pronto para recolha') {
+        throw new Error("Ação não permitida. Apenas pode marcar o pedido como 'pronto para recolha'.");
       }
 
       await updateDoc(orderRef, { status });

@@ -170,7 +170,7 @@ export default function LojistaPage() {
                                                 Pedido #{order.id.substring(0, 6)}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {order.creatorName} - {order.createdAt ? format(new Date(order.createdAt), "d MMM", { locale: pt }) : ''}
+                                                {order.clientName} - {order.createdAt ? format(new Date(order.createdAt), "d MMM", { locale: pt }) : ''}
                                             </p>
                                         </div>
                                         <div className="ml-auto font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</div>

@@ -17,12 +17,12 @@ import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestor
 
 
 const statusColors: Record<OrderStatus, string> = {
-    'Pendente': 'bg-gray-500/20 text-gray-800',
-    'A aguardar lojista': 'bg-yellow-500/20 text-yellow-800',
-    'Pronto para recolha': 'bg-blue-500/20 text-blue-800',
-    'A caminho': 'bg-indigo-500/20 text-indigo-800',
-    'Entregue': 'bg-green-500/20 text-green-800',
-    'Cancelado': 'bg-red-500/20 text-red-800',
+    'pendente': 'bg-gray-500/20 text-gray-800',
+    'a aguardar lojista': 'bg-yellow-500/20 text-yellow-800',
+    'pronto para recolha': 'bg-blue-500/20 text-blue-800',
+    'a caminho': 'bg-indigo-500/20 text-indigo-800',
+    'entregue': 'bg-green-500/20 text-green-800',
+    'cancelado': 'bg-red-500/20 text-red-800',
 };
 
 function OrderItem({ order }: { order: Order }) {
@@ -33,7 +33,7 @@ function OrderItem({ order }: { order: Order }) {
                     <h3 className="font-semibold">{order.groupName || `Pedido ${order.orderType}`}</h3>
                     <p className="text-xs text-muted-foreground font-mono">ID: #{order.id.substring(0, 6)}</p>
                 </div>
-                <div className={cn("text-xs font-semibold px-2 py-1 rounded-full", statusColors[order.status])}>
+                <div className={cn("text-xs font-semibold px-2 py-1 rounded-full capitalize", statusColors[order.status])}>
                     {order.status}
                 </div>
             </div>
@@ -47,10 +47,10 @@ function OrderItem({ order }: { order: Order }) {
                     <span className="text-muted-foreground">Total</span>
                     <span className="font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</span>
                 </div>
-                {order.driverName && (
+                {order.courierName && (
                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Entregador</span>
-                        <span className="font-medium">{order.driverName}</span>
+                        <span className="font-medium">{order.courierName}</span>
                     </div>
                 )}
             </div>
@@ -71,7 +71,7 @@ export function OrdersSheet() {
     }
 
     setLoading(true);
-    const ordersQuery = query(collection(db, 'orders'), where('creatorId', '==', user.uid));
+    const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid));
     
     const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
         const fetchedOrders: Order[] = [];
@@ -83,18 +83,18 @@ export function OrdersSheet() {
 
             fetchedOrders.push({
                 id: doc.id,
-                creatorId: data.creatorId,
+                clientId: data.clientId,
                 groupId: data.groupId,
                 groupName: data.groupName,
-                creatorName: data.creatorName,
+                clientName: data.clientName,
                 items: data.items,
                 totalAmount: data.totalAmount,
                 status: data.status,
                 orderType: data.orderType || 'group',
                 createdAt: data.createdAt?.toMillis(),
                 contributions,
-                driverId: data.driverId,
-                driverName: data.driverName,
+                courierId: data.courierId,
+                courierName: data.courierName,
             });
         }
         

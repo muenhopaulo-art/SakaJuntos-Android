@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -12,8 +13,12 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 const statusColors: Record<string, string> = {
-    'A aguardar lojista': 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
-    'Pronto para recolha': 'bg-blue-500/20 text-blue-700 border-blue-500/30',
+    'a aguardar lojista': 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
+    'pronto para recolha': 'bg-blue-500/20 text-blue-700 border-blue-500/30',
+    'a caminho': 'bg-indigo-500/20 text-indigo-700',
+    'entregue': 'bg-green-500/20 text-green-700',
+    'cancelado': 'bg-red-500/20 text-red-700',
+    'pendente': 'bg-gray-500/20 text-gray-700'
 };
 
 
@@ -28,7 +33,7 @@ export function LojistaOrderStatusButton({ order }: { order: Order }) {
         return;
     }
     setIsLoading(true);
-    const result = await updateLojistaOrderStatus(order.id, 'Pronto para recolha', user.uid);
+    const result = await updateLojistaOrderStatus(order.id, 'pronto para recolha', user.uid);
     setIsLoading(false);
 
     if (result.success) {
@@ -40,8 +45,8 @@ export function LojistaOrderStatusButton({ order }: { order: Order }) {
   };
 
   // Lojista can only action orders assigned to them that are awaiting their action
-  if (order.status !== 'A aguardar lojista') {
-    return <Badge variant="outline" className={cn(statusColors[order.status])}>{order.status}</Badge>;
+  if (order.status !== 'a aguardar lojista') {
+    return <Badge variant="outline" className={cn("capitalize", statusColors[order.status])}>{order.status}</Badge>;
   }
 
   return (

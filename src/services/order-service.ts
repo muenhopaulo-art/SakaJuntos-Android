@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -24,34 +23,29 @@ export async function createOrder(
 
     // Determine the lojistaId from the first item in the cart.
     // This assumes all items in an order come from the same lojista.
-    const lojistaId = orderData.items[0]?.product.lojistaId || null;
+    // This logic might need to be more robust if cart can have items from multiple lojistas.
+    const lojistaId = orderData.items[0]?.lojistaId || null;
     if (!lojistaId) {
         console.warn("Order being created without a lojistaId. Items:", orderData.items);
     }
     
     // Ensure product data is plain and doesn't contain undefined fields
     const cleanItems = orderData.items.map(item => ({
-        ...item,
-        product: {
-            id: item.product.id,
-            name: item.product.name,
-            description: item.product.description,
-            price: item.product.price,
-            imageUrl: item.product.imageUrl || null,
-            aiHint: item.product.aiHint || null,
-            lojistaId: item.product.lojistaId || null,
-            productType: item.product.productType || 'product',
-            serviceContactPhone: item.product.serviceContactPhone || null, // Add serviceContactPhone here
-        }
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        lojistaId: item.lojistaId || null,
     }));
 
 
-    const finalOrderData: Omit<Order, 'id' | 'contributions'> = {
+    const finalOrderData: Partial<Order> = {
       ...orderData,
       items: cleanItems as any, // Use the cleaned items
       lojistaId: lojistaId,
-      status: 'A aguardar lojista', // Initial status for lojista to see
+      status: 'a aguardar lojista', // Initial status for lojista to see
       createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
     };
     batch.set(orderRef, finalOrderData);
 

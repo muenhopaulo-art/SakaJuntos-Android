@@ -79,7 +79,7 @@ export function AssignDriverDialog({ order }: { order: Order }) {
   };
 
   // Only show the button if the order is ready for pickup
-  if (order.status !== 'Pronto para recolha') {
+  if (order.status !== 'pronto para recolha') {
     return null;
   }
 

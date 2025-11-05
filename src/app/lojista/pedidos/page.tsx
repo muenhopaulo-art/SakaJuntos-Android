@@ -28,8 +28,8 @@ const convertDocToOrder = (doc: any): Order => {
   const data = doc.data();
   return {
     id: doc.id,
-    creatorId: data.creatorId,
-    creatorName: data.creatorName,
+    clientId: data.clientId,
+    clientName: data.clientName,
     items: data.items,
     totalAmount: data.totalAmount,
     status: data.status,
@@ -101,7 +101,7 @@ export default function LojistaOrdersPage() {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <CardTitle className="text-base">Pedido #{order.id.substring(0, 6)}</CardTitle>
-                                                <CardDescription>{order.creatorName}</CardDescription>
+                                                <CardDescription>{order.clientName}</CardDescription>
                                             </div>
                                         </div>
                                     </CardHeader>
@@ -166,7 +166,7 @@ export default function LojistaOrdersPage() {
                                                         {order.groupName || 'Individual'}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell>{order.creatorName}</TableCell>
+                                                <TableCell>{order.clientName}</TableCell>
                                                 <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                                 <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
                                                 <TableCell className="text-center">{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</TableCell>

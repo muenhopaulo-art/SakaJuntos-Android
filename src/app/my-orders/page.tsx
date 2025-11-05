@@ -14,23 +14,24 @@ import { pt } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import {Button} from "@/components/ui/button";
 
 const statusColors: Record<OrderStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    'Pendente': 'secondary',
-    'A aguardar lojista': 'outline',
-    'Pronto para recolha': 'default',
-    'A caminho': 'default',
-    'Entregue': 'default',
-    'Cancelado': 'destructive',
+    'pendente': 'secondary',
+    'a aguardar lojista': 'outline',
+    'pronto para recolha': 'default',
+    'a caminho': 'default',
+    'entregue': 'default',
+    'cancelado': 'destructive',
 };
 
 const statusBgColors: Record<OrderStatus, string> = {
-    'Pendente': 'bg-gray-500/20 text-gray-800',
-    'A aguardar lojista': 'bg-yellow-500/20 text-yellow-800',
-    'Pronto para recolha': 'bg-blue-500/20 text-blue-800',
-    'A caminho': 'bg-indigo-500/20 text-indigo-800',
-    'Entregue': 'bg-green-500/20 text-green-800',
-    'Cancelado': 'bg-red-500/20 text-red-800',
+    'pendente': 'bg-gray-500/20 text-gray-800',
+    'a aguardar lojista': 'bg-yellow-500/20 text-yellow-800',
+    'pronto para recolha': 'bg-blue-500/20 text-blue-800',
+    'a caminho': 'bg-indigo-500/20 text-indigo-800',
+    'entregue': 'bg-green-500/20 text-green-800',
+    'cancelado': 'bg-red-500/20 text-red-800',
 };
 
 
@@ -46,7 +47,7 @@ export default function MyOrdersPage() {
             return;
         }
 
-        const ordersQuery = query(collection(db, 'orders'), where('creatorId', '==', user.uid));
+        const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid));
         
         const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
             const fetchedOrders: Order[] = [];
@@ -58,18 +59,18 @@ export default function MyOrdersPage() {
 
                 fetchedOrders.push({
                     id: doc.id,
-                    creatorId: data.creatorId,
+                    clientId: data.clientId,
                     groupId: data.groupId,
                     groupName: data.groupName,
-                    creatorName: data.creatorName,
+                    clientName: data.clientName,
                     items: data.items,
                     totalAmount: data.totalAmount,
                     status: data.status,
                     orderType: data.orderType || 'group',
                     createdAt: data.createdAt?.toMillis(),
                     contributions,
-                    driverId: data.driverId,
-                    driverName: data.driverName,
+                    courierId: data.courierId,
+                    courierName: data.courierName,
                 });
             }
             
@@ -135,7 +136,7 @@ export default function MyOrdersPage() {
                                                     <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                                     <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
                                                     <TableCell>
-                                                        <Badge variant={statusColors[order.status]} className={cn("text-xs font-semibold px-2 py-1 rounded-full", statusBgColors[order.status])}>
+                                                        <Badge variant={statusColors[order.status]} className={cn("text-xs font-semibold px-2 py-1 rounded-full capitalize", statusBgColors[order.status])}>
                                                             {order.status}
                                                         </Badge>
                                                     </TableCell>
@@ -152,18 +153,18 @@ export default function MyOrdersPage() {
                                                                 <h4 className="font-semibold mb-2 flex items-center gap-2"><ListOrdered/> Detalhes do Pedido</h4>
                                                                 <ul className="space-y-1 text-sm text-muted-foreground">
                                                                     {order.items.map(item => (
-                                                                        <li key={item.product.id} className="flex justify-between">
-                                                                            <span>{item.quantity} x {item.product.name}</span>
-                                                                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price * item.quantity)}</span>
+                                                                        <li key={item.id} className="flex justify-between">
+                                                                            <span>{item.quantity} x {item.name}</span>
+                                                                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.price * item.quantity)}</span>
                                                                         </li>
                                                                     ))}
                                                                 </ul>
-                                                                 {order.driverName && (
+                                                                 {order.courierName && (
                                                                     <div className="mt-4 pt-4 border-t">
                                                                         <h5 className="font-semibold mb-2">Detalhes da Entrega</h5>
                                                                         <div className="flex justify-between text-sm">
                                                                             <span>Entregador:</span>
-                                                                            <span>{order.driverName}</span>
+                                                                            <span>{order.courierName}</span>
                                                                         </div>
                                                                     </div>
                                                                 )}

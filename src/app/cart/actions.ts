@@ -18,8 +18,8 @@ export async function createIndividualOrder(
         const user: User = await getUser(userId);
 
         const orderResult = await createOrder({
-            creatorId: userId,
-            creatorName: user.name,
+            clientId: userId,
+            clientName: user.name,
             items: items,
             totalAmount: totalAmount,
             orderType: 'individual'

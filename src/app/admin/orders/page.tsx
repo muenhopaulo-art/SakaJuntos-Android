@@ -1,3 +1,4 @@
+
 import { getOrders } from '../actions';
 import type { Order } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -11,6 +12,7 @@ import { OrderActions } from './order-actions';
 import { AssignDriverDialog } from './assign-driver-dialog';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {Button} from "@/components/ui/button";
 
 
 function getErrorMessage(error: any): string {
@@ -54,7 +56,7 @@ export default async function AdminOrdersPage() {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <CardTitle className="text-base">Pedido #{order.id.substring(0, 6)}</CardTitle>
-                                                <CardDescription>{order.creatorName}</CardDescription>
+                                                <CardDescription>{order.clientName}</CardDescription>
                                             </div>
                                              <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -132,7 +134,7 @@ export default async function AdminOrdersPage() {
                                                         {order.groupName || 'Individual'}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell>{order.creatorName}</TableCell>
+                                                <TableCell>{order.clientName}</TableCell>
                                                 <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                                 <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
                                                 <TableCell>
