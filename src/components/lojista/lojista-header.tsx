@@ -13,7 +13,8 @@ import {
   ShoppingCart,
   Users,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  ShoppingBag
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -137,10 +138,19 @@ export function LojistaHeader() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+                <Link href="/">
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    <span>Ver Loja como Cliente</span>
+                </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild><Link href="/lojista/perfil">Configurações</Link></DropdownMenuItem>
             <DropdownMenuItem>Suporte</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>Sair</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sair</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
