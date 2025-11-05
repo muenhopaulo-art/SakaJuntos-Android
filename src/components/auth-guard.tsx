@@ -15,6 +15,9 @@ import { OrdersSheet } from '../app/orders-sheet';
 const publicPaths = ['/login', '/seed'];
 const adminPaths = ['/admin', '/admin/orders', '/admin/products', '/admin/users'];
 const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos'];
+// Client-facing paths that are not dashboards
+const clientPaths = ['/', '/minishopping', '/grupos', '/cart', '/my-orders'];
+
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth);
@@ -49,6 +52,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const pathIsPublic = publicPaths.includes(pathname);
     const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
     const pathIsLojista = lojistaPaths.some(p => pathname.startsWith(p));
+    const pathIsProductDetails = /^\/produto\/[^/]+$/.test(pathname);
 
     // If user is not logged in and not on a public path, redirect to login
     if (!user && !pathIsPublic) {
@@ -71,20 +75,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        // If an admin is on a non-admin page, redirect them to admin
+        // If an admin is on a non-admin page (that isn't part of the admin dashboard), redirect them to admin.
         if (appUser.role === 'admin' && !pathIsAdmin) {
             router.push('/admin');
             return;
         }
         
-        // If a lojista/client is on a non-lojista page (and not admin), redirect them to lojista dashboard
-        if ((appUser.role === 'lojista' || appUser.role === 'client') && !pathIsLojista && appUser.role !== 'admin') {
+        // If a lojista/client tries to access admin pages, redirect them.
+        if ((appUser.role === 'lojista' || appUser.role === 'client') && pathIsAdmin) {
             router.push('/lojista');
             return;
         }
 
-        // If a courier tries to access any page other than the home page, redirect them.
-        if (appUser.role === 'courier' && pathname !== '/') {
+        // If a courier tries to access any protected dashboard, redirect them.
+        if (appUser.role === 'courier' && (pathIsAdmin || pathIsLojista)) {
             router.push('/');
             return;
         }
