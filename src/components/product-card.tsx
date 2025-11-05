@@ -49,10 +49,8 @@ export function ProductCard({ product }: ProductCardProps) {
                     Adicionar
                 </Button>
             ) : (
-                 <Button asChild variant="outline" className="w-full mt-auto">
-                    <Link href={`/produto/${product.id}`}>
-                        Ver Detalhes
-                    </Link>
+                 <Button variant="outline" className="w-full mt-auto" onClick={(e) => e.preventDefault()}>
+                    Ver Detalhes
                 </Button>
             )}
         </CardContent>
