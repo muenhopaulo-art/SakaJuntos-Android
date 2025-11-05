@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Minus, Plus, ShoppingCart, Sparkles, Trash2, Package, Loader2 } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Trash2, Package, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
-import { getOrderSummary, createIndividualOrder } from './actions';
+import { createIndividualOrder } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 
@@ -21,27 +21,10 @@ const SHIPPING_COST = 1000;
 
 export function CartView() {
   const { items, removeItem, updateItemQuantity, totalPrice, totalItems, clearCart, isInitialized } = useCart();
-  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
-  const [summary, setSummary] = useState<string | null>(null);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [user] = useAuthState(auth);
   const router = useRouter();
   const { toast } = useToast();
-
-  const handleSummarize = async () => {
-    setIsSummaryLoading(true);
-    setSummary(null);
-    try {
-      const result = await getOrderSummary({ items, totalAmount: totalPrice + SHIPPING_COST });
-      setSummary(result.summary);
-    } catch (error) {
-      setSummary("Desculpe, não foi possível gerar o resumo do seu pedido.");
-      console.error(error);
-    }
-    setIsAlertOpen(true);
-    setIsSummaryLoading(false);
-  };
   
   const handleCheckout = async () => {
       if (!user) {
@@ -175,26 +158,9 @@ export function CartView() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <Button size="lg" variant="outline" className="w-full" onClick={handleSummarize} disabled={isSummaryLoading}>
-              {isSummaryLoading ? 'A gerar...' : <><Sparkles className="mr-2 h-4 w-4" /> Resumir com IA</>}
-            </Button>
           </CardFooter>
         </Card>
       </div>
-
-      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2"><Sparkles className="text-accent-foreground h-5 w-5"/>Resumo do Pedido Gerado por IA</AlertDialogTitle>
-            <AlertDialogDescription className="text-left whitespace-pre-wrap pt-4">
-              {summary || 'A carregar...'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction>Fechar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
