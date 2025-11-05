@@ -46,7 +46,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading || isAppUserLoading) return; // Wait for both auth and user profile to load
 
-    const pathIsPublic = publicPaths.includes(pathname) || pathname === '/';
+    const pathIsPublic = publicPaths.includes(pathname);
     const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
     const pathIsLojista = lojistaPaths.some(p => pathname.startsWith(p));
 
@@ -58,16 +58,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     
     if (user && appUser) {
         // Redirect logged-in users from public pages to their respective dashboards
-        if (publicPaths.includes(pathname) && pathname !== '/') {
+        if (publicPaths.includes(pathname)) {
              if (appUser.role === 'admin') router.push('/admin');
-             else if (appUser.role === 'lojista') router.push('/lojista');
-             else router.push('/');
+             else router.push('/lojista'); // Default for all other logged-in users
              return;
         }
 
         // If a non-admin tries to access admin pages, redirect them
         if (appUser.role !== 'admin' && pathIsAdmin) {
-            router.push('/dashboard');
+            router.push('/lojista'); // Default dashboard
             return;
         }
 
@@ -77,14 +76,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             return;
         }
         
-        // If a non-lojista tries to access lojista pages, redirect them
-        if (appUser.role !== 'lojista' && pathIsLojista) {
-            router.push('/dashboard');
-            return;
-        }
-
-        // If a lojista is on a non-lojista page, redirect them to the lojista dashboard
-        if (appUser.role === 'lojista' && !pathIsLojista) {
+        // If a lojista/seller is on a non-lojista page (and not admin), redirect them to lojista dashboard
+        if (appUser.role === 'lojista' && !pathIsLojista && appUser.role !== 'admin') {
             router.push('/lojista');
             return;
         }
@@ -92,12 +85,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         // If a courier tries to access any page other than the home page, redirect them.
         if (appUser.role === 'courier' && pathname !== '/') {
             router.push('/');
-            return;
-        }
-
-        // If user is a pending/rejected lojista, restrict access to other pages
-        if (appUser.wantsToBecomeLojista && appUser.verificationStatus !== 'approved' && pathname !== '/dashboard') {
-            router.push('/dashboard');
             return;
         }
     }
@@ -119,13 +106,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const pathIsPublic = publicPaths.includes(pathname);
-  const pathIsLayoutLess = adminPaths.some(p => pathname.startsWith(p)) || lojistaPaths.some(p => pathname.startsWith(p));
+  const pathIsLayoutLess = publicPaths.includes(pathname) || adminPaths.some(p => pathname.startsWith(p)) || lojistaPaths.some(p => pathname.startsWith(p));
   const pathIsGroupDetails = /^\/grupos\/[^/]+$/.test(pathname);
 
 
   // Render children without the main layout for public, admin and lojista pages
-  if (pathIsPublic || pathIsLayoutLess) {
+  if (pathIsLayoutLess) {
     return <>{children}</>;
   }
 

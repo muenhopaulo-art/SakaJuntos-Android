@@ -1,7 +1,10 @@
+
 'use client';
 import type { User } from '@/services/user-service';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 interface DashboardProps {
     user: User;
@@ -9,15 +12,21 @@ interface DashboardProps {
 }
 
 export function Dashboard({ user, onLogout }: DashboardProps) {
+    const router = useRouter();
+
+    useEffect(() => {
+        // Redirect to the unified seller/client dashboard
+        router.replace('/lojista');
+    }, [router]);
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Bem-vindo, {user.name}!</CardTitle>
-                <CardDescription>Este é o seu painel de cliente.</CardDescription>
+                <CardDescription>A redirecionar para o seu painel...</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <p>Aqui você poderá ver o histórico de compras, gerir os seus dados e muito mais.</p>
-                <p>Navegue para <a href="/minishopping" className="text-primary underline">MiniShopping</a> ou <a href="/grupos" className="text-primary underline">Grupos</a> para começar.</p>
+                <p>O seu painel de utilizador e vendedor está a carregar.</p>
                 <Button onClick={onLogout} variant="destructive">Terminar Sessão</Button>
             </CardContent>
         </Card>

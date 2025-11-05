@@ -27,7 +27,6 @@ import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { createUser, getUser } from '@/services/user-service';
 import { useRouter } from 'next/navigation';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const phoneRegex = /^9\d{8}$/; // Aceita números de 9 dígitos que começam com 9
@@ -48,20 +47,6 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['lojista', 'courier'], {
-    required_error: "Precisa de selecionar um tipo de conta."
-  }),
-  lojistaPhone: z.string().optional(),
-}).refine(data => {
-    // Se o role for 'courier', o lojistaPhone é obrigatório e deve ser válido
-    if (data.role === 'courier') {
-        return data.lojistaPhone && phoneRegex.test(data.lojistaPhone);
-    }
-    // Caso contrário, não é obrigatório
-    return true;
-}, {
-    message: "O telemóvel do lojista é obrigatório e deve ser um número válido.",
-    path: ["lojistaPhone"], // Campo onde o erro será exibido
 });
 
 
@@ -75,14 +60,8 @@ export function AuthForm() {
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '', province: '', role: 'lojista', lojistaPhone: '' },
+    defaultValues: { name: '', phone: '', password: '', province: '' },
   });
-
-  const selectedRole = useWatch({
-    control: form.control,
-    name: 'role',
-  });
-
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
      setIsLoading(true);
@@ -100,15 +79,13 @@ export function AuthForm() {
                 name: registerValues.name,
                 phone: values.phone,
                 province: registerValues.province,
-                role: registerValues.role,
-                lojistaPhone: registerValues.lojistaPhone,
             });
             
             toast({
                 title: "Conta Criada!",
                 description: "O seu registo foi concluído com sucesso. A entrar...",
             });
-            router.push('/');
+            router.push('/lojista');
         } else {
             // Login mode
             const userCredential = await signInWithEmailAndPassword(auth, email, values.password);
@@ -246,63 +223,7 @@ export function AuthForm() {
                   </FormItem>
                 )}
               />
-              {authMode === 'register' && (
-                <>
-                <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                        <FormItem className="space-y-3">
-                            <FormLabel>Deseja registar-se como:</FormLabel>
-                            <FormControl>
-                                <RadioGroup
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                    className="flex flex-col space-y-2"
-                                    disabled={isLoading}
-                                >
-                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                        <FormControl>
-                                            <RadioGroupItem value="lojista" />
-                                        </FormControl>
-                                        <FormLabel className="font-normal">
-                                            Cliente / Vendedor
-                                        </FormLabel>
-                                    </FormItem>
-                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                        <FormControl>
-                                            <RadioGroupItem value="courier" />
-                                        </FormControl>
-                                        <FormLabel className="font-normal">
-                                            Entregador
-                                        </FormLabel>
-                                    </FormItem>
-                                </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                  {selectedRole === 'courier' && (
-                      <FormField
-                          control={form.control}
-                          name="lojistaPhone"
-                          render={({ field }) => (
-                              <FormItem>
-                                  <FormLabel>Telemóvel do Lojista</FormLabel>
-                                  <FormControl>
-                                      <Input placeholder="9xx xxx xxx do seu lojista" {...field} disabled={isLoading} className="py-3 px-4 rounded-xl" />
-                                  </FormControl>
-                                  <FormDescription>
-                                      Se trabalha para uma loja, insira o número dela aqui.
-                                  </FormDescription>
-                                  <FormMessage />
-                              </FormItem>
-                          )}
-                      />
-                  )}
-                </>
-              )}
+              
               <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? (authMode === 'login' ? 'A entrar...' : 'A registar...') : (authMode === 'login' ? 'Entrar' : 'Registar')}

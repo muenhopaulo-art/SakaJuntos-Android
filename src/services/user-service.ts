@@ -10,45 +10,20 @@ interface UserProfileData {
     name: string;
     phone: string;
     province: string;
-    role: UserRole;
-    lojistaPhone?: string;
 }
 
 export async function createUser(uid: string, data: UserProfileData) {
     try {
         const userRef = doc(db, 'users', uid);
         
-        let verificationStatus = 'none';
-        let ownerLojistaId: string | undefined = undefined;
-
-        if (data.role === 'lojista') {
-            verificationStatus = 'approved';
-        } else if (data.role === 'courier') {
-             if (data.lojistaPhone) {
-                // Find the lojista by phone number
-                const lojistaQuery = query(collection(db, 'users'), where("phone", "==", data.lojistaPhone), where("role", "==", "lojista"), limit(1));
-                const lojistaSnapshot = await getDocs(lojistaQuery);
-                if (!lojistaSnapshot.empty) {
-                    ownerLojistaId = lojistaSnapshot.docs[0].id;
-                    verificationStatus = 'approved'; // Auto-approve if associated with a lojista
-                } else {
-                     throw new Error("O telemóvel do lojista fornecido não foi encontrado ou não pertence a um vendedor válido.");
-                }
-            } else {
-                 throw new Error("O telemóvel do lojista é obrigatório para o registo de entregador.");
-            }
-        }
-
-
         await setDoc(userRef, {
             name: data.name,
             phone: data.phone,
             province: data.province,
-            role: data.role,
+            role: 'lojista', // All new users are sellers by default
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
-            verificationStatus: verificationStatus,
-            ownerLojistaId: ownerLojistaId,
+            verificationStatus: 'approved', // All users are pre-approved to sell
             online: false,
         });
         return { success: true, uid };
@@ -78,7 +53,7 @@ export async function getUser(uid: string): Promise<User> {
         phone: data.phone,
         email: data.email,
         province: data.province,
-        role: data.role || 'client',
+        role: data.role || 'lojista', // Default to lojista
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
         verificationStatus: data.verificationStatus || 'none',
         ownerLojistaId: data.ownerLojistaId,
