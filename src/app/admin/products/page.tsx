@@ -69,8 +69,8 @@ export default async function AdminProductsPage() {
                                         <TableRow key={product.id}>
                                             <TableCell>
                                                 <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                                    {product.imageUrls && product.imageUrls[0] ? (
-                                                        <Image src={product.imageUrls[0]} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
+                                                    {product.imageUrl ? (
+                                                        <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
                                                     ) : (
                                                         <Package className="h-6 w-6 text-muted-foreground" />
                                                     )}

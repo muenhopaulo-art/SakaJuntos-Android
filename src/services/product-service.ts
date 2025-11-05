@@ -18,8 +18,8 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     name: data.name,
     description: data.description,
     price: data.price,
-    category: data.category || 'produto',
-    imageUrls: data.imageUrls || [],
+    productType: data.productType || 'product',
+    imageUrl: data.imageUrl,
     aiHint: data.aiHint,
     lojistaId: data.lojistaId,
     contactPhone: data.contactPhone,
@@ -80,7 +80,7 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
         price: data.price,
         imageUrl: data.imageUrl,
         aiHint: data.aiHint,
-        category: 'produto',
+        productType: 'product',
         participants: data.participants,
         target: data.target,
         creatorId: data.creatorId,
@@ -145,7 +145,7 @@ export async function createGroupPromotion(
             ...restOfGroupData,
             participants: 1, 
             status: 'active',
-            category: 'produto', // Group promotions are always products
+            productType: 'product', // Group promotions are always products
             createdAt: serverTimestamp(),
         });
 
@@ -303,10 +303,10 @@ export async function updateGroupCart(groupId: string, product: Product, change:
                 name: product.name,
                 description: product.description,
                 price: product.price,
-                imageUrls: product.imageUrls || [],
+                imageUrl: product.imageUrl || null,
                 aiHint: product.aiHint || null,
                 lojistaId: product.lojistaId || null,
-                category: product.category || 'produto',
+                productType: product.productType || 'product',
                 contactPhone: product.contactPhone || null,
             };
 
@@ -402,7 +402,7 @@ export async function seedDatabase() {
     const promotionsCol = collection(db, 'groupPromotions');
     mockGroupPromotions.forEach(promotion => {
         const docRef = doc(collection(db, "groupPromotions"));
-        batch.set(docRef, { ...promotion, status: 'active', category: 'produto', createdAt: serverTimestamp() });
+        batch.set(docRef, { ...promotion, status: 'active', productType: 'product', createdAt: serverTimestamp() });
     });
 
     await batch.commit();

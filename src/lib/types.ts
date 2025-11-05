@@ -5,12 +5,12 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  category: 'produto' | 'serviço';
-  imageUrls: string[]; 
+  productType: 'product' | 'service'; // Renomeado de 'category' para 'productType'
+  imageUrl?: string; // Alterado de imageUrls (array) para imageUrl (string opcional)
   aiHint?: string;
   createdAt?: number;
   lojistaId?: string;
-  contactPhone?: string;
+  contactPhone?: string; // Mantido para serviços
 }
 
 export interface GroupMember {
@@ -36,7 +36,8 @@ export interface ChatMessage {
 
 export type GroupStatus = 'active' | 'finalized' | 'delivered';
 
-export interface GroupPromotion extends Omit<Product, 'imageUrls' | 'category' | 'contactPhone'> {
+// A promoção de grupo é um tipo de produto, mas com campos adicionais
+export interface GroupPromotion extends Omit<Product, 'productType' | 'contactPhone'> {
   participants: number;
   target: number;
   creatorId: string;
@@ -45,8 +46,7 @@ export interface GroupPromotion extends Omit<Product, 'imageUrls' | 'category' |
   groupCart: CartItem[];
   contributions: Contribution[];
   status: GroupStatus;
-  category: 'produto';
-  imageUrl?: string; // Keep for backward compatibility with existing group promotions mock data
+  productType: 'product'; // Grupos são sempre produtos
 }
 
 export interface CartItem {
@@ -109,4 +109,3 @@ export interface User {
     ownerLojistaId?: string; // ID of the lojista this courier works for
     online?: boolean;
 }
-

@@ -42,11 +42,11 @@ const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
-  imageUrls: z.array(z.string()).min(1, 'É necessário carregar pelo menos uma imagem.').max(4, 'Pode carregar no máximo 4 imagens.'),
-  category: z.enum(['produto', 'serviço'], { required_error: 'Por favor, selecione uma categoria.' }),
+  imageUrl: z.string().optional(),
+  productType: z.enum(['product', 'service'], { required_error: 'Por favor, selecione um tipo.' }),
   contactPhone: z.string().optional(),
 }).refine(data => {
-    if (data.category === 'serviço') {
+    if (data.productType === 'service') {
         return !!data.contactPhone && phoneRegex.test(data.contactPhone);
     }
     return true;
@@ -67,78 +67,51 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       name: '',
       description: '',
       price: 0,
-      imageUrls: [],
-      category: 'produto',
+      imageUrl: '',
+      productType: 'product',
       contactPhone: '',
     },
   });
 
   const { isSubmitting } = form.formState;
 
-  const imageUrls = useWatch({
+  const imageUrl = useWatch({
     control: form.control,
-    name: 'imageUrls',
+    name: 'imageUrl',
   });
 
-  const selectedCategory = useWatch({
+  const selectedType = useWatch({
     control: form.control,
-    name: 'category',
+    name: 'productType',
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const currentImageCount = imageUrls.length;
-    const filesToProcess = Array.from(files).slice(0, 4 - currentImageCount);
-
-    if (files.length + currentImageCount > 4) {
-        toast({
-            variant: "destructive",
-            title: "Limite de Imagens Excedido",
-            description: "Só pode carregar um máximo de 4 imagens."
-        });
+    if (file.size > MAX_FILE_SIZE) {
+        form.setError("imageUrl", { message: `O ficheiro é demasiado grande (máx 4.5MB).` });
+        return;
+    }
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        form.setError("imageUrl", { message: `Formato de ficheiro inválido.` });
+        return;
     }
 
-    let validationError = false;
-    filesToProcess.forEach(file => {
-        if (file.size > MAX_FILE_SIZE) {
-            form.setError("imageUrls", { message: `O ficheiro ${file.name} é demasiado grande (máx 4.5MB).` });
-            validationError = true;
-        }
-        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-            form.setError("imageUrls", { message: `Formato de ficheiro inválido em ${file.name}.` });
-            validationError = true;
-        }
-    });
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        form.setValue('imageUrl', reader.result as string);
+        form.clearErrors("imageUrl");
+    };
+    reader.readAsDataURL(file);
 
-    if (validationError) return;
-
-    const newImageUrls = [...imageUrls];
-    let processedCount = 0;
-
-    filesToProcess.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            newImageUrls.push(reader.result as string);
-            processedCount++;
-            if (processedCount === filesToProcess.length) {
-                form.setValue('imageUrls', newImageUrls);
-                form.clearErrors("imageUrls");
-            }
-        };
-        reader.readAsDataURL(file);
-    });
-
-    // Reset file input
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
   };
 
-  const removeImage = (index: number) => {
-    const newImageUrls = imageUrls.filter((_, i) => i !== index);
-    form.setValue('imageUrls', newImageUrls);
+  const removeImage = () => {
+    form.setValue('imageUrl', '');
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
@@ -174,10 +147,10 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
              <FormField
               control={form.control}
-              name="category"
+              name="productType"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>Categoria</FormLabel>
+                  <FormLabel>Tipo de Publicação</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -186,13 +159,13 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="produto" />
+                          <RadioGroupItem value="product" />
                         </FormControl>
                         <FormLabel className="font-normal">Produto</FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="serviço" />
+                          <RadioGroupItem value="service" />
                         </FormControl>
                         <FormLabel className="font-normal">Serviço</FormLabel>
                       </FormItem>
@@ -230,7 +203,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
               )}
             />
             
-            {selectedCategory === 'serviço' && (
+            {selectedType === 'service' && (
                <FormField
                 control={form.control}
                 name="contactPhone"
@@ -261,21 +234,16 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             />
             <FormField
               control={form.control}
-              name="imageUrls"
+              name="imageUrl"
               render={() => (
                 <FormItem>
-                  <FormLabel>Imagens (mín. 1, máx. 4)</FormLabel>
-                  {imageUrls && imageUrls.length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {imageUrls.map((url, index) => (
-                              <div key={index} className="relative aspect-square">
-                                  <Image src={url} alt={`Pré-visualização ${index + 1}`} fill className="rounded-md object-cover"/>
-                                  <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
-                                      <X className="h-4 w-4" />
-                                  </Button>
-                                  {index === 0 && <div className="absolute bottom-0 left-0 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded-br-md rounded-tl-md">Capa</div>}
-                              </div>
-                          ))}
+                  <FormLabel>Imagem</FormLabel>
+                  {imageUrl && (
+                      <div className="relative aspect-video w-full">
+                          <Image src={imageUrl} alt="Pré-visualização" fill className="rounded-md object-contain"/>
+                          <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={removeImage}>
+                              <X className="h-4 w-4" />
+                          </Button>
                       </div>
                   )}
                   <FormControl>
@@ -285,20 +253,19 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                         id="image-upload"
                         className="hidden"
                         accept="image/*"
-                        multiple
                         onChange={handleImageChange}
                         ref={fileInputRef}
-                        disabled={imageUrls.length >= 4}
+                        disabled={!!imageUrl}
                       />
                       <label
                         htmlFor="image-upload"
                         className={cn(
                             "cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full",
-                            imageUrls.length >= 4 && "opacity-50 cursor-not-allowed"
+                            !!imageUrl && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         <Upload className="mr-2 h-4 w-4" />
-                        {imageUrls.length > 0 ? 'Adicionar mais' : 'Carregar Imagens'}
+                        Carregar Imagem
                       </label>
                     </div>
                   </FormControl>

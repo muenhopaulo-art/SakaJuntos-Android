@@ -36,9 +36,10 @@ export async function createOrder(
             name: item.product.name,
             description: item.product.description,
             price: item.product.price,
-            imageUrls: item.product.imageUrls || [],
+            imageUrl: item.product.imageUrl || null,
             aiHint: item.product.aiHint || null,
             lojistaId: item.product.lojistaId || null,
+            productType: item.product.productType || 'product',
         }
     }));
 

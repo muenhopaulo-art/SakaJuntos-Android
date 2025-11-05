@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,10 +32,10 @@ const convertDocToProduct = (doc: any): Product => {
     name: data.name,
     description: data.description,
     price: data.price,
-    imageUrls: data.imageUrls || [],
+    imageUrl: data.imageUrl,
     aiHint: data.aiHint,
     lojistaId: data.lojistaId,
-    category: data.category,
+    productType: data.productType || 'product',
     contactPhone: data.contactPhone,
     createdAt: data.createdAt?.toMillis(),
   };
@@ -98,7 +99,7 @@ export default function LojistaProductsPage() {
                                 <TableRow>
                                     <TableHead className="w-16">Imagem</TableHead>
                                     <TableHead>Nome</TableHead>
-                                    <TableHead>Categoria</TableHead>
+                                    <TableHead>Tipo</TableHead>
                                     <TableHead>Preço</TableHead>
                                     <TableHead>Data de Criação</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
@@ -110,15 +111,15 @@ export default function LojistaProductsPage() {
                                         <TableRow key={product.id}>
                                             <TableCell>
                                                 <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                                    {product.imageUrls && product.imageUrls[0] ? (
-                                                        <Image src={product.imageUrls[0]} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
+                                                    {product.imageUrl ? (
+                                                        <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
                                                     ) : (
                                                         <Package className="h-6 w-6 text-muted-foreground" />
                                                     )}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{product.name}</TableCell>
-                                            <TableCell className="capitalize">{product.category}</TableCell>
+                                            <TableCell className="capitalize">{product.productType === 'product' ? 'Produto' : 'Serviço'}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</TableCell>
                                             <TableCell>{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                             <TableCell className="text-right">

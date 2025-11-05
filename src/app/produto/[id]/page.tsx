@@ -22,12 +22,6 @@ const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
         <div className="grid gap-4">
             <div className="aspect-square w-full bg-muted rounded-lg animate-pulse" />
-            <div className="grid grid-cols-4 gap-4">
-                <div className="aspect-square w-full bg-muted rounded-lg animate-pulse" />
-                <div className="aspect-square w-full bg-muted rounded-lg animate-pulse" />
-                <div className="aspect-square w-full bg-muted rounded-lg animate-pulse" />
-                <div className="aspect-square w-full bg-muted rounded-lg animate-pulse" />
-            </div>
         </div>
         <div className="space-y-6">
             <div className="h-10 w-3/4 bg-muted rounded animate-pulse" />
@@ -48,7 +42,6 @@ export default function ProductDetailPage() {
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [selectedImage, setSelectedImage] = useState(0);
     const [isScheduling, setIsScheduling] = useState(false);
     
     const { addItem } = useCart();
@@ -64,12 +57,11 @@ export default function ProductDetailPage() {
                     const productSnap = await getDoc(productRef);
                     if (productSnap.exists()) {
                         const productData = { id: productSnap.id, ...productSnap.data() } as Product;
-                        // Ensure category is set, default to 'produto' if not present
-                        if (!productData.category) {
-                            productData.category = 'produto';
+                        // Ensure productType is set, default to 'product' if not present
+                        if (!productData.productType) {
+                            productData.productType = 'product';
                         }
                         setProduct(productData);
-                        setSelectedImage(0);
                     } else {
                         setError('Produto ou serviço não encontrado.');
                     }
@@ -126,35 +118,19 @@ export default function ProductDetailPage() {
         return null;
     }
 
-    const hasImages = product.imageUrls && product.imageUrls.length > 0;
+    const hasImage = product.imageUrl;
 
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
                 <div className="grid gap-4">
                     <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-                        {hasImages ? (
-                            <Image src={product.imageUrls[selectedImage]} alt={product.name} fill className="object-contain" />
+                        {hasImage ? (
+                            <Image src={product.imageUrl!} alt={product.name} fill className="object-contain" />
                         ) : (
                             <Package className="h-32 w-32 text-muted-foreground"/>
                         )}
                     </div>
-                    {hasImages && product.imageUrls.length > 1 && (
-                        <div className="grid grid-cols-4 gap-4">
-                            {product.imageUrls.map((url, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => setSelectedImage(index)}
-                                    className={cn(
-                                        "relative aspect-square w-full overflow-hidden rounded-lg bg-muted border-2",
-                                        selectedImage === index ? 'border-primary' : 'border-transparent'
-                                    )}
-                                >
-                                    <Image src={url} alt={`${product.name} thumbnail ${index + 1}`} fill className="object-cover" />
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
 
                 <div className="flex flex-col">
@@ -162,12 +138,12 @@ export default function ProductDetailPage() {
                         <CardHeader>
                             <CardTitle className="text-3xl font-bold font-headline">{product.name}</CardTitle>
                              <CardDescription className="capitalize">
-                                {product.category}
+                                {product.productType === 'product' ? 'Produto' : 'Serviço'}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <p className="text-3xl font-bold">
-                                {product.category === 'serviço' && product.price > 0 && 'A partir de '}
+                                {product.productType === 'service' && product.price > 0 && 'A partir de '}
                                 {product.price > 0 
                                     ? new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)
                                     : 'Preço sob consulta'
@@ -179,7 +155,7 @@ export default function ProductDetailPage() {
                             </div>
                         </CardContent>
                         <CardFooter>
-                            {product.category === 'produto' ? (
+                            {product.productType === 'product' ? (
                                 <Button size="lg" className="w-full" onClick={handleAddToCart}>
                                     <ShoppingCart className="mr-2" />
                                     Adicionar ao Carrinho
