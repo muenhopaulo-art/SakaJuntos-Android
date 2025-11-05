@@ -12,11 +12,11 @@ interface ProductsCarouselProps {
 export function ProductsCarousel({ products }: ProductsCarouselProps) {
     return (
         <Carousel
-            opts={{ align: "start", loop: true, watchDrag: false }}
+            opts={{ align: "start", loop: true, watchDrag: true }}
             plugins={[
                 Autoplay({
                   delay: 4000,
-                  stopOnInteraction: false,
+                  stopOnInteraction: true,
                   stopOnMouseEnter: true,
                 }),
             ]}
@@ -24,7 +24,7 @@ export function ProductsCarousel({ products }: ProductsCarouselProps) {
             >
             <CarouselContent className="-ml-4">
                 {products.map(product => (
-                <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4 pl-4">
+                <CarouselItem key={product.id} className="sm:basis-1/2 md:basis-1/3 lg:basis-1/4 pl-4">
                     <div className="p-1 h-full">
                     <ProductCard product={product} />
                     </div>

@@ -1,4 +1,5 @@
 
+
 import { getGroupPromotions, getProducts } from '@/services/product-service';
 import type { GroupPromotion, Product } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -8,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ProductList } from './minishopping/product-list';
+import { ProductsCarousel } from '@/components/products-carousel';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -41,7 +42,7 @@ export default async function HomePage() {
 
   const hasData = products.length > 0 || groupPromotions.length > 0;
 
-  // Shuffle products for random display on infinite scroll
+  // Shuffle products for random display
   const shuffledProducts = products.sort(() => 0.5 - Math.random());
 
   return (
@@ -80,10 +81,13 @@ export default async function HomePage() {
 
             {products.length > 0 && (
                  <section>
-                    <div className="space-y-4 mb-8">
-                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> Produtos em Destaque</h2>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> MiniShopping</h2>
+                        <Link href="/minishopping" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+                            Ver Tudo
+                        </Link>
                     </div>
-                    <ProductList initialProducts={shuffledProducts} />
+                    <ProductsCarousel products={shuffledProducts} />
                 </section>
             )}
         </div>
