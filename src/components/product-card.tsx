@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type { Product } from '@/lib/types';
@@ -17,7 +16,6 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
-  const { toast } = useToast();
 
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -52,15 +50,12 @@ export function ProductCard({ product }: ProductCardProps) {
                     Adicionar
                 </Button>
             ) : (
-                <Button className="w-full mt-auto" asChild>
-                    <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); document.getElementById(`link-to-${product.id}`)?.click(); }}>
-                        Ver Detalhes
-                    </div>
+                <Button variant="outline" className="w-full mt-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                    Ver Detalhes
                 </Button>
             )}
         </CardContent>
         </Card>
-        <a id={`link-to-${product.id}`} href={`/produto/${product.id}`} className="hidden"></a>
     </Link>
   );
 }
