@@ -22,7 +22,7 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     imageUrl: data.imageUrl,
     aiHint: data.aiHint,
     lojistaId: data.lojistaId,
-    contactPhone: data.contactPhone,
+    serviceContactPhone: data.serviceContactPhone,
   };
 
   if (data.createdAt && data.createdAt instanceof Timestamp) {
@@ -307,7 +307,7 @@ export async function updateGroupCart(groupId: string, product: Product, change:
                 aiHint: product.aiHint || null,
                 lojistaId: product.lojistaId || null,
                 productType: product.productType || 'product',
-                contactPhone: product.contactPhone || null,
+                serviceContactPhone: product.serviceContactPhone || null,
             };
 
             if (change === 'add') {

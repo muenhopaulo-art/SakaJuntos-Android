@@ -44,15 +44,15 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   imageUrl: z.string().optional(),
   productType: z.enum(['product', 'service'], { required_error: 'Por favor, selecione um tipo.' }),
-  contactPhone: z.string().optional(),
+  serviceContactPhone: z.string().optional(),
 }).refine(data => {
     if (data.productType === 'service') {
-        return !!data.contactPhone && phoneRegex.test(data.contactPhone);
+        return !!data.serviceContactPhone && phoneRegex.test(data.serviceContactPhone);
     }
     return true;
 }, {
     message: 'O telefone para contacto é obrigatório para serviços e deve ser válido.',
-    path: ['contactPhone'],
+    path: ['serviceContactPhone'],
 });
 
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
@@ -69,7 +69,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       price: 0,
       imageUrl: '',
       productType: 'product',
-      contactPhone: '',
+      serviceContactPhone: '',
     },
   });
 
@@ -206,7 +206,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             {selectedType === 'service' && (
                <FormField
                 control={form.control}
-                name="contactPhone"
+                name="serviceContactPhone"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Telefone para Contacto</FormLabel>

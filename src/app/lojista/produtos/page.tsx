@@ -36,7 +36,7 @@ const convertDocToProduct = (doc: any): Product => {
     aiHint: data.aiHint,
     lojistaId: data.lojistaId,
     productType: data.productType || 'product',
-    contactPhone: data.contactPhone,
+    serviceContactPhone: data.serviceContactPhone,
     createdAt: data.createdAt?.toMillis(),
   };
 };

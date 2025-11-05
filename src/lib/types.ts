@@ -5,12 +5,12 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  productType: 'product' | 'service'; // Renomeado de 'category' para 'productType'
-  imageUrl?: string; // Alterado de imageUrls (array) para imageUrl (string opcional)
+  productType: 'product' | 'service';
+  imageUrl?: string;
   aiHint?: string;
   createdAt?: number;
   lojistaId?: string;
-  contactPhone?: string; // Mantido para serviços
+  serviceContactPhone?: string;
 }
 
 export interface GroupMember {
@@ -37,7 +37,7 @@ export interface ChatMessage {
 export type GroupStatus = 'active' | 'finalized' | 'delivered';
 
 // A promoção de grupo é um tipo de produto, mas com campos adicionais
-export interface GroupPromotion extends Omit<Product, 'productType' | 'contactPhone'> {
+export interface GroupPromotion extends Omit<Product, 'productType' | 'serviceContactPhone'> {
   participants: number;
   target: number;
   creatorId: string;

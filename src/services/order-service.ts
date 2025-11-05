@@ -41,7 +41,7 @@ export async function createOrder(
             aiHint: item.product.aiHint || null,
             lojistaId: item.product.lojistaId || null,
             productType: item.product.productType || 'product',
-            contactPhone: item.product.contactPhone || null, // Add contactPhone here
+            serviceContactPhone: item.product.serviceContactPhone || null, // Add serviceContactPhone here
         }
     }));
 

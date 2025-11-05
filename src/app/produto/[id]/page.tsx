@@ -82,8 +82,8 @@ export default function ProductDetailPage() {
     };
     
     const handleCall = () => {
-        if (product?.contactPhone) {
-            window.location.href = `tel:${product.contactPhone}`;
+        if (product?.serviceContactPhone) {
+            window.location.href = `tel:${product.serviceContactPhone}`;
         } else {
             toast({ variant: 'destructive', title: 'Contacto indisponível.'});
         }
@@ -162,7 +162,7 @@ export default function ProductDetailPage() {
                                 </Button>
                             ) : (
                                 <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                     <Button size="lg" variant="outline" onClick={handleCall} disabled={!product.contactPhone}>
+                                     <Button size="lg" variant="outline" onClick={handleCall} disabled={!product.serviceContactPhone}>
                                         <Phone className="mr-2" />
                                         Ligar
                                     </Button>
