@@ -30,7 +30,7 @@ function OrderItem({ order }: { order: Order }) {
         <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="flex justify-between items-start">
                 <div>
-                    <h3 className="font-semibold">{order.groupName || `Pedido ${order.orderType}`}</h3>
+                    <h3 className="font-semibold">{order.groupName || `Encomenda ${order.orderType}`}</h3>
                     <p className="text-xs text-muted-foreground font-mono">ID: #{order.id.substring(0, 6)}</p>
                 </div>
                 <div className={cn("text-xs font-semibold px-2 py-1 rounded-full capitalize", statusColors[order.status])}>

@@ -4,7 +4,7 @@
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import { createOrder, cleanupGroup } from '@/services/order-service';
-import type { CartItem, Contribution, GroupMember } from '@/lib/types';
+import type { CartItem, Contribution, GroupMember, User } from '@/lib/types';
 import { getUser } from '@/services/user-service';
 
 const SHIPPING_COST_PER_MEMBER = 1000;
@@ -42,11 +42,14 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
             throw new Error("O carrinho está vazio. Adicione produtos antes de finalizar.");
         }
         
-        const productsTotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+        const productsTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
         const shippingTotal = (members.length || 1) * SHIPPING_COST_PER_MEMBER;
         const totalAmount = productsTotal + shippingTotal;
         
-        const creator = await getUser(creatorId);
+        const creator: User | null = await getUser(creatorId);
+        if (!creator) {
+            throw new Error("Criador do grupo não encontrado.");
+        }
         
         // Create the final order with the existing contributions
         const orderResult = await createOrder({

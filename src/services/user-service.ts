@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, setDoc, getDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, limit, updateDoc } from 'firebase/firestore';
 import type { User, UserRole } from '@/lib/types';
 
 
@@ -37,12 +37,13 @@ export async function createUser(uid: string, data: UserProfileData) {
 }
 
 
-export async function getUser(uid: string): Promise<User> {
+export async function getUser(uid: string): Promise<User | null> {
     const userRef = doc(db, 'users', uid);
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-        throw new Error("User not found in Firestore.");
+        console.error(`User not found in Firestore for UID: ${uid}`);
+        return null;
     }
 
     const data = userSnap.data();
@@ -56,6 +57,7 @@ export async function getUser(uid: string): Promise<User> {
         role: data.role || 'lojista', // Default to lojista
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
         verificationStatus: data.verificationStatus || 'none',
+        wantsToBecomeLojista: data.wantsToBecomeLojista,
         ownerLojistaId: data.ownerLojistaId,
         online: data.online || false,
     };
@@ -73,11 +75,26 @@ export async function queryUserByPhone(phone: string): Promise<{user?: User, err
 
         const userDoc = querySnapshot.docs[0];
         const userData = await getUser(userDoc.id);
+        
+        if (!userData) {
+            return { error: "Não foi possível carregar os dados do utilizador." };
+        }
 
         return { user: userData };
 
     } catch(error) {
         console.error("Error querying user by phone:", error);
         return { error: "Ocorreu um erro ao procurar o utilizador." };
+    }
+}
+
+export async function setUserOnlineStatus(userId: string, online: boolean) {
+    try {
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, { online });
+        return { success: true };
+    } catch (error) {
+        console.error(`Error setting user ${userId} online status to ${online}:`, error);
+        return { success: false, message: 'Failed to update online status.' };
     }
 }

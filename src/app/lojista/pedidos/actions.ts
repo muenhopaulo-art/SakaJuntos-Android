@@ -62,7 +62,7 @@ export async function updateLojistaOrderStatus(orderId: string, status: OrderSta
       }
 
       await updateDoc(orderRef, { status });
-      // Revalidation is less critical now with real-time listeners, but good for backup
+      
       revalidatePath('/lojista/pedidos');
       revalidatePath('/admin/orders');
 

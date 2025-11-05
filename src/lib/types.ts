@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -53,6 +54,7 @@ export interface CartItem {
   name: string;
   price: number;
   quantity: number;
+  lojistaId?: string;
 }
 
 export interface Geolocation {
@@ -81,14 +83,16 @@ export type OrderType = 'individual' | 'group';
 export interface Order {
   id: string;
   clientId: string;
+  clientName: string;
   items: CartItem[];
   totalAmount: number;
   status: OrderStatus;
   orderType: OrderType;
   groupName?: string;
   groupId?: string;
-  clientName: string;
   createdAt?: number;
+  updatedAt?: number;
+  completedAt?: number;
   contributions?: Contribution[];
   lojistaId?: string;
   courierId?: string;
@@ -98,8 +102,6 @@ export interface Order {
   platformFee?: number;
   courierEarning?: number;
   paymentId?: string;
-  completedAt?: number;
-  updatedAt?: number;
 }
 
 export type UserRole = 'client' | 'lojista' | 'admin' | 'courier';
@@ -114,6 +116,7 @@ export interface User {
     role: UserRole;
     createdAt: number;
     verificationStatus?: VerificationStatus;
+    wantsToBecomeLojista?: boolean; // Keep for compatibility if needed
     ownerLojistaId?: string; // ID of the lojista this courier works for
     online?: boolean;
 }

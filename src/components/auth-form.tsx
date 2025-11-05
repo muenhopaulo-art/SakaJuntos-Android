@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Logo } from './Logo';
 import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { createUser, getUser } from '@/services/user-service';
+import { createUser, getUser, setUserOnlineStatus } from '@/services/user-service';
 import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
@@ -47,6 +47,7 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
+  role: z.enum(['lojista', 'courier']).default('lojista'), // New field for role selection
 });
 
 
@@ -60,7 +61,12 @@ export function AuthForm() {
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '', province: '' },
+    defaultValues: { name: '', phone: '', password: '', province: '', role: 'lojista' },
+  });
+
+  const selectedRole = useWatch({
+      control: form.control,
+      name: 'role'
   });
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -79,32 +85,41 @@ export function AuthForm() {
                 name: registerValues.name,
                 phone: values.phone,
                 province: registerValues.province,
+                role: registerValues.role,
             });
+            await setUserOnlineStatus(user.uid, true);
             
             toast({
                 title: "Conta Criada!",
                 description: "O seu registo foi concluído com sucesso. A entrar...",
             });
-            router.push('/lojista');
+
+            // Redirect based on role
+            if (registerValues.role === 'courier') {
+                router.push('/');
+            } else {
+                router.push('/lojista');
+            }
         } else {
             // Login mode
             const userCredential = await signInWithEmailAndPassword(auth, email, values.password);
             const user = userCredential.user;
             
             const appUser = await getUser(user.uid);
+            await setUserOnlineStatus(user.uid, true);
 
             toast({
                 title: "Login bem-sucedido!",
-                description: "Bem-vindo de volta.",
+                description: `Bem-vindo de volta, ${appUser?.name}.`,
             });
 
             if (appUser && appUser.role === 'admin') {
                 router.push('/admin');
-            } else if (appUser && appUser.role === 'lojista') {
+            } else if (appUser && (appUser.role === 'lojista' || appUser.role === 'client')) {
                 router.push('/lojista');
             }
              else {
-                router.push('/');
+                router.push('/'); // Fallback for couriers or other roles
             }
         }
 
@@ -161,6 +176,27 @@ export function AuthForm() {
               {authMode === 'register' && (
                   <>
                     <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                           <FormLabel>Tipo de Conta</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                                <FormControl>
+                                    <SelectTrigger className="py-3 px-4 rounded-xl">
+                                        <SelectValue placeholder="Selecione o tipo de conta" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="lojista">Cliente / Vendedor</SelectItem>
+                                    <SelectItem value="courier">Entregador</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
                         control={form.control}
                         name="name"
                         render={({ field }) => (
@@ -187,7 +223,7 @@ export function AuthForm() {
                 )}
               />
 
-              {authMode === 'register' && (
+              {authMode === 'register' && selectedRole === 'lojista' && (
                  <FormField
                     control={form.control}
                     name="province"

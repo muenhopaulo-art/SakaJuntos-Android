@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetClose } from './ui/sheet';
-import { Menu, User, LogOut, LayoutDashboard, Shield, Package } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Shield, Package, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -20,7 +20,7 @@ import {
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getUser, type User as AppUser } from '@/services/user-service';
+import { getUser, setUserOnlineStatus, type User as AppUser } from '@/services/user-service';
 import { CartSheet } from './cart-sheet';
 import { Logo } from './Logo';
 
@@ -40,6 +40,9 @@ export function SiteHeader() {
   }, [user]);
 
   const handleLogout = async () => {
+    if (user) {
+      await setUserOnlineStatus(user.uid, false);
+    }
     await auth.signOut();
     router.push('/login');
   }
@@ -124,12 +127,14 @@ export function SiteHeader() {
                       </div>
                     </DropdownMenuLabel>
                      <DropdownMenuSeparator />
-                     <DropdownMenuItem asChild>
-                        <Link href="/lojista">
-                            <LayoutDashboard className="mr-2 h-4 w-4" />
-                            <span>Painel do Vendedor</span>
-                        </Link>
-                     </DropdownMenuItem>
+                      {(appUser.role === 'lojista' || appUser.role === 'admin') && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/lojista">
+                              <LayoutDashboard className="mr-2 h-4 w-4" />
+                              <span>Painel do Vendedor</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem asChild>
                         <Link href="/my-orders">
                             <Package className="mr-2 h-4 w-4" />

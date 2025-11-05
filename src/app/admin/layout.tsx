@@ -2,10 +2,12 @@
 'use client'
 
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarContent, SidebarInset, SidebarFooter } from '@/components/ui/sidebar';
-import { Home, Package, LogOut } from 'lucide-react';
+import { Home, Package, LogOut, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { doc, updateDoc } from 'firebase/firestore';
 
 
 export default function AdminLayout({
@@ -15,14 +17,19 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [user] = useAuthState(auth);
 
   const menuItems = [
     { href: '/admin', label: 'Dashboard', icon: Home },
     { href: '/admin/orders', label: 'Pedidos', icon: Package },
     { href: '/admin/products', label: 'Produtos', icon: Package },
+    { href: '/admin/users', label: 'Utilizadores', icon: Users },
   ];
   
   const handleLogout = async () => {
+    if (user) {
+        await updateDoc(doc(db, "users", user.uid), { online: false });
+    }
     await auth.signOut();
     router.push('/login');
   }

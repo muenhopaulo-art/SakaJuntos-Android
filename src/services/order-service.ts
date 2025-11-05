@@ -3,7 +3,7 @@
 
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDocs } from 'firebase/firestore';
-import type { Order, Contribution } from '@/lib/types';
+import type { Order, Contribution, CartItem } from '@/lib/types';
 
 /**
  * Creates a final order in the 'orders' collection. This can be for individual or group purchases.
@@ -23,14 +23,13 @@ export async function createOrder(
 
     // Determine the lojistaId from the first item in the cart.
     // This assumes all items in an order come from the same lojista.
-    // This logic might need to be more robust if cart can have items from multiple lojistas.
     const lojistaId = orderData.items[0]?.lojistaId || null;
     if (!lojistaId) {
         console.warn("Order being created without a lojistaId. Items:", orderData.items);
     }
     
     // Ensure product data is plain and doesn't contain undefined fields
-    const cleanItems = orderData.items.map(item => ({
+    const cleanItems: CartItem[] = orderData.items.map(item => ({
         id: item.id,
         name: item.name,
         price: item.price,
@@ -41,7 +40,7 @@ export async function createOrder(
 
     const finalOrderData: Partial<Order> = {
       ...orderData,
-      items: cleanItems as any, // Use the cleaned items
+      items: cleanItems,
       lojistaId: lojistaId,
       status: 'a aguardar lojista', // Initial status for lojista to see
       createdAt: serverTimestamp() as any,

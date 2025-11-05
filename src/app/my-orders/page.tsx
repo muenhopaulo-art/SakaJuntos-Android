@@ -109,75 +109,55 @@ export default function MyOrdersPage() {
             ) : (
                 <Card>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>ID da Encomenda</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Data</TableHead>
-                                    <TableHead>Total</TableHead>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead className="text-right">Itens</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                             <TableBody>
-                                {orders.map(order => (
-                                     <Accordion type="single" collapsible className="w-full" asChild>
-                                        <AccordionItem value={order.id} asChild>
-                                             <>
-                                                <TableRow>
-                                                    <TableCell className="font-mono text-xs">#{order.id.substring(0, 6)}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
-                                                            {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
-                                                            {order.groupName || 'Individual'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
-                                                    <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={statusColors[order.status]} className={cn("text-xs font-semibold px-2 py-1 rounded-full capitalize", statusBgColors[order.status])}>
-                                                            {order.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                         <AccordionTrigger>
-                                                            <Button variant="ghost" size="sm">Ver Detalhes</Button>
-                                                         </AccordionTrigger>
-                                                    </TableCell>
-                                                </TableRow>
-                                                 <TableRow>
-                                                    <TableCell colSpan={6} className="p-0">
-                                                         <AccordionContent>
-                                                            <div className="p-4 bg-muted/50">
-                                                                <h4 className="font-semibold mb-2 flex items-center gap-2"><ListOrdered/> Detalhes do Pedido</h4>
-                                                                <ul className="space-y-1 text-sm text-muted-foreground">
-                                                                    {order.items.map(item => (
-                                                                        <li key={item.id} className="flex justify-between">
-                                                                            <span>{item.quantity} x {item.name}</span>
-                                                                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.price * item.quantity)}</span>
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                                 {order.courierName && (
-                                                                    <div className="mt-4 pt-4 border-t">
-                                                                        <h5 className="font-semibold mb-2">Detalhes da Entrega</h5>
-                                                                        <div className="flex justify-between text-sm">
-                                                                            <span>Entregador:</span>
-                                                                            <span>{order.courierName}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </AccordionContent>
-                                                    </TableCell>
-                                                 </TableRow>
-                                             </>
-                                        </AccordionItem>
-                                     </Accordion>
-                                ))}
-                            </TableBody>
-                        </Table>
+                        <Accordion type="single" collapsible className="w-full">
+                            {orders.map(order => (
+                                <AccordionItem value={order.id} key={order.id}>
+                                    <AccordionTrigger>
+                                        <div className="flex justify-between items-center w-full">
+                                            <div className="flex-1 text-left">
+                                                <p className="font-mono text-xs">#{order.id.substring(0, 6)}</p>
+                                                <p className="font-semibold">{order.groupName || 'Encomenda Individual'}</p>
+                                            </div>
+                                             <div className="flex-1 text-left hidden md:block">
+                                                 <p className="text-sm text-muted-foreground">Data</p>
+                                                 <p>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</p>
+                                             </div>
+                                            <div className="flex-1 text-left">
+                                                 <p className="text-sm text-muted-foreground">Total</p>
+                                                 <p>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</p>
+                                            </div>
+                                            <div className="flex-1 text-right pr-4">
+                                                <Badge variant={statusColors[order.status]} className={cn("text-xs font-semibold px-2 py-1 rounded-full capitalize", statusBgColors[order.status])}>
+                                                    {order.status}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="p-4 bg-muted/50">
+                                            <h4 className="font-semibold mb-2 flex items-center gap-2"><ListOrdered/> Detalhes da Encomenda</h4>
+                                            <ul className="space-y-1 text-sm text-muted-foreground">
+                                                {order.items.map((item, index) => (
+                                                    <li key={index} className="flex justify-between">
+                                                        <span>{item.quantity} x {item.name}</span>
+                                                        <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.price * item.quantity)}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                             {order.courierName && (
+                                                <div className="mt-4 pt-4 border-t">
+                                                    <h5 className="font-semibold mb-2">Detalhes da Entrega</h5>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span>Entregador:</span>
+                                                        <span>{order.courierName}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
                     </CardContent>
                 </Card>
             )}

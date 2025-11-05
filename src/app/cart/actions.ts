@@ -15,7 +15,10 @@ export async function createIndividualOrder(
             throw new Error("O carrinho está vazio.");
         }
         
-        const user: User = await getUser(userId);
+        const user: User | null = await getUser(userId);
+        if (!user) {
+            throw new Error("Perfil de utilizador não encontrado.");
+        }
 
         const orderResult = await createOrder({
             clientId: userId,

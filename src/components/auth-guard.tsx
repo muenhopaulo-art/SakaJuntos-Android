@@ -13,7 +13,7 @@ import { OrdersSheet } from '../app/orders-sheet';
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
-const adminPaths = ['/admin', '/admin/orders', '/admin/products'];
+const adminPaths = ['/admin', '/admin/orders', '/admin/products', '/admin/users'];
 const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -60,7 +60,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         // Redirect logged-in users from public pages to their respective dashboards
         if (publicPaths.includes(pathname)) {
              if (appUser.role === 'admin') router.push('/admin');
-             else router.push('/lojista'); // Default for all other logged-in users
+             else if (appUser.role === 'lojista' || appUser.role === 'client') router.push('/lojista');
+             else router.push('/'); // Fallback for couriers
              return;
         }
 
@@ -76,8 +77,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             return;
         }
         
-        // If a lojista/seller is on a non-lojista page (and not admin), redirect them to lojista dashboard
-        if (appUser.role === 'lojista' && !pathIsLojista && appUser.role !== 'admin') {
+        // If a lojista/client is on a non-lojista page (and not admin), redirect them to lojista dashboard
+        if ((appUser.role === 'lojista' || appUser.role === 'client') && !pathIsLojista && appUser.role !== 'admin') {
             router.push('/lojista');
             return;
         }
