@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product-card';
 import { Search, Loader2 } from 'lucide-react';
@@ -25,6 +25,7 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
   
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
@@ -33,15 +34,15 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
   const loaderRef = useRef(null);
 
   const loadMoreProducts = useCallback(async () => {
-    // Não carregar mais se já estiver a buscar, se não houver mais produtos, ou se houver uma pesquisa ativa
+    // Do not load more if we are already fetching, if there are no more products, or if a search is active
     if (isFetchingMore || !hasMore || debouncedSearchTerm) return;
     
     setIsFetchingMore(true);
-    // Em uma app real, você faria um fetch paginado.
-    // Aqui simulamos isso fatiando a lista inicial completa.
+    // In a real app, you would do a paginated fetch.
+    // Here we simulate this by slicing the complete initial list.
     const newProducts = initialProducts.slice(offset, offset + ITEMS_PER_PAGE);
     
-    // Simula um atraso de rede
+    // Simulate a network delay
     await new Promise(resolve => setTimeout(resolve, 500));
     
     setProducts(prev => [...prev, ...newProducts]);
@@ -63,7 +64,7 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
     );
 
     const loader = loaderRef.current;
-    if (loader && !debouncedSearchTerm) { // Só observar se não houver pesquisa
+    if (loader && !debouncedSearchTerm) { // Only observe if there is no search
       observer.observe(loader);
     }
 
@@ -75,29 +76,24 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
   }, [loadMoreProducts, debouncedSearchTerm]);
 
 
-  // Lidar com mudanças no termo de pesquisa
+  // Handle search term changes
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
-    const path = window.location.pathname; 
-
-    // Se o utilizador está a pesquisar, atualiza a URL, o que fará com que o Next.js recarregue a página do servidor com os novos dados.
+    
     if (debouncedSearchTerm) {
       params.set('q', debouncedSearchTerm);
-      const targetPath = path === '/' ? '/minishopping' : path;
-      startTransition(() => {
-        router.push(`${targetPath}?${params.toString()}`);
-      });
-    } else if (!debouncedSearchTerm && searchParams.has('q')) {
-      // Se o campo de pesquisa for limpo, remove o parâmetro 'q' e recarrega para mostrar todos os produtos.
+    } else {
       params.delete('q');
-       startTransition(() => {
-          router.push(`${path}?${params.toString()}`);
-        });
     }
-  }, [debouncedSearchTerm, router, searchParams]);
+
+    startTransition(() => {
+        // Use replace to avoid adding to history
+        router.replace(`${pathname}?${params.toString()}`);
+    });
+  }, [debouncedSearchTerm, pathname, router, searchParams]);
 
   useEffect(() => {
-    // Quando a lista initialProducts muda (devido à pesquisa), reinicia o estado local
+    // When initialProducts changes (due to search), reset local state
     setProducts(initialProducts.slice(0, ITEMS_PER_PAGE));
     setOffset(ITEMS_PER_PAGE);
     setHasMore(initialProducts.length > ITEMS_PER_PAGE);
@@ -141,7 +137,7 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
                 <ProductCard key={product.id} product={product} />
             ))}
             </div>
-             {/* O ref do loader para o scroll infinito */}
+             {/* Loader ref for infinite scroll */}
              {hasMore && !debouncedSearchTerm && (
                 <div ref={loaderRef} className="flex justify-center items-center py-8">
                   {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}

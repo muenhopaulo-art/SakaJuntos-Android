@@ -30,13 +30,22 @@ export default async function MiniShoppingPage({
 
   try {
     products = await getProducts(searchTerm);
+    
+    // Client-side fallback for existing data without 'name_lowercase'
+    if (searchTerm && products.length === 0) {
+        const allProducts = await getProducts(); // Fetch all products
+        products = allProducts.filter(p => 
+            p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }
+    
   } catch (e) {
     console.error(e);
     error = getErrorMessage(e);
   }
 
-  // Embaralha os produtos para uma exibição aleatória no scroll infinito
-  const shuffledProducts = products.sort(() => 0.5 - Math.random());
+  // Apenas embaralha se não houver pesquisa, para manter a ordem dos resultados
+  const finalProducts = searchTerm ? products : products.sort(() => 0.5 - Math.random());
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -56,7 +65,7 @@ export default async function MiniShoppingPage({
           </AlertDescription>
         </Alert>
       ) : (
-        <ProductList initialProducts={shuffledProducts} initialSearchTerm={searchTerm} />
+        <ProductList initialProducts={finalProducts} initialSearchTerm={searchTerm} />
       )}
     </div>
   );
