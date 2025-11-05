@@ -1,7 +1,7 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getProducts } from '@/services/product-service';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Search, ShoppingBag } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import Link from 'next/link';
 import { ProductList } from './product-list';
@@ -36,8 +36,17 @@ export default async function MiniShoppingPage({
     error = getErrorMessage(e);
   }
 
+  // Shuffle products for random display on infinite scroll
+  const shuffledProducts = products.sort(() => 0.5 - Math.random());
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold tracking-tight font-headline">MiniShopping</h1>
+          <p className="text-xl text-muted-foreground">
+            Encontre tudo o que precisa, à distância de um clique.
+          </p>
+      </div>
        {error ? (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -48,7 +57,7 @@ export default async function MiniShoppingPage({
           </AlertDescription>
         </Alert>
       ) : (
-        <ProductList initialProducts={products} initialSearchTerm={searchTerm} />
+        <ProductList initialProducts={shuffledProducts} initialSearchTerm={searchTerm} />
       )}
     </div>
   );

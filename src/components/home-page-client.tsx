@@ -6,7 +6,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { PromotionCard } from '@/components/promotion-card';
 import type { GroupPromotion } from '@/lib/types';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CirclePlus, Users, Globe, Info } from 'lucide-react';
@@ -17,6 +17,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
+
+
+const MAX_GROUPS_HOME = 6;
 
 interface HomePageClientProps {
     allPromotions: GroupPromotion[];
@@ -99,6 +104,8 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
         toast({ variant: 'destructive', title: 'Erro ao enviar pedido.', description: result.message });
     }
   }
+  
+  const displayedExploreGroups = exploreGroups.slice(0, MAX_GROUPS_HOME);
 
   return (
     <section>
@@ -154,11 +161,20 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
             ) : error ? (
                 <div className="text-center py-10 text-destructive">{error}</div>
             ) : exploreGroups.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {exploreGroups.map(promo => (
-                    <PromotionCard key={promo.id} promotion={promo} showJoinButton={true} onJoin={handleJoinRequest} />
-                ))}
-            </div>
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {displayedExploreGroups.map(promo => (
+                            <PromotionCard key={promo.id} promotion={promo} showJoinButton={true} onJoin={handleJoinRequest} />
+                        ))}
+                    </div>
+                    {exploreGroups.length > MAX_GROUPS_HOME && (
+                         <div className="text-center">
+                            <Link href="/grupos" className={cn(buttonVariants({ variant: 'default', size: 'lg' }))}>
+                                Ver Mais Grupos
+                            </Link>
+                        </div>
+                    )}
+                </div>
             ) : (
             <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
