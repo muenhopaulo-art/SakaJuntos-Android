@@ -39,7 +39,7 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
     setIsFetchingMore(true);
     // In a real app, you'd fetch from an API with pagination.
     // Here we simulate it by slicing the initial full list.
-    const newProducts = initialProducts.slice(offset, offset + ITEMSPER_PAGE);
+    const newProducts = initialProducts.slice(offset, offset + ITEMS_PER_PAGE);
     
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));

@@ -3,13 +3,14 @@
 import { getGroupPromotions, getProducts } from '@/services/product-service';
 import type { GroupPromotion, Product } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ShoppingBag, Search } from 'lucide-react';
+import { AlertTriangle, ShoppingBag } from 'lucide-react';
 import { HomePageClient } from '@/components/home-page-client';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ProductsCarousel } from '@/components/products-carousel';
+import { ProductList } from './minishopping/product-list';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -30,7 +31,6 @@ export default async function HomePage() {
   let error: string | null = null;
 
   try {
-    // Fetch both products and group promotions in parallel
     [products, groupPromotions] = await Promise.all([
         getProducts(),
         getGroupPromotions()
@@ -41,8 +41,6 @@ export default async function HomePage() {
   }
 
   const hasData = products.length > 0 || groupPromotions.length > 0;
-
-  // Shuffle products for random display
   const shuffledProducts = products.sort(() => 0.5 - Math.random());
 
   return (
@@ -73,12 +71,6 @@ export default async function HomePage() {
         </div>
       ) : (
         <div className="space-y-12">
-            {groupPromotions.length > 0 && (
-                <HomePageClient allPromotions={groupPromotions} error={error} />
-            )}
-
-            {products.length > 0 && groupPromotions.length > 0 && <Separator/>}
-
             {products.length > 0 && (
                  <section>
                     <div className="flex justify-between items-center mb-6">
@@ -90,6 +82,24 @@ export default async function HomePage() {
                     <ProductsCarousel products={shuffledProducts} />
                 </section>
             )}
+
+            {products.length > 0 && groupPromotions.length > 0 && <Separator/>}
+
+            {groupPromotions.length > 0 && (
+                <HomePageClient allPromotions={groupPromotions} error={error} />
+            )}
+
+            <Separator/>
+            
+            <section>
+                 <div className="text-center mb-8">
+                    <h2 className="text-3xl font-bold tracking-tight font-headline">Explore Mais</h2>
+                    <p className="text-xl text-muted-foreground">
+                        Encontre tudo o que precisa, à distância de um clique.
+                    </p>
+                </div>
+                <ProductList initialProducts={shuffledProducts} />
+            </section>
         </div>
       )}
     </div>
