@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { CartItem, User } from '@/lib/types';
+import type { CartItem, User, OrderItem } from '@/lib/types';
 import { createOrder } from '@/services/order-service';
 import { getUser } from '@/services/user-service';
 
@@ -20,10 +20,19 @@ export async function createIndividualOrder(
             throw new Error("Perfil de utilizador não encontrado.");
         }
 
+        // Convert CartItem[] to OrderItem[]
+        const orderItems: OrderItem[] = items.map(cartItem => ({
+            id: cartItem.product.id,
+            name: cartItem.product.name,
+            price: cartItem.product.price,
+            quantity: cartItem.quantity,
+            lojistaId: cartItem.product.lojistaId
+        }));
+
         const orderResult = await createOrder({
             clientId: userId,
             clientName: user.name,
-            items: items,
+            items: orderItems,
             totalAmount: totalAmount,
             orderType: 'individual'
         });

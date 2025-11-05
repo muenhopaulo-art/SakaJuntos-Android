@@ -98,11 +98,18 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
 }
 
 export async function getProducts(searchTerm?: string): Promise<Product[]> {
-  let q = query(collection(db, 'products'), orderBy("name"));
+  let q;
+  const productsCollection = collection(db, 'products');
 
   if (searchTerm && searchTerm.trim() !== '') {
       const normalizedSearch = searchTerm.toLowerCase();
-      q = query(q, where('name', '>=', normalizedSearch), where('name', '<=', normalizedSearch + '\uf8ff'));
+      // Use the new `name_lowercase` field for case-insensitive search
+      q = query(productsCollection, 
+                orderBy("name_lowercase"), 
+                where('name_lowercase', '>=', normalizedSearch), 
+                where('name_lowercase', '<=', normalizedSearch + '\uf8ff'));
+  } else {
+      q = query(productsCollection, orderBy("createdAt", "desc"));
   }
 
   const productSnapshot = await getDocs(q);
@@ -303,11 +310,11 @@ export async function updateGroupCart(groupId: string, product: Product, change:
                 name: product.name,
                 description: product.description,
                 price: product.price,
-                imageUrl: product.imageUrl || null,
-                aiHint: product.aiHint || null,
-                lojistaId: product.lojistaId || null,
+                imageUrl: product.imageUrl || undefined,
+                aiHint: product.aiHint || undefined,
+                lojistaId: product.lojistaId || undefined,
                 productType: product.productType || 'product',
-                serviceContactPhone: product.serviceContactPhone || null,
+                serviceContactPhone: product.serviceContactPhone || undefined,
             };
 
             if (change === 'add') {
@@ -395,6 +402,7 @@ export async function seedDatabase() {
       const docRef = doc(collection(db, "products"));
       batch.set(docRef, { 
           ...product, 
+          name_lowercase: product.name.toLowerCase(),
           createdAt: serverTimestamp(), 
         });
     });

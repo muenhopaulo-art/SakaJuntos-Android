@@ -100,7 +100,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-        form.setValue('imageUrl', reader.result as string);
+        form.setValue('imageUrl', reader.result as string, { shouldValidate: true });
         form.clearErrors("imageUrl");
     };
     reader.readAsDataURL(file);

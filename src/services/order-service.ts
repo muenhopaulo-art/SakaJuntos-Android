@@ -3,7 +3,7 @@
 
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDocs } from 'firebase/firestore';
-import type { Order, Contribution, CartItem } from '@/lib/types';
+import type { Order, Contribution, OrderItem, CartItem } from '@/lib/types';
 
 /**
  * Creates a final order in the 'orders' collection. This can be for individual or group purchases.
@@ -28,13 +28,13 @@ export async function createOrder(
         console.warn("Order being created without a lojistaId. Items:", orderData.items);
     }
     
-    // Ensure product data is plain and doesn't contain undefined fields
-    const cleanItems: CartItem[] = orderData.items.map(item => ({
+    // Ensure product data is plain and doesn't contain complex objects or undefined fields
+    const cleanItems: OrderItem[] = orderData.items.map(item => ({
         id: item.id,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        lojistaId: item.lojistaId || null,
+        lojistaId: item.lojistaId || undefined,
     }));
 
 

@@ -4,12 +4,12 @@
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import { createOrder, cleanupGroup } from '@/services/order-service';
-import type { CartItem, Contribution, GroupMember, User } from '@/lib/types';
+import type { OrderItem, Contribution, GroupMember, User, CartItem } from '@/lib/types';
 import { getUser } from '@/services/user-service';
 
 const SHIPPING_COST_PER_MEMBER = 1000;
 
-async function getSubCollection<T>(groupId: string, subCollectionName: string): Promise<T[]> {
+async function getSubCollectionData<T>(groupId: string, subCollectionName: string): Promise<T[]> {
     const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
     const snapshot = await getDocs(subCollectionRef);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
@@ -30,19 +30,19 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
             throw new Error("Apenas o criador do grupo pode finalizar o pedido.");
         }
         
-        const members = await getSubCollection<GroupMember>(groupId, 'members');
-        const contributions = await getSubCollection<Contribution>(groupId, 'contributions');
+        const members = await getSubCollectionData<GroupMember>(groupId, 'members');
+        const contributions = await getSubCollectionData<Contribution>(groupId, 'contributions');
 
         if (contributions.length < members.length) {
             throw new Error("Ainda faltam contribuições. Não é possível finalizar o pedido.");
         }
 
-        const cart = await getSubCollection<CartItem>(groupId, 'groupCart');
-        if (cart.length === 0) {
+        const cartItems = await getSubCollectionData<CartItem>(groupId, 'groupCart');
+        if (cartItems.length === 0) {
             throw new Error("O carrinho está vazio. Adicione produtos antes de finalizar.");
         }
         
-        const productsTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+        const productsTotal = cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0);
         const shippingTotal = (members.length || 1) * SHIPPING_COST_PER_MEMBER;
         const totalAmount = productsTotal + shippingTotal;
         
@@ -50,6 +50,15 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
         if (!creator) {
             throw new Error("Criador do grupo não encontrado.");
         }
+
+        // Convert CartItem[] to OrderItem[]
+        const orderItems: OrderItem[] = cartItems.map(cartItem => ({
+            id: cartItem.product.id,
+            name: cartItem.product.name,
+            price: cartItem.product.price,
+            quantity: cartItem.quantity,
+            lojistaId: cartItem.product.lojistaId
+        }));
         
         // Create the final order with the existing contributions
         const orderResult = await createOrder({
@@ -58,7 +67,7 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
             groupName: groupData.name,
             clientId: creatorId,
             clientName: creator.name,
-            items: cart,
+            items: orderItems,
             totalAmount: totalAmount,
         }, contributions);
 

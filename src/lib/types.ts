@@ -3,6 +3,7 @@
 export interface Product {
   id: string;
   name: string;
+  name_lowercase?: string; // For case-insensitive search
   description: string;
   price: number;
   productType: 'product' | 'service';
@@ -37,7 +38,7 @@ export interface ChatMessage {
 export type GroupStatus = 'active' | 'finalized' | 'delivered';
 
 // A promoção de grupo é um tipo de produto, mas com campos adicionais
-export interface GroupPromotion extends Omit<Product, 'productType' | 'serviceContactPhone'> {
+export interface GroupPromotion extends Omit<Product, 'productType' | 'serviceContactPhone' | 'name_lowercase'> {
   participants: number;
   target: number;
   creatorId: string;
@@ -50,11 +51,8 @@ export interface GroupPromotion extends Omit<Product, 'productType' | 'serviceCo
 }
 
 export interface CartItem {
-  id: string;
-  name: string;
-  price: number;
+  product: Product;
   quantity: number;
-  lojistaId?: string;
 }
 
 export interface Geolocation {
@@ -80,11 +78,20 @@ export type OrderStatus =
 
 export type OrderType = 'individual' | 'group';
 
+// This represents the structure of the `items` array inside an Order document
+export interface OrderItem {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    lojistaId?: string;
+}
+
 export interface Order {
   id: string;
   clientId: string;
   clientName: string;
-  items: CartItem[];
+  items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;
   orderType: OrderType;
