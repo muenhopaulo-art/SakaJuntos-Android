@@ -213,7 +213,7 @@ export default function LojistaPage() {
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium leading-none">{product.name}</p>
-                                                <p className="text-sm text-muted-foreground">{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</p>
+                                                <p className="text-sm text-muted-foreground capitalize">{product.category}</p>
                                             </div>
                                         </div>
                                         <div className="ml-auto font-medium">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</div>
@@ -250,5 +250,3 @@ export default function LojistaPage() {
         </>
     );
 }
-
-    

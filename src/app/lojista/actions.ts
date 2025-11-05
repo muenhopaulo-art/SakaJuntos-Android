@@ -29,9 +29,9 @@ const convertDocToProduct = (doc: any): Product => {
         description: data.description,
         price: data.price,
         imageUrl: data.imageUrl,
-        aiHint: data.aiHint,
-        productType: data.productType,
-        serviceContactPhone: data.serviceContactPhone,
+        category: data.category,
+        stock: data.stock,
+        isPromoted: data.isPromoted,
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : Date.now(),
     };
 };

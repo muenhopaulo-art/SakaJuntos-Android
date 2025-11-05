@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/contexts/cart-context';
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Timestamp } from 'firebase/firestore';
 
 const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -51,7 +52,19 @@ export default function ProductDetailPage() {
                     const productRef = doc(db, 'products', id);
                     const productSnap = await getDoc(productRef);
                     if (productSnap.exists()) {
-                        const productData = { id: productSnap.id, ...productSnap.data() } as Product;
+                        const data = productSnap.data();
+                        const productData: Product = {
+                            id: productSnap.id,
+                            name: data.name,
+                            description: data.description,
+                            price: data.price,
+                            category: data.category,
+                            stock: data.stock,
+                            isPromoted: data.isPromoted,
+                            imageUrl: data.imageUrl,
+                            createdAt: (data.createdAt as Timestamp)?.toMillis(),
+                            lojistaId: data.lojistaId,
+                        };
                         setProduct(productData);
                     } else {
                         setError('Produto não encontrado.');
@@ -109,7 +122,7 @@ export default function ProductDetailPage() {
                 <div className="flex flex-col">
                     <Card className="flex-grow">
                         <CardHeader>
-                            <p className='text-sm text-muted-foreground'>{product.category}</p>
+                            <p className='text-sm text-muted-foreground capitalize'>{product.category}</p>
                             <CardTitle className="text-3xl font-bold font-headline">{product.name}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">

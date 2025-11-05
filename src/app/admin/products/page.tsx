@@ -37,12 +37,7 @@ export default async function AdminProductsPage({
   const searchTerm = typeof searchParams?.q === 'string' ? searchParams.q : undefined;
 
   try {
-    const allProducts = await getProducts();
-    if (searchTerm) {
-        products = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    } else {
-        products = allProducts;
-    }
+    products = await getProducts(searchTerm);
   } catch (e: any) {
     console.error(e);
     error = getErrorMessage(e);
@@ -92,7 +87,7 @@ export default async function AdminProductsPage({
                                         </div>
                                     </TableCell>
                                     <TableCell className="font-medium">{product.name}</TableCell>
-                                    <TableCell>{product.category}</TableCell>
+                                    <TableCell className="capitalize">{product.category}</TableCell>
                                     <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)}</TableCell>
                                      <TableCell>{product.stock}</TableCell>
                                     <TableCell className="hidden lg:table-cell">{product.createdAt ? format(new Date(product.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>

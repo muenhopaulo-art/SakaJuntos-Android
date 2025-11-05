@@ -26,26 +26,17 @@ export default async function MiniShoppingPage({
 }) {
   const searchTerm = typeof searchParams?.q === 'string' ? searchParams.q : undefined;
   
-  let products: Product[] = [];
+  let allProducts: Product[] = [];
   let error: string | null = null;
 
   try {
-    const allProducts = await getProducts();
-    if (searchTerm) {
-        products = allProducts.filter(p => 
-            p.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    } else {
-        products = allProducts;
-    }
-    
+    // getProducts now handles the server-side part of searching if possible
+    // but the final filtering is done client-side in the ProductList for consistency
+    allProducts = await getProducts();
   } catch (e) {
     console.error(e);
     error = getErrorMessage(e);
   }
-
-  // Apenas embaralha se não houver pesquisa, para manter a ordem dos resultados
-  const finalProducts = searchTerm ? products : products.sort(() => 0.5 - Math.random());
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -65,7 +56,7 @@ export default async function MiniShoppingPage({
           </AlertDescription>
         </Alert>
       ) : (
-        <ProductList initialProducts={finalProducts} initialSearchTerm={searchTerm} />
+        <ProductList allProducts={allProducts} initialSearchTerm={searchTerm} />
       )}
     </div>
   );

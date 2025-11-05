@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -28,6 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { addProduct } from './actions';
+import { Switch } from '@/components/ui/switch';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
@@ -36,6 +38,7 @@ const productSchema = z.object({
   category: z.string().min(2, { message: 'A categoria é obrigatória.'}),
   stock: z.coerce.number().min(0, { message: 'O stock deve ser um número positivo.' }),
   imageUrl: z.string().url({ message: 'Por favor, insira um URL de imagem válido.' }).optional().or(z.literal('')),
+  isPromoted: z.boolean().default(false),
 });
 
 export function AddProductDialog() {
@@ -51,6 +54,7 @@ export function AddProductDialog() {
       imageUrl: '',
       category: '',
       stock: 0,
+      isPromoted: false,
     },
   });
 
@@ -60,7 +64,7 @@ export function AddProductDialog() {
     // We pass isPromoted and lojistaId statically for this admin version
     const productData = {
         ...values,
-        isPromoted: 'inactive',
+        isPromoted: values.isPromoted ? 'active' : ('inactive' as 'active' | 'inactive'),
     };
     const result = await addProduct(productData);
     if (result.success) {
@@ -77,7 +81,7 @@ export function AddProductDialog() {
       <DialogTrigger asChild>
         <Button>Adicionar Produto</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Adicionar Novo Produto</DialogTitle>
           <DialogDescription>
@@ -163,6 +167,26 @@ export function AddProductDialog() {
                     <Input placeholder="https://exemplo.com/imagem.png" {...field} />
                   </FormControl>
                    <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="isPromoted"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Promover Produto?</FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Produtos promovidos aparecem na página inicial.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

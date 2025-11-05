@@ -103,7 +103,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     const productData = {
         ...values,
         lojistaId: lojistaId,
-        isPromoted: values.isPromoted ? 'active' : 'inactive',
+        isPromoted: values.isPromoted ? 'active' : ('inactive' as 'active' | 'inactive'),
     }
     const result = await addProduct(productData);
     if (result.success) {

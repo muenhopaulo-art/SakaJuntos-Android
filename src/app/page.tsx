@@ -1,16 +1,17 @@
 
 
-import { getGroupPromotions, getProducts } from '@/services/product-service';
-import type { GroupPromotion, Product } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getProducts, getGroupPromotions } from '@/services/product-service';
 import { AlertTriangle, ShoppingBag } from 'lucide-react';
-import { HomePageClient } from '@/components/home-page-client';
-import { Separator } from '@/components/ui/separator';
+import type { Product, GroupPromotion } from '@/lib/types';
 import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { HomePageClient } from '@/components/home-page-client';
 import { ProductsCarousel } from '@/components/products-carousel';
+import { Separator } from '@/components/ui/separator';
 import { ProductList } from './minishopping/product-list';
+import { buttonVariants } from '@/components/ui/button';
+
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -26,12 +27,12 @@ function getErrorMessage(error: any): string {
 }
 
 export default async function HomePage() {
-  let products: Product[] = [];
+  let allProducts: Product[] = [];
   let groupPromotions: GroupPromotion[] = [];
   let error: string | null = null;
 
   try {
-    [products, groupPromotions] = await Promise.all([
+    [allProducts, groupPromotions] = await Promise.all([
         getProducts(),
         getGroupPromotions()
     ]);
@@ -40,10 +41,9 @@ export default async function HomePage() {
     error = getErrorMessage(e);
   }
 
-  const hasData = products.length > 0 || groupPromotions.length > 0;
-  // Embaralha a lista de produtos para que o carrossel e a lista de exploração sejam dinâmicos
-  const shuffledProducts = [...products].sort(() => 0.5 - Math.random());
-  const promotedProducts = products.filter(p => p.isPromoted === 'active');
+  const hasData = allProducts.length > 0 || groupPromotions.length > 0;
+  const promotedProducts = allProducts.filter(p => p.isPromoted === 'active');
+  const shuffledProducts = [...allProducts].sort(() => 0.5 - Math.random());
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -73,11 +73,10 @@ export default async function HomePage() {
         </div>
       ) : (
         <div className="space-y-12">
-            {/* Secção 1: MiniShopping como Carrossel */}
             {promotedProducts.length > 0 && (
                  <section>
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> Produtos em Destaque</h2>
+                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> MiniShopping</h2>
                         <Link href="/minishopping" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
                             Ver Tudo
                         </Link>
@@ -86,18 +85,14 @@ export default async function HomePage() {
                 </section>
             )}
 
-            {/* Separador */}
             {promotedProducts.length > 0 && groupPromotions.length > 0 && <Separator/>}
 
-            {/* Secção 2: Grupos de Compras */}
             {groupPromotions.length > 0 && (
                 <HomePageClient allPromotions={groupPromotions} error={error} />
             )}
 
-            {/* Separador */}
             <Separator/>
             
-            {/* Secção 3: Explore Mais com Pesquisa e Scroll Infinito */}
             <section>
                  <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold tracking-tight font-headline">Explore Mais</h2>
@@ -105,8 +100,7 @@ export default async function HomePage() {
                         Encontre tudo o que precisa, à distância de um clique.
                     </p>
                 </div>
-                {/* O ProductList já contém a barra de pesquisa e a lógica de scroll infinito */}
-                <ProductList initialProducts={shuffledProducts} />
+                <ProductList allProducts={shuffledProducts} />
             </section>
         </div>
       )}

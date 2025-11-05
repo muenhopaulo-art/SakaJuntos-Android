@@ -99,25 +99,34 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
     return promotion;
 }
 
-export async function getProducts(): Promise<Product[]> {
+export async function getProducts(searchTerm?: string): Promise<Product[]> {
   const productsCollection = collection(db, 'products');
   const q = query(productsCollection, orderBy("createdAt", "desc"));
-
   const productSnapshot = await getDocs(q);
-  const productList = productSnapshot.docs.map(convertDocToProduct);
+  let productList = productSnapshot.docs.map(convertDocToProduct);
+  
+  if (searchTerm) {
+    const lowercasedTerm = searchTerm.toLowerCase();
+    productList = productList.filter(p => 
+        p.name.toLowerCase().includes(lowercasedTerm) ||
+        p.category.toLowerCase().includes(lowercasedTerm)
+    );
+  }
+  
   return productList;
 }
 
 export async function getGroupPromotions(searchTerm?: string): Promise<GroupPromotion[]> {
     let q = query(collection(db, 'groupPromotions'), orderBy("name"));
 
+    const promotionSnapshot = await getDocs(q);
+    let promotionList = await Promise.all(promotionSnapshot.docs.map(doc => convertDocToGroupPromotion(doc.id, doc.data())));
+
     if (searchTerm && searchTerm.trim() !== '') {
       const normalizedSearch = searchTerm.toLowerCase();
-      q = query(q, where('name', '>=', normalizedSearch), where('name', '<=', normalizedSearch + '\uf8ff'));
+      promotionList = promotionList.filter(p => p.name.toLowerCase().includes(normalizedSearch));
     }
-
-    const promotionSnapshot = await getDocs(q);
-    const promotionList = await Promise.all(promotionSnapshot.docs.map(doc => convertDocToGroupPromotion(doc.id, doc.data())));
+    
     return promotionList;
 }
 

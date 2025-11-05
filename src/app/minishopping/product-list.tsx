@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
+import { useState, useEffect, useTransition, useCallback, useRef, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product-card';
@@ -11,52 +11,80 @@ import Link from 'next/link';
 import { useDebounce } from 'use-debounce';
 
 interface ProductListProps {
-    initialProducts: Product[];
+    allProducts: Product[];
     initialSearchTerm?: string;
 }
 
 const ITEMS_PER_PAGE = 8;
 
-export function ProductList({ initialProducts, initialSearchTerm = '' }: ProductListProps) {
-  const [products, setProducts] = useState(initialProducts.slice(0, ITEMS_PER_PAGE));
-  const [hasMore, setHasMore] = useState(initialProducts.length > ITEMS_PER_PAGE);
-  const [offset, setOffset] = useState(ITEMS_PER_PAGE);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  
+export function ProductList({ allProducts, initialSearchTerm = '' }: ProductListProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
 
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
+  const filteredProducts = useMemo(() => {
+    if (!debouncedSearchTerm) {
+      // Return a shuffled list if no search term
+      return [...allProducts].sort(() => 0.5 - Math.random());
+    }
+    const lowercasedTerm = debouncedSearchTerm.toLowerCase();
+    return allProducts.filter(p => 
+      p.name.toLowerCase().includes(lowercasedTerm) ||
+      p.category.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [allProducts, debouncedSearchTerm]);
+  
+  const [displayedProducts, setDisplayedProducts] = useState(filteredProducts.slice(0, ITEMS_PER_PAGE));
+  const [offset, setOffset] = useState(ITEMS_PER_PAGE);
+  const [hasMore, setHasMore] = useState(filteredProducts.length > ITEMS_PER_PAGE);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   const loaderRef = useRef(null);
 
-  const loadMoreProducts = useCallback(async () => {
-    // Do not load more if we are already fetching, if there are no more products, or if a search is active
-    if (isFetchingMore || !hasMore || debouncedSearchTerm) return;
-    
+  // Effect to update URL from search input
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (debouncedSearchTerm) {
+      params.set('q', debouncedSearchTerm);
+    } else {
+      params.delete('q');
+    }
+    startTransition(() => {
+      // Using replace to not pollute browser history
+      router.replace(`${pathname}?${params.toString()}`);
+    });
+  }, [debouncedSearchTerm, pathname, router, searchParams]);
+
+  // Effect to reset pagination when search term changes
+  useEffect(() => {
+    setDisplayedProducts(filteredProducts.slice(0, ITEMS_PER_PAGE));
+    setOffset(ITEMS_PER_PAGE);
+    setHasMore(filteredProducts.length > ITEMS_PER_PAGE);
+  }, [filteredProducts]);
+
+  const loadMoreProducts = useCallback(() => {
+    if (isFetchingMore || !hasMore) return;
+
     setIsFetchingMore(true);
-    // In a real app, you would do a paginated fetch.
-    // Here we simulate this by slicing the complete initial list.
-    const newProducts = initialProducts.slice(offset, offset + ITEMS_PER_PAGE);
-    
-    // Simulate a network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    setProducts(prev => [...prev, ...newProducts]);
-    setOffset(prev => prev + ITEMS_PER_PAGE);
-    setHasMore(initialProducts.length > offset + ITEMS_PER_PAGE);
-    setIsFetchingMore(false);
+    // Simulate network delay for loading more items
+    setTimeout(() => {
+      const newProducts = filteredProducts.slice(offset, offset + ITEMS_PER_PAGE);
+      setDisplayedProducts(prev => [...prev, ...newProducts]);
+      const newOffset = offset + ITEMS_PER_PAGE;
+      setOffset(newOffset);
+      setHasMore(filteredProducts.length > newOffset);
+      setIsFetchingMore(false);
+    }, 500);
+  }, [isFetchingMore, hasMore, offset, filteredProducts]);
 
-  }, [offset, hasMore, isFetchingMore, initialProducts, debouncedSearchTerm]);
-
-
+  // Intersection Observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting) {
+        if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
           loadMoreProducts();
         }
       },
@@ -64,7 +92,7 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
     );
 
     const loader = loaderRef.current;
-    if (loader && !debouncedSearchTerm) { // Only observe if there is no search
+    if (loader) {
       observer.observe(loader);
     }
 
@@ -73,31 +101,7 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
         observer.unobserve(loader);
       }
     };
-  }, [loadMoreProducts, debouncedSearchTerm]);
-
-
-  // Handle search term changes
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    if (debouncedSearchTerm) {
-      params.set('q', debouncedSearchTerm);
-    } else {
-      params.delete('q');
-    }
-
-    startTransition(() => {
-        // Use replace to avoid adding to history
-        router.replace(`${pathname}?${params.toString()}`);
-    });
-  }, [debouncedSearchTerm, pathname, router, searchParams]);
-
-  useEffect(() => {
-    // When initialProducts changes (due to search), reset local state
-    setProducts(initialProducts.slice(0, ITEMS_PER_PAGE));
-    setOffset(ITEMS_PER_PAGE);
-    setHasMore(initialProducts.length > ITEMS_PER_PAGE);
-  }, [initialProducts]);
+  }, [loaderRef, hasMore, isFetchingMore, loadMoreProducts]);
   
 
   return (
@@ -117,28 +121,30 @@ export function ProductList({ initialProducts, initialSearchTerm = '' }: Product
          <div className="flex justify-center items-center h-64">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
-      ) : products.length === 0 && debouncedSearchTerm ? (
-        <div className="text-center py-10">
-            <p className="text-lg font-semibold text-muted-foreground">Nenhum produto encontrado para "{debouncedSearchTerm}".</p>
-            <p className="text-muted-foreground mt-2">Tente uma pesquisa diferente.</p>
-        </div>
-      ) : products.length === 0 ? (
-         <div className="text-center py-10 border-2 border-dashed rounded-lg">
-          <p className="text-lg font-semibold text-muted-foreground">Nenhum produto encontrado.</p>
-          <p className="text-muted-foreground mt-2">Parece que a base de dados está vazia. Que tal adicionar alguns produtos?</p>
-           <Link href="/seed" className="inline-block mt-4 px-6 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90">
-            Popular a Base de Dados
-          </Link>
+      ) : displayedProducts.length === 0 ? (
+        <div className="text-center py-10 border-2 border-dashed rounded-lg">
+          <p className="text-lg font-semibold text-muted-foreground">
+            {debouncedSearchTerm 
+              ? `Nenhum produto encontrado para "${debouncedSearchTerm}".`
+              : "Nenhum produto encontrado."
+            }
+          </p>
+          <p className="text-muted-foreground mt-2">
+             {debouncedSearchTerm 
+              ? "Tente uma pesquisa diferente."
+              : "Assim que um lojista adicionar produtos, eles aparecerão aqui."
+            }
+          </p>
         </div>
       ) : (
         <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map(product => (
+            {displayedProducts.map(product => (
                 <ProductCard key={product.id} product={product} />
             ))}
             </div>
              {/* Loader ref for infinite scroll */}
-             {hasMore && !debouncedSearchTerm && (
+             {hasMore && (
                 <div ref={loaderRef} className="flex justify-center items-center py-8">
                   {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
                 </div>

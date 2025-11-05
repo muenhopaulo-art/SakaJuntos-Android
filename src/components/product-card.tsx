@@ -34,7 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 )}
             </div>
             <div className="flex-grow">
-              <p className="text-xs text-muted-foreground">{product.category}</p>
+              <p className="text-xs text-muted-foreground capitalize">{product.category}</p>
               <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>
             </div>
             <p className="text-lg font-bold text-foreground mb-4">
