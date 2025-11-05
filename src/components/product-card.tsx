@@ -8,7 +8,6 @@ import { ShoppingCart, Package } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/contexts/cart-context';
-import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -50,8 +49,10 @@ export function ProductCard({ product }: ProductCardProps) {
                     Adicionar
                 </Button>
             ) : (
-                <Button variant="outline" className="w-full mt-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                    Ver Detalhes
+                 <Button asChild variant="outline" className="w-full mt-auto">
+                    <Link href={`/produto/${product.id}`}>
+                        Ver Detalhes
+                    </Link>
                 </Button>
             )}
         </CardContent>
