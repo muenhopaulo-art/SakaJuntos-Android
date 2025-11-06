@@ -110,10 +110,11 @@ export default function LojistaAgendamentosPage() {
         }
 
         setLoading(true);
-        const requestsQuery = query(collection(db, 'serviceRequests'), where('lojistaId', '==', user.uid), orderBy('createdAt', 'desc'));
+        const requestsQuery = query(collection(db, 'serviceRequests'), where('lojistaId', '==', user.uid));
 
         const unsubscribe = onSnapshot(requestsQuery, (snapshot) => {
             const updatedRequests = snapshot.docs.map(convertDocToServiceRequest);
+            updatedRequests.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setRequests(updatedRequests);
             setLoading(false);
         }, (err) => {
