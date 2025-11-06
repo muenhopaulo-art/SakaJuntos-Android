@@ -53,6 +53,41 @@ const createGroupSchema = z.object({
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
 
+const resizeImage = (file: File, maxWidth: number): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = document.createElement("img");
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scaleFactor = maxWidth / img.width;
+        canvas.width = maxWidth;
+        canvas.height = img.height * scaleFactor;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return reject(new Error("Não foi possível obter o contexto do canvas."));
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.canvas.toBlob((blob) => {
+          if (blob) {
+            const resizedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            resolve(resizedFile);
+          } else {
+            reject(new Error("Falha ao criar o blob da imagem redimensionada."));
+          }
+        }, file.type, 0.8); // 80% quality
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 
 export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -73,15 +108,26 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
     },
   });
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      form.setValue('image', file, { shouldValidate: true });
+      // First, set preview immediately for better UX
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+      
+      try {
+        // Resize the image
+        const resizedFile = await resizeImage(file, 1024); // Resize to max-width 1024px
+        form.setValue('image', resizedFile, { shouldValidate: true });
+      } catch (error) {
+        console.error("Image resize error:", error);
+        toast({ variant: "destructive", title: "Erro ao redimensionar imagem", description: "Tente um ficheiro diferente."});
+        // Fallback to original file if resizing fails, but still validate it
+        form.setValue('image', file, { shouldValidate: true });
+      }
     }
   };
 
