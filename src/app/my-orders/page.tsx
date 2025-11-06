@@ -232,7 +232,7 @@ export default function MyOrdersPage() {
                                 <Accordion type="single" collapsible className="w-full">
                                     {activeOrders.map(order => (
                                         <AccordionItem value={order.id} key={order.id}>
-                                            <AccordionTrigger>
+                                            <AccordionTrigger className="hover:no-underline">
                                                 <div className="flex justify-between items-center w-full">
                                                     <div className="flex-1 text-left">
                                                         <p className="font-mono text-xs">#{order.id.substring(0, 6)}</p>
@@ -247,7 +247,7 @@ export default function MyOrdersPage() {
                                                          <p>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</p>
                                                     </div>
                                                     <div className="flex-1 text-right pr-4">
-                                                        <OrderConfirmationAction order={order} />
+                                                        <Badge className={cn("capitalize", statusColors[order.status])}>{order.status}</Badge>
                                                     </div>
                                                 </div>
                                             </AccordionTrigger>
@@ -269,6 +269,11 @@ export default function MyOrdersPage() {
                                                                 <span>Entregador:</span>
                                                                 <span>{order.courierName}</span>
                                                             </div>
+                                                        </div>
+                                                    )}
+                                                    {order.status === 'aguardando confirmação' && (
+                                                        <div className="mt-4 pt-4 border-t">
+                                                            <OrderConfirmationAction order={order} className="w-full sm:w-auto" />
                                                         </div>
                                                     )}
                                                 </div>
