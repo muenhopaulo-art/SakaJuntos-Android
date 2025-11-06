@@ -143,7 +143,7 @@ export function LojistaHeader() {
             <DropdownMenuItem asChild>
                 <Link href="/">
                     <ShoppingBag className="mr-2 h-4 w-4" />
-                    <span>Ver Loja como Cliente</span>
+                    <span>Mudar para Cliente</span>
                 </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild><Link href="/lojista/perfil">Configurações</Link></DropdownMenuItem>
