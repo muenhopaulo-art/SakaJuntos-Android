@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import type { Product, User } from '@/lib/types';
 import { Loader2, ShoppingCart, Phone, Package, AlertTriangle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Timestamp } from 'firebase/firestore';
 import { ScheduleServiceDialog } from '@/components/schedule-service-dialog';
 import { getUser } from '@/services/user-service';
+import { useAuthState } from 'react-firebase-hooks/auth';
 
 const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -44,6 +45,7 @@ export default function ProductDetailPage() {
     const [error, setError] = useState<string | null>(null);
     
     const { addItem } = useCart();
+    const [user, authLoading] = useAuthState(auth);
 
     useEffect(() => {
         if (typeof id !== 'string') return;
@@ -88,13 +90,15 @@ export default function ProductDetailPage() {
         fetchProductAndLojista();
     }, [id]);
 
+    const isOwner = user && product?.lojistaId === user.uid;
+
     const handleAddToCart = () => {
-        if (product) {
-            addItem(product);
+        if (product && !isOwner) {
+            addItem(product, 1, user?.uid);
         }
     };
     
-    if (loading) {
+    if (loading || authLoading) {
         return <div className="container mx-auto px-4 py-8"><ProductSkeleton /></div>;
     }
 
@@ -126,11 +130,14 @@ export default function ProductDetailPage() {
                         ) : (
                             <Package className="h-32 w-32 text-muted-foreground"/>
                         )}
+                         {isOwner && (
+                            <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">Seu Produto</div>
+                        )}
                     </div>
                 </div>
 
                 <div className="flex flex-col">
-                    <Card className="flex-grow flex flex-col">
+                    <Card className={cn("flex-grow flex flex-col", isOwner && "bg-muted/30")}>
                         <CardHeader>
                             <p className='text-sm text-muted-foreground capitalize'>{product.category}</p>
                             <CardTitle className="text-3xl font-bold font-headline">{product.name}</CardTitle>
@@ -151,7 +158,7 @@ export default function ProductDetailPage() {
                                     Stock: {product.stock > 0 ? `${product.stock} unidades` : 'Indisponível'}
                                 </div>
                              )}
-                              {isService && lojista && (
+                              {lojista && (
                                 <div className="text-sm text-muted-foreground">
                                     Vendido por: <span className="font-medium text-foreground">{lojista.name}</span>
                                 </div>
@@ -160,23 +167,23 @@ export default function ProductDetailPage() {
                         <CardFooter className="mt-auto">
                             {isService ? (
                                 <div className="w-full flex flex-col sm:flex-row gap-2">
-                                     <Button size="lg" className="w-full" asChild>
+                                     <Button size="lg" className="w-full" asChild disabled={isOwner}>
                                         <a href={`tel:${lojista?.phone}`}>
                                             <Phone className="mr-2" />
                                             Ligar
                                         </a>
                                     </Button>
                                     <ScheduleServiceDialog product={product}>
-                                        <Button size="lg" className="w-full" variant="outline">
+                                        <Button size="lg" className="w-full" variant="outline" disabled={isOwner}>
                                             <Calendar className="mr-2" />
                                             Agendar
                                         </Button>
                                     </ScheduleServiceDialog>
                                 </div>
                             ) : (
-                                <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
+                                <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0 || isOwner}>
                                     <ShoppingCart className="mr-2" />
-                                    Adicionar ao Carrinho
+                                    {isOwner ? 'Este é seu produto' : product.stock === 0 ? 'Indisponível' : 'Adicionar ao Carrinho'}
                                 </Button>
                             )}
                         </CardFooter>

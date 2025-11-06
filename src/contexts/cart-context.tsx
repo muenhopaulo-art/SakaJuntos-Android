@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product | GroupPromotion, quantity?: number) => void;
+  addItem: (product: Product | GroupPromotion, quantity?: number, userId?: string) => void;
   removeItem: (productId: string) => void;
   updateItemQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -41,11 +41,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [items, isInitialized]);
 
-  const addItem = useCallback((product: Product | GroupPromotion, quantity: number = 1) => {
+  const addItem = useCallback((product: Product | GroupPromotion, quantity: number = 1, userId?: string) => {
     if (product.productType === 'service') {
         toast({
             title: "Não é possível adicionar",
-            description: "Serviços não podem ser adicionados ao carrinho. Por favor, contacte o vendedor.",
+            description: "Serviços devem ser agendados, não podem ser adicionados ao carrinho.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    if (product.lojistaId && userId && product.lojistaId === userId) {
+        toast({
+            title: "Ação não permitida",
+            description: "Você não pode comprar seus próprios produtos.",
             variant: "destructive"
         });
         return;
