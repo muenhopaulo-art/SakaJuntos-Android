@@ -48,7 +48,7 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['client', 'courier']).default('client'),
+  role: z.enum(['client', 'courier']).default('client'), // Default to 'client' for client/seller
 });
 
 
@@ -66,11 +66,6 @@ export function AuthForm() {
     defaultValues: { name: '', phone: '', password: '', province: '', role: 'client' },
   });
 
-  const selectedRole = useWatch({
-      control: form.control,
-      name: 'role'
-  });
-
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
      setIsLoading(true);
      try {
@@ -79,7 +74,6 @@ export function AuthForm() {
         if (authMode === 'register') {
             const registerValues = values as z.infer<typeof registerSchema>;
             
-            // For couriers, the lojistaId is the current user's ID
             const isCourierRegistrationByLojista = registerValues.role === 'courier' && currentUser;
             const ownerLojistaId = isCourierRegistrationByLojista ? currentUser.uid : undefined;
 
@@ -88,11 +82,14 @@ export function AuthForm() {
             const user = userCredential.user;
             
             // 2. Create user profile in our database (Firestore)
+            // For Client/Seller, role is always 'client' initially.
+            const roleToCreate = registerValues.role === 'courier' ? 'courier' : 'client';
+
             await createUser(user.uid, {
                 name: registerValues.name,
                 phone: values.phone,
                 province: registerValues.province,
-                role: registerValues.role,
+                role: roleToCreate,
                 ownerLojistaId: ownerLojistaId,
             });
 
@@ -103,12 +100,7 @@ export function AuthForm() {
                     title: "Conta Criada!",
                     description: "O seu registo foi concluído com sucesso. A entrar...",
                 });
-
-                if (registerValues.role === 'lojista') {
-                    router.push('/lojista');
-                } else {
-                     router.push('/');
-                }
+                router.push('/');
             } else {
                  toast({
                     title: "Entregador Registado!",
@@ -133,11 +125,8 @@ export function AuthForm() {
 
             if (appUser && appUser.role === 'admin') {
                 router.push('/admin');
-            } else if (appUser && appUser.role === 'lojista') {
-                router.push('/lojista');
-            }
-             else {
-                router.push('/'); // Fallback for clients or couriers
+            } else {
+                router.push('/'); // Unified dashboard logic handles lojista/client
             }
         }
 
@@ -194,27 +183,6 @@ export function AuthForm() {
               {authMode === 'register' && (
                   <>
                     <FormField
-                      control={form.control}
-                      name="role"
-                      render={({ field }) => (
-                        <FormItem>
-                           <FormLabel>Tipo de Conta</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                                <FormControl>
-                                    <SelectTrigger className="py-3 px-4 rounded-xl">
-                                        <SelectValue placeholder="Selecione o tipo de conta" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="client">Cliente</SelectItem>
-                                    <SelectItem value="courier">Entregador</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
                         control={form.control}
                         name="name"
                         render={({ field }) => (
@@ -224,6 +192,27 @@ export function AuthForm() {
                             </FormControl>
                             <FormMessage />
                         </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="province"
+                        render={({ field }) => (
+                            <FormItem>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                                    <FormControl>
+                                        <SelectTrigger className="py-3 px-4 rounded-xl">
+                                            <SelectValue placeholder="Selecione a sua província" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {provinces.map(province => (
+                                            <SelectItem key={province} value={province}>{province}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
                         )}
                     />
                   </>
@@ -240,30 +229,6 @@ export function AuthForm() {
                   </FormItem>
                 )}
               />
-
-              {authMode === 'register' && selectedRole !== 'client' && (
-                 <FormField
-                    control={form.control}
-                    name="province"
-                    render={({ field }) => (
-                        <FormItem>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                                <FormControl>
-                                    <SelectTrigger className="py-3 px-4 rounded-xl">
-                                        <SelectValue placeholder="Selecione a sua província" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {provinces.map(province => (
-                                        <SelectItem key={province} value={province}>{province}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-              )}
 
                <FormField
                 control={form.control}
