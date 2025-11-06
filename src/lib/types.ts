@@ -14,6 +14,7 @@ export interface Product {
   createdAt?: number;
   lojistaId?: string;
   promotionPaymentId?: string; 
+  aiHint?: string;
 }
 
 export interface GroupMember {
@@ -34,7 +35,7 @@ export interface ChatMessage {
     audioSrc?: string;
     senderId: string;
     senderName: string;
-    createdAt: number;
+    createdAt: any;
 }
 
 export type GroupStatus = 'active' | 'finalized' | 'delivered';
@@ -105,6 +106,7 @@ export interface Order {
   lojistaId?: string;
   courierId?: string;
   courierName?: string;
+  address?: string;
   deliveryLocation?: Geolocation;
   pickupLocation?: Geolocation;
   platformFee?: number;

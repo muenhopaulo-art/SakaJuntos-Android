@@ -8,7 +8,8 @@ import { getUser } from '@/services/user-service';
 export async function createIndividualOrder(
     userId: string, 
     items: CartItem[], 
-    totalAmount: number
+    totalAmount: number,
+    address: string,
 ): Promise<{ success: boolean; orderId?: string, message?: string }> {
     try {
         if (items.length === 0) {
@@ -34,7 +35,8 @@ export async function createIndividualOrder(
             clientName: user.name,
             items: orderItems,
             totalAmount: totalAmount,
-            orderType: 'individual'
+            orderType: 'individual',
+            address: address, // Pass the address
         });
 
         if (!orderResult.success || !orderResult.id) {

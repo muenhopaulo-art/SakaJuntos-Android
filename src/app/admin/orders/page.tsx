@@ -2,7 +2,7 @@
 import { getOrders } from '../actions';
 import type { Order } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Package, User, Users, Calendar, DollarSign, List, MoreVertical } from 'lucide-react';
+import { AlertTriangle, Package, User, Users, Calendar, DollarSign, List, MoreVertical, Home } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -93,6 +93,12 @@ export default async function AdminOrdersPage() {
                                             <span className="text-muted-foreground flex items-center gap-1.5"><DollarSign className="h-4 w-4" /> Total</span>
                                             <span className="font-semibold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</span>
                                         </div>
+                                        {order.address && (
+                                            <div className="flex items-start justify-between text-sm">
+                                                <span className="text-muted-foreground flex items-center gap-1.5 pt-0.5"><Home className="h-4 w-4" /> Endereço</span>
+                                                <span className="text-right max-w-[70%]">{order.address}</span>
+                                            </div>
+                                        )}
                                         <div>
                                             <OrderStatusDropdown order={order} />
                                         </div>
@@ -117,6 +123,7 @@ export default async function AdminOrdersPage() {
                                         <TableHead>Pedido ID</TableHead>
                                         <TableHead>Tipo</TableHead>
                                         <TableHead>Cliente</TableHead>
+                                        <TableHead>Endereço</TableHead>
                                         <TableHead>Data</TableHead>
                                         <TableHead>Total</TableHead>
                                         <TableHead>Estado</TableHead>
@@ -135,6 +142,7 @@ export default async function AdminOrdersPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>{order.clientName}</TableCell>
+                                                <TableCell className="text-xs">{order.address}</TableCell>
                                                 <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                                 <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
                                                 <TableCell>
@@ -150,7 +158,7 @@ export default async function AdminOrdersPage() {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
+                                            <TableCell colSpan={8} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>

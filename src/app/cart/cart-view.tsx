@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Minus, Plus, ShoppingCart, Trash2, Package, Loader2 } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Trash2, Package, Loader2, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -16,6 +15,9 @@ import { auth } from '@/lib/firebase';
 import { createIndividualOrder } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const SHIPPING_COST = 1000;
 
@@ -26,19 +28,28 @@ export function CartView() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const handleCheckout = async () => {
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+  const [address, setAddress] = useState('');
+
+  const handleConfirmOrder = async () => {
       if (!user) {
         toast({ variant: 'destructive', title: 'Erro!', description: 'Precisa de estar autenticado para finalizar a compra.' });
         router.push('/login');
         return;
       }
+      if (!address.trim()) {
+        toast({ variant: 'destructive', title: 'Endereço Inválido', description: 'Por favor, insira um endereço de entrega válido.' });
+        return;
+      }
+
       setIsCheckoutLoading(true);
-      const result = await createIndividualOrder(user.uid, items, totalPrice + SHIPPING_COST);
+      const result = await createIndividualOrder(user.uid, items, totalPrice + SHIPPING_COST, address);
       setIsCheckoutLoading(false);
       
       if (result.success && result.orderId) {
           toast({ title: 'Compra Finalizada!', description: 'A sua encomenda foi criada com sucesso.' });
           clearCart();
+          setIsAddressDialogOpen(false);
           router.push('/my-orders');
       } else {
           toast({ variant: 'destructive', title: 'Erro ao Finalizar', description: result.message });
@@ -138,26 +149,42 @@ export function CartView() {
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                  <Button size="lg" className="w-full" disabled={isCheckoutLoading}>
-                    {isCheckoutLoading ? <Loader2 className="animate-spin mr-2"/> : null}
-                    Finalizar Compra
-                  </Button>
-              </AlertDialogTrigger>
-               <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmar Compra?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Isto irá criar uma encomenda com os itens do seu carrinho. O seu pedido será enviado a um lojista para preparação. Deseja continuar?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCheckout}>Confirmar</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+             <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button size="lg" className="w-full">
+                        Finalizar Compra
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Endereço de Entrega</DialogTitle>
+                        <DialogDescription>
+                            Por favor, insira o endereço onde deseja receber a sua encomenda.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="address" className="text-right">
+                                <Home className="h-5 w-5" />
+                            </Label>
+                            <Input 
+                                id="address" 
+                                value={address} 
+                                onChange={(e) => setAddress(e.target.value)} 
+                                className="col-span-3"
+                                placeholder="Ex: Rua da Liberdade, Bairro Azul, Casa Nº 12"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddressDialogOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleConfirmOrder} disabled={isCheckoutLoading || !address.trim()}>
+                            {isCheckoutLoading && <Loader2 className="animate-spin mr-2" />}
+                            Confirmar Encomenda
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
           </CardFooter>
         </Card>
       </div>
