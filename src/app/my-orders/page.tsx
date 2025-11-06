@@ -16,22 +16,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { revalidatePath } from 'next/cache';
-
-async function confirmOrderReception(orderId: string) {
-    try {
-        const orderRef = doc(db, 'orders', orderId);
-        await updateDoc(orderRef, { status: 'entregue' });
-        // Revalidation is now handled by real-time listeners, but this is good practice for server components
-        // revalidatePath('/my-orders');
-        // revalidatePath('/admin/orders');
-        // revalidatePath('/lojista/pedidos');
-        return { success: true };
-    } catch (error) {
-        console.error("Error confirming order reception:", error);
-        return { success: false, message: 'Não foi possível confirmar a receção.' };
-    }
-}
+import { confirmOrderReception } from './actions';
 
 
 const statusColors: Record<OrderStatus, string> = {
