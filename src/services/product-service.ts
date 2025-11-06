@@ -137,10 +137,8 @@ interface CreateGroupData {
     name: string;
     target: number;
     creatorId: string;
-    creatorName: string;
     description: string;
-    imageUrls?: string[];
-    aiHint: string;
+    imageUrl: string; // Changed from imageUrls
 }
 
 
@@ -148,7 +146,12 @@ export async function createGroupPromotion(
     groupData: CreateGroupData
 ): Promise<{ success: boolean; id?: string; message?: string }> {
     try {
-        const { creatorName, creatorId, ...restOfGroupData } = groupData;
+        const { creatorId, ...restOfGroupData } = groupData;
+        const appUser = await getUser(creatorId);
+        if (!appUser) {
+          throw new Error("Creator profile not found.");
+        }
+
         const promotionsCol = collection(db, 'groupPromotions');
         
         const newGroupData = {
@@ -156,7 +159,8 @@ export async function createGroupPromotion(
             creatorId: creatorId,
             participants: 1, 
             status: 'active' as const,
-            price: 0, // Price is dynamically calculated from the cart
+            price: 0,
+            imageUrls: [groupData.imageUrl], // Save it as an array
             createdAt: serverTimestamp(),
         };
 
@@ -164,7 +168,7 @@ export async function createGroupPromotion(
 
         // Add creator as the first member in the subcollection
         const memberRef = doc(db, 'groupPromotions', docRef.id, 'members', creatorId);
-        await setDoc(memberRef, { name: creatorName, joinedAt: serverTimestamp() });
+        await setDoc(memberRef, { name: appUser.name, joinedAt: serverTimestamp() });
 
         return { success: true, id: docRef.id };
     } catch (error) {

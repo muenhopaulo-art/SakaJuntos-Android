@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -28,12 +29,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import { createGroupPromotion } from '@/services/product-service';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { getUser } from '@/services/user-service';
-import { uploadFile } from '@/services/storage-service';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -149,23 +148,20 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
-        const appUser = await getUser(user.uid);
-        if (!appUser || !appUser.name) {
-            throw new Error("Não foi possível encontrar os dados do seu perfil. Tente fazer login novamente.");
-        }
-        
-        // 1. Upload image to Firebase Storage
-        const imageUrl = await uploadFile(data.image, `group_images/${Date.now()}_${data.image.name}`);
+        // 1. Upload image to Firebase Storage from the client-side
+        const storage = getStorage();
+        const filePath = `group_images/${user.uid}/${Date.now()}_${data.image.name}`;
+        const storageRef = ref(storage, filePath);
+        const snapshot = await uploadBytes(storageRef, data.image);
+        const imageUrl = await getDownloadURL(snapshot.ref);
 
-        // 2. Create group with the returned image URL
+        // 2. Create group with the returned image URL via server action
         const result = await createGroupPromotion({
             name: data.name,
             target: data.members,
             creatorId: user.uid,
-            creatorName: appUser.name,
             description: data.description,
-            imageUrls: [imageUrl],
-            aiHint: "group purchase",
+            imageUrl: imageUrl,
         });
 
         if (result.success) {
@@ -236,7 +232,7 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
                 <FormItem>
                   <FormLabel>Imagem do Grupo</FormLabel>
                   <FormControl>
-                    <div>
+                     <div>
                       <Input 
                         type="file" 
                         className="hidden" 

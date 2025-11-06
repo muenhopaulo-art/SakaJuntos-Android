@@ -37,7 +37,7 @@ import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { uploadFile } from '@/services/storage-service';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -157,16 +157,28 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     form.clearErrors("paymentProof");
   };
 
+  // Client-side file upload utility
+  const uploadFile = async (file: File, path: string): Promise<string> => {
+    const storage = getStorage();
+    const storageRef = ref(storage, path);
+    const snapshot = await uploadBytes(storageRef, file, { contentType: file.type });
+    return getDownloadURL(snapshot.ref);
+  };
+
+
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
     try {
+        form.control.register('images'); // Ensure 'images' is registered
+        const imageFiles = form.getValues('images') || [];
         let imageUrls: string[] = [];
-        if (values.images && values.images.length > 0) {
-            const uploadPromises = values.images.map(file => 
+
+        if (imageFiles.length > 0) {
+            const uploadPromises = imageFiles.map(file => 
                 uploadFile(file, `product_images/${lojistaId}/${Date.now()}_${file.name}`)
             );
             imageUrls = await Promise.all(uploadPromises);
         }
-
+        
         let paymentProofUrl: string | undefined = undefined;
         if (values.isPromoted && values.paymentProof) {
             paymentProofUrl = await uploadFile(
