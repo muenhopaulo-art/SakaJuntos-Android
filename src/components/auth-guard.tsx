@@ -9,12 +9,13 @@ import { Logo } from './Logo';
 import { getUser, User } from '@/services/user-service';
 import { SiteHeader } from './site-header';
 import { SiteFooter } from './site-footer';
-import { OrdersSheet } from '../app/orders-sheet';
+import { OrdersSheet } from '@/components/orders-sheet';
+import { Truck } from 'lucide-react';
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
 const adminPaths = ['/admin', '/admin/orders', '/admin/products', '/admin/users'];
-const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos'];
+const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos', '/lojista/agendamentos'];
 // Client-facing paths that are not dashboards
 const clientPaths = ['/', '/minishopping', '/grupos', '/cart', '/my-orders'];
 
