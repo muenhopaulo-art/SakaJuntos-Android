@@ -69,9 +69,9 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     },
   });
 
-  const { isSubmitting, watch } = form.formState;
-  const productType = watch('productType');
-  const imageUrl = watch('imageUrl');
+  const { isSubmitting } = form.formState;
+  const productType = form.watch('productType');
+  const imageUrl = form.watch('imageUrl');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
