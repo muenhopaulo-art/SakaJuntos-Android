@@ -15,7 +15,7 @@ export function LojistaDashboard({ user, onLogout }: LojistaDashboardProps) {
 
     useEffect(() => {
         // Redirect to the new lojista layout
-        router.replace('/lojista');
+        router.push('/lojista');
     }, [router]);
     
     return (

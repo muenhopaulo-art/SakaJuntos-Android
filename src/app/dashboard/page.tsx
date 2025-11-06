@@ -10,7 +10,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // This page is obsolete. The user's role determines if they go to /admin or /lojista.
     // We redirect to /lojista as the new default for all non-admin users.
-    router.replace('/lojista');
+    router.push('/lojista');
   }, [router]);
 
   return null; // Render nothing while redirecting

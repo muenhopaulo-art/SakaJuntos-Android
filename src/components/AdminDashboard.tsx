@@ -16,7 +16,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
 
     useEffect(() => {
         // Redirect to the new admin layout
-        router.replace('/admin');
+        router.push('/admin');
     }, [router]);
     
     return (
