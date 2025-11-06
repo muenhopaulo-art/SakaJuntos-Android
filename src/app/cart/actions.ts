@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { CartItem, User, OrderItem } from '@/lib/types';
+import type { CartItem, User, OrderItem, Geolocation } from '@/lib/types';
 import { createOrder } from '@/services/order-service';
 import { getUser } from '@/services/user-service';
 
@@ -10,6 +10,7 @@ export async function createIndividualOrder(
     items: CartItem[], 
     totalAmount: number,
     address: string,
+    location?: Geolocation | null
 ): Promise<{ success: boolean; orderId?: string, message?: string }> {
     try {
         if (items.length === 0) {
@@ -36,7 +37,8 @@ export async function createIndividualOrder(
             items: orderItems,
             totalAmount: totalAmount,
             orderType: 'individual',
-            address: address, // Pass the address
+            address: address,
+            deliveryLocation: location || undefined
         });
 
         if (!orderResult.success || !orderResult.id) {

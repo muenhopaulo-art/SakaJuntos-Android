@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Minus, Plus, ShoppingCart, Trash2, Package, Loader2, Home } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Trash2, Package, Loader2, Home, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -18,6 +18,9 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { Geolocation } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
 
 const SHIPPING_COST = 1000;
 
@@ -30,6 +33,30 @@ export function CartView() {
   
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [address, setAddress] = useState('');
+  const [location, setLocation] = useState<Geolocation | null>(null);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+
+  const handleGetLocation = () => {
+    setIsFetchingLocation(true);
+    setLocation(null);
+    setAddress('');
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            const newLocation = { latitude, longitude };
+            setLocation(newLocation);
+            setAddress(`Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`);
+            toast({ title: 'Localização Obtida!', description: 'O seu endereço foi preenchido com as suas coordenadas.' });
+            setIsFetchingLocation(false);
+        },
+        (error) => {
+            console.error("Geolocation error:", error);
+            toast({ variant: 'destructive', title: 'Erro de Localização', description: 'Não foi possível obter a sua localização. Verifique as permissões do navegador.' });
+            setIsFetchingLocation(false);
+        },
+        { enableHighAccuracy: true }
+    );
+  };
 
   const handleConfirmOrder = async () => {
       if (!user) {
@@ -43,13 +70,15 @@ export function CartView() {
       }
 
       setIsCheckoutLoading(true);
-      const result = await createIndividualOrder(user.uid, items, totalPrice + SHIPPING_COST, address);
+      const result = await createIndividualOrder(user.uid, items, totalPrice + SHIPPING_COST, address, location);
       setIsCheckoutLoading(false);
       
       if (result.success && result.orderId) {
           toast({ title: 'Compra Finalizada!', description: 'A sua encomenda foi criada com sucesso.' });
           clearCart();
           setIsAddressDialogOpen(false);
+          setAddress('');
+          setLocation(null);
           router.push('/my-orders');
       } else {
           toast({ variant: 'destructive', title: 'Erro ao Finalizar', description: result.message });
@@ -159,22 +188,45 @@ export function CartView() {
                     <DialogHeader>
                         <DialogTitle>Endereço de Entrega</DialogTitle>
                         <DialogDescription>
-                            Por favor, insira o endereço onde deseja receber a sua encomenda.
+                            Insira um endereço ou use a sua localização exata para a entrega.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="address" className="text-right">
-                                <Home className="h-5 w-5" />
+                        <div className="relative">
+                            <Label htmlFor="address" className="sr-only">
+                                Endereço
                             </Label>
+                             <Home className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                             <Input 
                                 id="address" 
                                 value={address} 
-                                onChange={(e) => setAddress(e.target.value)} 
-                                className="col-span-3"
-                                placeholder="Ex: Rua da Liberdade, Bairro Azul, Casa Nº 12"
+                                onChange={(e) => {
+                                    setAddress(e.target.value);
+                                    setLocation(null); // Clear location if user types manually
+                                }} 
+                                className="pl-10"
+                                placeholder="Ex: Rua da Liberdade, Bairro Azul"
+                                disabled={isFetchingLocation}
                             />
                         </div>
+                         <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-background px-2 text-muted-foreground">
+                                Ou
+                                </span>
+                            </div>
+                        </div>
+                         <Button variant="outline" onClick={handleGetLocation} disabled={isFetchingLocation}>
+                            {isFetchingLocation ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <MapPin className="mr-2 h-4 w-4" />
+                            )}
+                            Usar minha localização exata
+                        </Button>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsAddressDialogOpen(false)}>Cancelar</Button>

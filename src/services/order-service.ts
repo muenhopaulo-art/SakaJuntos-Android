@@ -46,6 +46,12 @@ export async function createOrder(
       createdAt: serverTimestamp() as any,
       updatedAt: serverTimestamp() as any,
     };
+    
+    // Explicitly handle undefined for deliveryLocation
+    if (orderData.deliveryLocation) {
+        finalOrderData.deliveryLocation = orderData.deliveryLocation;
+    }
+
     batch.set(orderRef, finalOrderData);
 
     // 2. If it's a group order, add contributions to a subcollection
