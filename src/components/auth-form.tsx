@@ -24,7 +24,7 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from './Logo';
 import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, useAuthState } from 'react-firebase-hooks/auth';
 import { createUser, getUser, setUserOnlineStatus } from '@/services/user-service';
 import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -47,7 +47,7 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['lojista', 'courier']).default('lojista'), // New field for role selection
+  role: z.enum(['client', 'lojista', 'courier']).default('client'), // Updated roles
 });
 
 
@@ -56,12 +56,13 @@ export function AuthForm() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const { toast } = useToast();
   const router = useRouter();
+  const [currentUser] = useAuthState(auth);
 
   const formSchema = authMode === 'login' ? loginSchema : registerSchema;
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '', province: '', role: 'lojista' },
+    defaultValues: { name: '', phone: '', password: '', province: '', role: 'client' },
   });
 
   const selectedRole = useWatch({
@@ -76,6 +77,11 @@ export function AuthForm() {
         
         if (authMode === 'register') {
             const registerValues = values as z.infer<typeof registerSchema>;
+            
+            // For couriers, the lojistaId is the current user's ID
+            const isCourierRegistrationByLojista = registerValues.role === 'courier' && currentUser;
+            const ownerLojistaId = isCourierRegistrationByLojista ? currentUser.uid : undefined;
+
             // 1. Create user in Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(auth, email, registerValues.password);
             const user = userCredential.user;
@@ -86,20 +92,31 @@ export function AuthForm() {
                 phone: values.phone,
                 province: registerValues.province,
                 role: registerValues.role,
-            });
-            await setUserOnlineStatus(user.uid, true);
-            
-            toast({
-                title: "Conta Criada!",
-                description: "O seu registo foi concluído com sucesso. A entrar...",
+                ownerLojistaId: ownerLojistaId,
             });
 
-            // Redirect based on role
-            if (registerValues.role === 'courier') {
-                router.push('/');
+            // If a lojista is registering a courier, we don't sign them in as the courier
+            if (!isCourierRegistrationByLojista) {
+                await setUserOnlineStatus(user.uid, true);
+                toast({
+                    title: "Conta Criada!",
+                    description: "O seu registo foi concluído com sucesso. A entrar...",
+                });
+
+                if (registerValues.role === 'lojista') {
+                    router.push('/lojista');
+                } else {
+                     router.push('/');
+                }
             } else {
-                router.push('/lojista');
+                 toast({
+                    title: "Entregador Registado!",
+                    description: `${registerValues.name} foi adicionado à sua equipa.`,
+                });
+                router.push('/lojista/entregadores'); // Redirect lojista back to couriers page
             }
+
+
         } else {
             // Login mode
             const userCredential = await signInWithEmailAndPassword(auth, email, values.password);
@@ -115,11 +132,11 @@ export function AuthForm() {
 
             if (appUser && appUser.role === 'admin') {
                 router.push('/admin');
-            } else if (appUser && (appUser.role === 'lojista' || appUser.role === 'client')) {
+            } else if (appUser && appUser.role === 'lojista') {
                 router.push('/lojista');
             }
              else {
-                router.push('/'); // Fallback for couriers or other roles
+                router.push('/'); // Fallback for clients or couriers
             }
         }
 
@@ -188,7 +205,8 @@ export function AuthForm() {
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="lojista">Cliente / Vendedor</SelectItem>
+                                    <SelectItem value="client">Cliente</SelectItem>
+                                    <SelectItem value="lojista">Vendedor</SelectItem>
                                     <SelectItem value="courier">Entregador</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -223,7 +241,7 @@ export function AuthForm() {
                 )}
               />
 
-              {authMode === 'register' && selectedRole === 'lojista' && (
+              {authMode === 'register' && selectedRole !== 'client' && (
                  <FormField
                     control={form.control}
                     name="province"

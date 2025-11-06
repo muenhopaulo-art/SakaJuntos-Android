@@ -140,10 +140,7 @@ interface CreateGroupData {
     description: string;
     price: number;
     imageUrl?: string;
-    category: string;
-    stock: number;
-    isPromoted: 'active' | 'inactive';
-    productType: 'product' | 'service';
+    aiHint: string;
 }
 
 

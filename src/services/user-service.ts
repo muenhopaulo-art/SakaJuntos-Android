@@ -10,6 +10,8 @@ interface UserProfileData {
     name: string;
     phone: string;
     province: string;
+    role: UserRole;
+    ownerLojistaId?: string;
 }
 
 export async function createUser(uid: string, data: UserProfileData) {
@@ -20,10 +22,11 @@ export async function createUser(uid: string, data: UserProfileData) {
             name: data.name,
             phone: data.phone,
             province: data.province,
-            role: 'lojista', // All new users are sellers by default
+            role: data.role,
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
-            verificationStatus: 'approved', // All users are pre-approved to sell
+            verificationStatus: data.role === 'courier' ? 'approved' : 'pending',
+            ownerLojistaId: data.ownerLojistaId || null,
             online: false,
         });
         return { success: true, uid };
@@ -54,7 +57,7 @@ export async function getUser(uid: string): Promise<User | null> {
         phone: data.phone,
         email: data.email,
         province: data.province,
-        role: data.role || 'lojista', // Default to lojista
+        role: data.role || 'client',
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
         verificationStatus: data.verificationStatus || 'none',
         wantsToBecomeLojista: data.wantsToBecomeLojista,
