@@ -141,7 +141,7 @@ export function SiteHeader() {
                         <DropdownMenuItem asChild>
                           <Link href={appUser.role === 'admin' ? '/admin' : '/lojista'}>
                               <LayoutDashboard className="mr-2 h-4 w-4" />
-                              <span>Painel</span>
+                              <span>Painel de Vendedor</span>
                           </Link>
                         </DropdownMenuItem>
                       )}
