@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Product } from '@/lib/types';
-import { Loader2, ShoppingCart, CalendarClock, Package, AlertTriangle } from 'lucide-react';
+import { Loader2, ShoppingCart, Phone, Package, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,7 @@ export default function ProductDetailPage() {
                             description: data.description,
                             price: data.price,
                             category: data.category,
+                            productType: data.productType || 'product',
                             stock: data.stock,
                             isPromoted: data.isPromoted,
                             imageUrl: data.imageUrl,
@@ -105,6 +106,7 @@ export default function ProductDetailPage() {
     }
 
     const hasImage = product.imageUrl;
+    const isService = product.productType === 'service';
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -136,15 +138,24 @@ export default function ProductDetailPage() {
                                 <h3 className="font-semibold text-foreground">Descrição</h3>
                                 <p className="whitespace-pre-wrap">{product.description}</p>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                                Stock: {product.stock > 0 ? `${product.stock} unidades` : 'Indisponível'}
-                            </div>
+                             {!isService && (
+                                <div className="text-sm text-muted-foreground">
+                                    Stock: {product.stock > 0 ? `${product.stock} unidades` : 'Indisponível'}
+                                </div>
+                             )}
                         </CardContent>
                         <CardFooter>
-                            <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
-                                <ShoppingCart className="mr-2" />
-                                Adicionar ao Carrinho
-                            </Button>
+                            {isService ? (
+                                <Button size="lg" className="w-full">
+                                    <Phone className="mr-2" />
+                                    Contactar Vendedor
+                                </Button>
+                            ) : (
+                                <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
+                                    <ShoppingCart className="mr-2" />
+                                    Adicionar ao Carrinho
+                                </Button>
+                            )}
                         </CardFooter>
                     </Card>
                 </div>

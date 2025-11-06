@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
@@ -41,6 +42,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [items, isInitialized]);
 
   const addItem = useCallback((product: Product | GroupPromotion, quantity: number = 1) => {
+    if (product.productType === 'service') {
+        toast({
+            title: "Não é possível adicionar",
+            description: "Serviços não podem ser adicionados ao carrinho. Por favor, contacte o vendedor.",
+            variant: "destructive"
+        });
+        return;
+    }
+
     setItems(prevItems => {
       const existingItem = prevItems.find(item => item.product.id === product.id);
       if (existingItem) {

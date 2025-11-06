@@ -4,7 +4,7 @@
 import type { Product } from '@/lib/types';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
-import { ShoppingCart, Package } from 'lucide-react';
+import { ShoppingCart, Package, Phone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/contexts/cart-context';
@@ -43,10 +43,17 @@ export function ProductCard({ product }: ProductCardProps) {
                 : 'Preço sob consulta'
             }
             </p>
-            <Button onClick={handleAddToCart} className="w-full mt-auto" disabled={product.stock === 0}>
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Adicionar
-            </Button>
+            {product.productType === 'service' ? (
+                <Button variant="outline" className="w-full mt-auto">
+                    <Phone className="mr-2 h-4 w-4" />
+                    Saber Mais
+                </Button>
+            ) : (
+                <Button onClick={handleAddToCart} className="w-full mt-auto" disabled={product.stock === 0}>
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Adicionar
+                </Button>
+            )}
         </CardContent>
         </Card>
     </Link>
