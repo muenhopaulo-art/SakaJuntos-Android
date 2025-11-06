@@ -139,7 +139,6 @@ interface CreateGroupData {
     creatorId: string;
     creatorName: string;
     description: string;
-    price: number;
     imageUrls?: string[];
     aiHint: string;
 }
@@ -151,13 +150,19 @@ export async function createGroupPromotion(
     try {
         const { creatorName, ...restOfGroupData } = groupData;
         const promotionsCol = collection(db, 'groupPromotions');
-        const docRef = await addDoc(promotionsCol, {
+        
+        // Data for the main group document
+        const newGroupData = {
             ...restOfGroupData,
             participants: 1, 
-            status: 'active',
+            status: 'active' as const,
+            price: 0, // Price is dynamically calculated from the cart
             createdAt: serverTimestamp(),
-        });
+        };
 
+        const docRef = await addDoc(promotionsCol, newGroupData);
+
+        // Add creator as the first member in the subcollection
         const memberRef = doc(db, 'groupPromotions', docRef.id, 'members', groupData.creatorId);
         await setDoc(memberRef, { name: creatorName, joinedAt: serverTimestamp() });
 
