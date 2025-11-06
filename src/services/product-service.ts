@@ -7,6 +7,7 @@ import { collection, getDocs, writeBatch, doc, Timestamp, addDoc, getDoc, setDoc
 import { products as mockProducts, groupPromotions as mockGroupPromotions } from '@/lib/mock-data';
 import type { Product, GroupPromotion, GroupMember, JoinRequest, CartItem, Contribution, Geolocation, User } from '@/lib/types';
 import { getUser, queryUserByPhone as queryUserByPhoneFromUserService } from './user-service';
+import { createNotification } from './notification-service';
 
 const SHIPPING_COST_PER_MEMBER = 1000;
 
@@ -202,8 +203,6 @@ export async function approveJoinRequest(groupId: string, userId: string) {
             
             const requestSnap = await transaction.get(requestRef);
             if (!requestSnap.exists()) {
-                // This might happen if the request was cancelled or handled in another session.
-                // We don't need to throw an error, we can just log it and return.
                 console.warn(`Join request for user ${userId} in group ${groupId} not found. It might have been handled already.`);
                 return;
             }
@@ -211,11 +210,20 @@ export async function approveJoinRequest(groupId: string, userId: string) {
             const groupSnap = await transaction.get(groupRef);
             if (!groupSnap.exists()) throw new Error("Group does not exist.");
 
+            const groupData = groupSnap.data();
             transaction.set(memberRef, { name: requestSnap.data().name, joinedAt: serverTimestamp() });
             transaction.delete(requestRef);
 
-            const newParticipantCount = (groupSnap.data().participants || 0) + 1;
+            const newParticipantCount = (groupData.participants || 0) + 1;
             transaction.update(groupRef, { participants: newParticipantCount });
+
+            // Notify the user who was accepted
+            await createNotification({
+                userId: userId,
+                title: "Você foi aceite!",
+                message: `O seu pedido para aderir ao grupo "${groupData.name}" foi aprovado.`,
+                link: `/grupos/${groupId}`
+            });
         });
         return { success: true };
     } catch (error) {

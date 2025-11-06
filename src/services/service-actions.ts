@@ -2,8 +2,9 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { getUser } from './user-service';
+import { createNotification } from './notification-service';
 
 interface ServiceRequestData {
     clientId: string;
@@ -24,7 +25,7 @@ export async function createServiceRequest(data: ServiceRequestData) {
 
         const serviceRequestsCol = collection(db, 'serviceRequests');
         
-        await addDoc(serviceRequestsCol, {
+        const docRef = await addDoc(serviceRequestsCol, {
             serviceId: data.serviceId,
             clientId: data.clientId,
             clientName: user.name,
@@ -37,10 +38,42 @@ export async function createServiceRequest(data: ServiceRequestData) {
             status: 'pendente',
             createdAt: serverTimestamp(),
         });
+        
+        // Notify the lojista
+        await createNotification({
+            userId: data.lojistaId,
+            title: "Novo Pedido de Serviço",
+            message: `Recebeu um novo pedido de agendamento de ${user.name}.`,
+            link: '/lojista/agendamentos'
+        });
+
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error("Error creating service request:", error);
+        return { success: false, message: (error as Error).message };
+    }
+}
+
+export async function updateServiceRequestStatus(requestId: string, newStatus: 'confirmado' | 'concluído' | 'cancelado') {
+     try {
+        const requestRef = doc(db, 'serviceRequests', requestId);
+        await updateDoc(requestRef, { status: newStatus });
+        
+        const requestSnap = await getDoc(requestRef);
+        const requestData = requestSnap.data();
+
+        if (requestData) {
+             await createNotification({
+                userId: requestData.clientId,
+                title: "Agendamento Atualizado",
+                message: `O seu pedido de serviço foi atualizado para: ${newStatus}`,
+                link: '/my-orders'
+            });
+        }
 
         return { success: true };
     } catch (error) {
-        console.error("Error creating service request:", error);
+        console.error("Error updating service request status:", error);
         return { success: false, message: (error as Error).message };
     }
 }

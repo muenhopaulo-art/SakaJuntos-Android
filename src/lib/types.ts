@@ -148,3 +148,14 @@ export interface ServiceRequest {
     status: ServiceRequestStatus;
     createdAt: number;
 }
+
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  link: string;
+  isRead: boolean;
+  createdAt: number;
+}

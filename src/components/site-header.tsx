@@ -4,11 +4,11 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetClose } from './ui/sheet';
-import { Menu, User, LogOut, LayoutDashboard, Shield, Package, ShoppingBag } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Shield, Package, ShoppingBag, Bell } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react';
 import { getUser, setUserOnlineStatus, type User as AppUser } from '@/services/user-service';
 import { CartSheet } from './cart-sheet';
 import { Logo } from './Logo';
+import { NotificationsSheet } from './notifications-sheet';
 
 
 export function SiteHeader() {
@@ -119,6 +120,7 @@ export function SiteHeader() {
                 <div className='h-8 w-20 bg-muted animate-pulse rounded-md' />
              ) : user && appUser ? (
                 <>
+                <NotificationsSheet />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">

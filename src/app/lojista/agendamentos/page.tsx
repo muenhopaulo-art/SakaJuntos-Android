@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { updateServiceRequestStatus } from '@/services/service-actions';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -56,10 +57,10 @@ function StatusUpdater({ request }: { request: ServiceRequest }) {
     const { toast } = useToast();
 
     const handleUpdate = async (newStatus: ServiceRequestStatus) => {
+        if (newStatus === request.status) return;
         setLoading(true);
         try {
-            const requestRef = doc(db, 'serviceRequests', request.id);
-            await updateDoc(requestRef, { status: newStatus });
+            await updateServiceRequestStatus(request.id, newStatus);
             toast({ title: 'Status Atualizado', description: `O agendamento foi marcado como ${newStatus}.` });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erro!', description: 'Não foi possível atualizar o status.' });

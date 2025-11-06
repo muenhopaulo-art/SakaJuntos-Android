@@ -5,6 +5,7 @@
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query, doc, getDoc, Timestamp,getCountFromServer, where, updateDoc } from 'firebase/firestore';
 import type { Order, Contribution, User, GroupPromotion } from '@/lib/types';
+import { createNotification } from '@/services/notification-service';
 
 
 // Helper function to convert Firestore contribution doc to a plain object
@@ -85,6 +86,11 @@ export async function getOrders(userId?: string): Promise<Order[]> {
 export async function assignDriverToOrder(orderId: string, driver: User): Promise<{success: boolean, message?: string}> {
     try {
         const orderRef = doc(db, 'orders', orderId);
+        const orderSnap = await getDoc(orderRef);
+        if (!orderSnap.exists()) {
+          throw new Error("Pedido não encontrado.");
+        }
+        const orderData = orderSnap.data();
         
         await updateDoc(orderRef, { 
             status: 'a caminho', // lowercase status
@@ -92,8 +98,12 @@ export async function assignDriverToOrder(orderId: string, driver: User): Promis
             courierName: driver.name
         });
 
-        // Here you would typically send a notification to the driver's app
-        // For now, we just update the status.
+        await createNotification({
+            userId: orderData.clientId,
+            title: "Pedido a Caminho!",
+            message: `O seu pedido #${orderId.substring(0, 6)} está a caminho.`,
+            link: '/my-orders'
+        });
 
         return { success: true };
     } catch (error) {
@@ -112,14 +122,19 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
       }
       const orderData = orderSnap.data();
 
-      // If status is being changed to 'a caminho', ensure a driver is assigned first.
       if (status === 'a caminho' && !orderData.courierId) {
           throw new Error("Não é possível alterar para 'a caminho' sem atribuir um entregador.");
       }
 
       await updateDoc(orderRef, { status });
 
-      // If the order is delivered or cancelled, update the group status
+      await createNotification({
+          userId: orderData.clientId,
+          title: "Estado do Pedido Atualizado",
+          message: `O seu pedido #${orderId.substring(0, 6)} foi atualizado para: ${status}.`,
+          link: '/my-orders'
+      });
+
       if ((status === 'entregue' || status === 'cancelado') && orderData.groupId) {
           const groupRef = doc(db, 'groupPromotions', orderData.groupId);
           const groupSnap = await getDoc(groupRef);

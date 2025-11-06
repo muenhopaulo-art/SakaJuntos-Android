@@ -42,11 +42,13 @@ const serviceStatusColors: Record<ServiceRequestStatus, string> = {
 function OrderConfirmationAction({ order, className }: { order: Order; className?: string }) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+    const [user] = useAuthState(auth);
 
     const handleConfirm = async (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent accordion from toggling
+        if (!user) return;
         setLoading(true);
-        const result = await confirmOrderReception(order.id);
+        const result = await confirmOrderReception(order.id, user.uid);
         setLoading(false);
         if (result.success) {
             toast({ title: 'Pedido Confirmado!', description: 'O seu pedido foi marcado como entregue. Obrigado!' });

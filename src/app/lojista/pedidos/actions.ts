@@ -7,6 +7,7 @@ import { collection, query, where, getDocs, doc, updateDoc, Timestamp, getDoc } 
 import type { Order, OrderStatus, User } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getUser } from '@/services/user-service';
+import { createNotification } from '@/services/notification-service';
 
 
 // Helper function to convert Firestore data to a plain object
@@ -59,6 +60,7 @@ export async function updateLojistaOrderStatus(orderId: string, status: OrderSta
       if (!orderSnap.exists() || orderSnap.data().lojistaId !== lojistaId) {
           throw new Error("Pedido não encontrado ou não tem permissão para o atualizar.");
       }
+      const orderData = orderSnap.data();
 
       const updates: { status: OrderStatus; courierId?: string; courierName?: string } = { status };
       
@@ -70,6 +72,14 @@ export async function updateLojistaOrderStatus(orderId: string, status: OrderSta
       }
 
       await updateDoc(orderRef, updates);
+
+      // Notify the client
+      await createNotification({
+          userId: orderData.clientId,
+          title: "Estado do Pedido Atualizado",
+          message: `O estado do seu pedido #${orderId.substring(0, 6)} foi atualizado para: ${status}`,
+          link: '/my-orders'
+      });
       
       revalidatePath('/lojista/pedidos');
       revalidatePath('/admin/orders');
@@ -91,8 +101,17 @@ export async function confirmLojistaDelivery(orderId: string, lojistaId: string)
         if (!orderSnap.exists() || (orderSnap.data().courierId !== lojistaId && orderSnap.data().lojistaId !== lojistaId)) {
             throw new Error("Pedido não encontrado ou não tem permissão para esta ação.");
         }
+        const orderData = orderSnap.data();
 
         await updateDoc(orderRef, { status: 'aguardando confirmação' });
+
+        // Notify client
+        await createNotification({
+            userId: orderData.clientId,
+            title: "Confirme a Entrega",
+            message: `O seu pedido #${orderId.substring(0, 6)} foi entregue. Por favor, confirme a receção.`,
+            link: '/my-orders'
+        });
         
         revalidatePath('/lojista/pedidos');
         revalidatePath('/admin/orders');
