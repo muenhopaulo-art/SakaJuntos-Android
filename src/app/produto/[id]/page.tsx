@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Product } from '@/lib/types';
+import type { Product, User } from '@/lib/types';
 import { Loader2, ShoppingCart, Phone, Package, AlertTriangle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -16,6 +15,7 @@ import { useCart } from '@/contexts/cart-context';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Timestamp } from 'firebase/firestore';
 import { ScheduleServiceDialog } from '@/components/schedule-service-dialog';
+import { getUser } from '@/services/user-service';
 
 const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -39,46 +39,53 @@ export default function ProductDetailPage() {
     const params = useParams();
     const { id } = params;
     const [product, setProduct] = useState<Product | null>(null);
+    const [lojista, setLojista] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
     const { addItem } = useCart();
 
     useEffect(() => {
-        if (typeof id === 'string') {
-            const fetchProduct = async () => {
-                setLoading(true);
-                setError(null);
-                try {
-                    const productRef = doc(db, 'products', id);
-                    const productSnap = await getDoc(productRef);
-                    if (productSnap.exists()) {
-                        const data = productSnap.data();
-                        const productData: Product = {
-                            id: productSnap.id,
-                            name: data.name,
-                            description: data.description,
-                            price: data.price,
-                            category: data.category,
-                            productType: data.productType || 'product',
-                            stock: data.stock,
-                            isPromoted: data.isPromoted,
-                            imageUrl: data.imageUrl,
-                            createdAt: (data.createdAt as Timestamp)?.toMillis(),
-                            lojistaId: data.lojistaId,
-                        };
-                        setProduct(productData);
-                    } else {
-                        setError('Produto não encontrado.');
+        if (typeof id !== 'string') return;
+        
+        const fetchProductAndLojista = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const productRef = doc(db, 'products', id);
+                const productSnap = await getDoc(productRef);
+                if (productSnap.exists()) {
+                    const data = productSnap.data();
+                    const productData: Product = {
+                        id: productSnap.id,
+                        name: data.name,
+                        description: data.description,
+                        price: data.price,
+                        category: data.category,
+                        productType: data.productType || 'product',
+                        stock: data.stock,
+                        isPromoted: data.isPromoted,
+                        imageUrl: data.imageUrl,
+                        createdAt: (data.createdAt as Timestamp)?.toMillis(),
+                        lojistaId: data.lojistaId,
+                    };
+                    setProduct(productData);
+
+                    if (productData.lojistaId) {
+                        const lojistaData = await getUser(productData.lojistaId);
+                        setLojista(lojistaData);
                     }
-                } catch (e) {
-                    console.error("Error fetching product:", e);
-                    setError('Ocorreu um erro ao buscar os detalhes.');
+
+                } else {
+                    setError('Produto não encontrado.');
                 }
-                setLoading(false);
-            };
-            fetchProduct();
-        }
+            } catch (e) {
+                console.error("Error fetching product:", e);
+                setError('Ocorreu um erro ao buscar os detalhes.');
+            }
+            setLoading(false);
+        };
+        fetchProductAndLojista();
     }, [id]);
 
     const handleAddToCart = () => {
@@ -123,12 +130,12 @@ export default function ProductDetailPage() {
                 </div>
 
                 <div className="flex flex-col">
-                    <Card className="flex-grow">
+                    <Card className="flex-grow flex flex-col">
                         <CardHeader>
                             <p className='text-sm text-muted-foreground capitalize'>{product.category}</p>
                             <CardTitle className="text-3xl font-bold font-headline">{product.name}</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-6">
+                        <CardContent className="space-y-6 flex-grow">
                             <p className="text-3xl font-bold">
                                 {product.price > 0 
                                     ? new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)
@@ -144,15 +151,28 @@ export default function ProductDetailPage() {
                                     Stock: {product.stock > 0 ? `${product.stock} unidades` : 'Indisponível'}
                                 </div>
                              )}
+                              {isService && lojista && (
+                                <div className="text-sm text-muted-foreground">
+                                    Vendido por: <span className="font-medium text-foreground">{lojista.name}</span>
+                                </div>
+                             )}
                         </CardContent>
-                        <CardFooter>
+                        <CardFooter className="mt-auto">
                             {isService ? (
-                                <ScheduleServiceDialog product={product}>
-                                    <Button size="lg" className="w-full">
-                                        <Calendar className="mr-2" />
-                                        Agendar Serviço
+                                <div className="w-full flex flex-col sm:flex-row gap-2">
+                                     <Button size="lg" className="w-full" asChild>
+                                        <a href={`tel:${lojista?.phone}`}>
+                                            <Phone className="mr-2" />
+                                            Ligar
+                                        </a>
                                     </Button>
-                                </ScheduleServiceDialog>
+                                    <ScheduleServiceDialog product={product}>
+                                        <Button size="lg" className="w-full" variant="outline">
+                                            <Calendar className="mr-2" />
+                                            Agendar
+                                        </Button>
+                                    </ScheduleServiceDialog>
+                                </div>
                             ) : (
                                 <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
                                     <ShoppingCart className="mr-2" />

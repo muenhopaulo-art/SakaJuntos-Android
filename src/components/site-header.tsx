@@ -148,7 +148,7 @@ export function SiteHeader() {
                       <DropdownMenuItem asChild>
                         <Link href="/my-orders">
                             <Package className="mr-2 h-4 w-4" />
-                            <span>Minhas Encomendas</span>
+                            <span>Meus Pedidos</span>
                         </Link>
                      </DropdownMenuItem>
                      <DropdownMenuSeparator />
