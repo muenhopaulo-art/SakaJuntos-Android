@@ -137,11 +137,11 @@ export function SiteHeader() {
                       </div>
                     </DropdownMenuLabel>
                      <DropdownMenuSeparator />
-                      {(appUser.role === 'lojista' || appUser.role === 'admin') && (
+                      {appUser.role !== 'courier' && (
                         <DropdownMenuItem asChild>
-                          <Link href={appUser.role === 'admin' ? '/admin' : '/lojista'}>
+                           <Link href={appUser.role === 'admin' ? '/admin' : '/lojista'}>
                               <LayoutDashboard className="mr-2 h-4 w-4" />
-                              <span>Painel de Vendedor</span>
+                              <span>Mudar para Vendedor</span>
                           </Link>
                         </DropdownMenuItem>
                       )}

@@ -193,8 +193,6 @@ export async function getUsers(): Promise<User[]> {
                 phone: data.phone,
                 email: data.email,
                 role: data.role,
-                wantsToBecomeLojista: data.wantsToBecomeLojista,
-                verificationStatus: data.verificationStatus || 'none',
                 createdAt: createdAt instanceof Timestamp ? createdAt.toMillis() : (createdAt || Date.now()),
                 online: data.online || false
             }

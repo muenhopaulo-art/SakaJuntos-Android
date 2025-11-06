@@ -1,5 +1,4 @@
 
-
 export interface Product {
   id: string;
   name: string;
@@ -115,7 +114,6 @@ export interface Order {
 }
 
 export type UserRole = 'client' | 'lojista' | 'admin' | 'courier';
-export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'none';
 
 export interface User {
     uid: string;
@@ -125,8 +123,6 @@ export interface User {
     province?: string;
     role: UserRole;
     createdAt: number;
-    verificationStatus?: VerificationStatus;
-    wantsToBecomeLojista?: boolean; // Keep for compatibility if needed
     ownerLojistaId?: string; // ID of the lojista this courier works for
     online?: boolean;
 }

@@ -25,7 +25,6 @@ export async function createUser(uid: string, data: UserProfileData) {
             role: data.role,
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
-            verificationStatus: data.role === 'courier' ? 'approved' : 'pending',
             ownerLojistaId: data.ownerLojistaId || null,
             online: false,
         });
@@ -59,8 +58,6 @@ export async function getUser(uid: string): Promise<User | null> {
         province: data.province,
         role: data.role || 'client',
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
-        verificationStatus: data.verificationStatus || 'none',
-        wantsToBecomeLojista: data.wantsToBecomeLojista,
         ownerLojistaId: data.ownerLojistaId,
         online: data.online || false,
     };

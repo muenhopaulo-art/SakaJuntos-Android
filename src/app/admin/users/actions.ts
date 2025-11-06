@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -11,11 +12,10 @@ export async function updateUserVerificationStatus(userId: string, action: 'appr
         if (action === 'approve') {
             await updateDoc(userRef, {
                 role: 'lojista',
-                verificationStatus: 'approved'
             });
         } else { // reject
             await updateDoc(userRef, {
-                verificationStatus: 'rejected'
+                role: 'client', // Revert to client on rejection
             });
         }
         

@@ -28,14 +28,6 @@ const roleColors: Record<string, string> = {
     courier: 'bg-indigo-500/20 text-indigo-700',
 };
 
-const verificationStatusColors: Record<string, string> = {
-    approved: 'bg-green-500/20 text-green-700',
-    pending: 'bg-yellow-500/20 text-yellow-700',
-    rejected: 'bg-red-500/20 text-red-700',
-    none: 'bg-gray-500/20 text-gray-700',
-};
-
-
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -90,7 +82,6 @@ export default function AdminUsersPage() {
                                 <TableHead>Email</TableHead>
                                 <TableHead>Telefone</TableHead>
                                 <TableHead>Função</TableHead>
-                                <TableHead>Verificação</TableHead>
                                 <TableHead>Data de Registo</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
@@ -107,11 +98,6 @@ export default function AdminUsersPage() {
                                                 {user.role}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className={cn("capitalize", verificationStatusColors[user.verificationStatus || 'none'])}>
-                                                {user.verificationStatus || 'none'}
-                                            </Badge>
-                                        </TableCell>
                                         <TableCell>{user.createdAt ? format(new Date(user.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                         <TableCell className="text-right">
                                             <UserActions user={user} />
@@ -120,7 +106,7 @@ export default function AdminUsersPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center h-24">Nenhum utilizador encontrado.</TableCell>
+                                    <TableCell colSpan={6} className="text-center h-24">Nenhum utilizador encontrado.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
