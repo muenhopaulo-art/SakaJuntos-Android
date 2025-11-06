@@ -55,6 +55,18 @@ const productSchema = z.object({
   paymentProof: z.string().optional(),
 });
 
+const categories = [
+    "Alimentação e Bebidas",
+    "Casa e Jardim",
+    "Eletrónicos",
+    "Saúde e Beleza",
+    "Serviços",
+    "Vestuário e Acessórios",
+    "Veículos e Peças",
+    "Outros"
+];
+
+
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -233,9 +245,18 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Categoria</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Vestuário ou Serviços Domésticos" {...field} />
-                  </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma categoria" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map(category => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                          ))}
+                        </SelectContent>
+                    </Select>
                   <FormMessage />
                 </FormItem>
               )}
