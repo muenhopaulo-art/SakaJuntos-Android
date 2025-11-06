@@ -3,8 +3,9 @@
 
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
-import type { Order, OrderStatus } from '@/lib/types';
+import type { Order, OrderStatus, User } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+import { getUser } from '@/services/user-service';
 
 
 // Helper function to convert Firestore data to a plain object
@@ -56,15 +57,20 @@ export async function updateLojistaOrderStatus(orderId: string, status: OrderSta
           throw new Error("Pedido não encontrado ou não tem permissão para o atualizar.");
       }
 
-      // Lojista can only move the order to "pronto para recolha"
-      if (status !== 'pronto para recolha') {
-        throw new Error("Ação não permitida. Apenas pode marcar o pedido como 'pronto para recolha'.");
+      const updates: { status: OrderStatus; courierId?: string; courierName?: string } = { status };
+      
+      // If lojista is delivering, set them as the courier
+      if (status === 'a caminho') {
+          const lojista = await getUser(lojistaId);
+          updates.courierId = lojistaId;
+          updates.courierName = lojista?.name || 'Vendedor';
       }
 
-      await updateDoc(orderRef, { status });
+      await updateDoc(orderRef, updates);
       
       revalidatePath('/lojista/pedidos');
       revalidatePath('/admin/orders');
+      revalidatePath('/my-orders');
 
       return { success: true };
   } catch (error) {
@@ -72,4 +78,26 @@ export async function updateLojistaOrderStatus(orderId: string, status: OrderSta
       const message = error instanceof Error ? error.message : 'Não foi possível atualizar o estado do pedido.';
       return { success: false, message };
   }
+}
+
+export async function confirmLojistaDelivery(orderId: string, lojistaId: string): Promise<{success: boolean; message?: string}> {
+     try {
+        const orderRef = doc(db, 'orders', orderId);
+        const orderSnap = await getDoc(orderRef);
+
+        if (!orderSnap.exists() || (orderSnap.data().courierId !== lojistaId && orderSnap.data().lojistaId !== lojistaId)) {
+            throw new Error("Pedido não encontrado ou não tem permissão para esta ação.");
+        }
+
+        await updateDoc(orderRef, { status: 'aguardando confirmação' });
+        
+        revalidatePath('/lojista/pedidos');
+        revalidatePath('/admin/orders');
+        revalidatePath('/my-orders');
+
+        return { success: true };
+     } catch (error) {
+        console.error("Error confirming lojista delivery:", error);
+        return { success: false, message: error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.' };
+     }
 }

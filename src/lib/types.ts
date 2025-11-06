@@ -76,6 +76,8 @@ export type OrderStatus =
   | 'a aguardar lojista'
   | 'pronto para recolha'
   | 'a caminho'
+  | 'aguardando confirmação' // Client needs to confirm receipt
+  | 'entregue pelo vendedor' // Intermediate status for lojista delivery
   | 'entregue'
   | 'cancelado';
 

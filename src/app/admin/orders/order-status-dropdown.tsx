@@ -21,6 +21,7 @@ const statusOptions: OrderStatus[] = [
     'a aguardar lojista',
     'pronto para recolha',
     'a caminho',
+    'aguardando confirmação',
     'entregue',
     'cancelado'
 ];
@@ -30,6 +31,8 @@ const statusColors: Record<OrderStatus, string> = {
     'a aguardar lojista': 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 hover:bg-yellow-500/30',
     'pronto para recolha': 'bg-blue-500/20 text-blue-700 border-blue-500/30 hover:bg-blue-500/30',
     'a caminho': 'bg-indigo-500/20 text-indigo-700 border-indigo-500/30 hover:bg-indigo-500/30',
+    'aguardando confirmação': 'bg-cyan-500/20 text-cyan-700 border-cyan-500/30 hover:bg-cyan-500/30',
+    'entregue pelo vendedor': 'bg-purple-500/20 text-purple-700 border-purple-500/30 hover:bg-purple-500/30',
     'entregue': 'bg-green-500/20 text-green-700 border-green-500/30 hover:bg-green-500/30',
     'cancelado': 'bg-red-500/20 text-red-700 border-red-500/30 hover:bg-red-500/30',
 };
@@ -77,6 +80,7 @@ export function OrderStatusDropdown({ order }: { order: Order }) {
             key={status}
             onSelect={() => handleStatusChange(status)}
             className="flex justify-between capitalize"
+            disabled={status === 'entregue pelo vendedor'}
           >
             {status}
             {currentStatus === status && <Check className="h-4 w-4" />}

@@ -37,6 +37,8 @@ const convertDocToOrder = (doc: any): Order => {
     createdAt: data.createdAt?.toMillis(),
     lojistaId: data.lojistaId,
     groupName: data.groupName,
+    courierId: data.courierId,
+    courierName: data.courierName
   };
 };
 
@@ -58,8 +60,10 @@ export default function LojistaOrdersPage() {
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const updatedOrders = snapshot.docs.map(convertDocToOrder);
             
-            // Filter for actionable orders for the lojista
-            const actionableOrders = updatedOrders.filter(order => order.status === 'a aguardar lojista');
+            // Show all non-delivered/cancelled orders to the lojista
+            const actionableOrders = updatedOrders.filter(order => 
+                order.status !== 'entregue' && order.status !== 'cancelado'
+            );
 
             // Sort client-side
             actionableOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -141,7 +145,7 @@ export default function LojistaOrdersPage() {
                         ) : (
                              <Card className="text-center h-48 flex items-center justify-center">
                                 <CardContent>
-                                    <p>Nenhum pedido encontrado.</p>
+                                    <p>Nenhum pedido ativo encontrado.</p>
                                 </CardContent>
                             </Card>
                         )}
@@ -158,7 +162,7 @@ export default function LojistaOrdersPage() {
                                         <TableHead>Cliente</TableHead>
                                         <TableHead>Data</TableHead>
                                         <TableHead>Total</TableHead>
-                                        <TableHead>Itens</TableHead>
+                                        <TableHead>Entregador</TableHead>
                                         <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -176,7 +180,7 @@ export default function LojistaOrdersPage() {
                                                 <TableCell>{order.clientName}</TableCell>
                                                 <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
                                                 <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
-                                                <TableCell className="text-center">{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</TableCell>
+                                                <TableCell>{order.courierName || 'N/A'}</TableCell>
                                                 <TableCell className="text-right">
                                                     <LojistaOrderStatusButton order={order} />
                                                 </TableCell>
@@ -184,7 +188,7 @@ export default function LojistaOrdersPage() {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-24">Nenhum pedido encontrado.</TableCell>
+                                            <TableCell colSpan={7} className="text-center h-24">Nenhum pedido ativo encontrado.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
@@ -196,7 +200,3 @@ export default function LojistaOrdersPage() {
         </>
     );
 }
-
-    
-
-    
