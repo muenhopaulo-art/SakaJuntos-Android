@@ -30,7 +30,7 @@ function OrderItem({ order }: { order: Order }) {
         <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="flex justify-between items-start">
                 <div>
-                    <h3 className="font-semibold">{order.groupName}</h3>
+                    <h3 className="font-semibold">{order.groupName || `Encomenda ${order.orderType}`}</h3>
                     <p className="text-xs text-muted-foreground font-mono">ID: #{order.id.substring(0, 6)}</p>
                 </div>
                 <div className={cn("text-xs font-semibold px-2 py-1 rounded-full capitalize", statusColors[order.status])}>
@@ -71,7 +71,8 @@ export function OrdersSheet() {
     }
 
     setLoading(true);
-    const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid));
+    const activeOrderStatuses: OrderStatus[] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho'];
+    const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid), where('status', 'in', activeOrderStatuses));
     
     const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
         const fetchedOrders: Order[] = [];
@@ -90,6 +91,7 @@ export function OrdersSheet() {
                 items: data.items,
                 totalAmount: data.totalAmount,
                 status: data.status,
+                orderType: data.orderType || 'group',
                 createdAt: data.createdAt?.toMillis(),
                 contributions,
                 courierId: data.courierId,
@@ -116,14 +118,19 @@ export function OrdersSheet() {
       <SheetTrigger asChild>
         <Button variant="outline" size="icon" className="relative ml-2 rounded-full h-14 w-14 shadow-lg">
           <Truck className="h-6 w-6" />
+           {orders.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+              {orders.length}
+            </span>
+          )}
           <span className="sr-only">Acompanhar Encomendas</span>
         </Button>
       </SheetTrigger>
        <SheetContent className="flex w-full flex-col pr-0 sm:max-w-md">
         <SheetHeader className="px-6">
-            <SheetTitle>Minhas Encomendas</SheetTitle>
+            <SheetTitle>Minhas Encomendas Ativas</SheetTitle>
             <SheetDescription>
-                Acompanhe o estado de todas as suas encomendas aqui.
+                Acompanhe o estado das suas encomendas em andamento.
             </SheetDescription>
         </SheetHeader>
         <Separator />
@@ -138,7 +145,7 @@ export function OrdersSheet() {
                 ) : (
                     <div className="text-center pt-20 text-muted-foreground space-y-4">
                         <Truck className="h-12 w-12 mx-auto" />
-                        <p className="font-semibold">Ainda não tem encomendas.</p>
+                        <p className="font-semibold">Nenhuma encomenda ativa.</p>
                         <p className="text-sm">Quando fizer uma compra, ela aparecerá aqui.</p>
                     </div>
                 )}

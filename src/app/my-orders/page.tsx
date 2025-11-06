@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -49,7 +48,8 @@ export default function MyOrdersPage() {
         setLoading(true);
 
         // Listener for Orders
-        const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid));
+        const activeOrderStatuses: OrderStatus[] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho'];
+        const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid), where('status', 'in', activeOrderStatuses));
         const unsubscribeOrders = onSnapshot(ordersQuery, async (snapshot) => {
             const fetchedOrders: Order[] = await Promise.all(snapshot.docs.map(async (doc) => {
                 const data = doc.data();
@@ -82,7 +82,8 @@ export default function MyOrdersPage() {
         });
 
         // Listener for Service Requests
-        const servicesQuery = query(collection(db, 'serviceRequests'), where('clientId', '==', user.uid));
+        const activeServiceStatuses: ServiceRequestStatus[] = ['pendente', 'confirmado'];
+        const servicesQuery = query(collection(db, 'serviceRequests'), where('clientId', '==', user.uid), where('status', 'in', activeServiceStatuses));
         const unsubscribeServices = onSnapshot(servicesQuery, (snapshot) => {
             const fetchedServices: ServiceRequest[] = snapshot.docs.map(doc => {
                  const data = doc.data();
@@ -146,7 +147,7 @@ export default function MyOrdersPage() {
                      {orders.length === 0 ? (
                          <div className="text-center py-16 border-2 border-dashed rounded-lg mt-4">
                             <Truck className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                            <p className="text-lg font-semibold text-muted-foreground">Nenhuma compra encontrada.</p>
+                            <p className="text-lg font-semibold text-muted-foreground">Nenhuma compra ativa encontrada.</p>
                             <p className="text-muted-foreground mt-2">Assim que fizer uma compra, ela aparecerá aqui.</p>
                         </div>
                     ) : (
@@ -211,7 +212,7 @@ export default function MyOrdersPage() {
                     {serviceRequests.length === 0 ? (
                          <div className="text-center py-16 border-2 border-dashed rounded-lg mt-4">
                             <Calendar className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                            <p className="text-lg font-semibold text-muted-foreground">Nenhum agendamento encontrado.</p>
+                            <p className="text-lg font-semibold text-muted-foreground">Nenhum agendamento ativo encontrado.</p>
                             <p className="text-muted-foreground mt-2">Os seus serviços agendados aparecerão aqui.</p>
                         </div>
                     ) : (
