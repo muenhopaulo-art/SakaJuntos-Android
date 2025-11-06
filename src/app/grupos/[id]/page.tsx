@@ -256,82 +256,15 @@ const ChatDialogContent = ({ groupId, user }: { groupId: string; user: User | nu
   );
 };
 
-
-// Real-time listeners
-function listenToGroup(groupId: string, callback: (group: GroupPromotion) => void) {
-    const groupRef = doc(db, 'groupPromotions', groupId);
-    return onSnapshot(groupRef, async (docSnap) => {
-        if (docSnap.exists()) {
-            const groupData = await convertDocToGroupPromotion(docSnap.id, docSnap.data());
-            callback(groupData);
-        }
-    });
-}
-
-async function getSubCollection<T extends {uid?: string, id?: string}>(groupId: string, subCollectionName: string): Promise<T[]> {
-    const subCollectionRef = collection(db, 'groupPromotions', groupId, subCollectionName);
-    const snapshot = await getDocs(subCollectionRef);
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        const plainData: any = {};
-        for (const key in data) {
-            if (Object.prototype.hasOwnProperty.call(data, key)) {
-                const value = data[key];
-                if (value instanceof Timestamp) {
-                    plainData[key] = value.toMillis();
-                } else {
-                    plainData[key] = value;
-                }
-            }
-        }
-        plainData.id = doc.id;
-        plainData.uid = doc.id;
-        return plainData as T;
-    });
-}
-
-
-async function convertDocToGroupPromotion(id: string, data: DocumentData): Promise<GroupPromotion> {
-    if (!data) {
-        throw new Error("Document data not found for ID: " + id);
-    }
-
-    const [members, joinRequests, groupCart, contributions] = await Promise.all([
-        getSubCollection<GroupMember>(id, 'members'),
-        getSubCollection<JoinRequest>(id, 'joinRequests'),
-        getSubCollection<CartItem>(id, 'groupCart'),
-        getSubCollection<Contribution>(id, 'contributions')
-    ]);
-
-    const promotion: GroupPromotion = {
-        id: id,
-        name: data.name,
-        status: data.status || 'active',
-        description: data.description,
-        price: data.price,
-        aiHint: data.aiHint,
-        participants: data.participants,
-        target: data.target,
-        creatorId: data.creatorId,
-        members,
-        joinRequests,
-        groupCart,
-        contributions
-    };
-
-    if (data.createdAt && data.createdAt instanceof Timestamp) {
-        promotion.createdAt = data.createdAt.toMillis();
-    }
-
-    return promotion;
-}
-
-
 export default function GroupDetailPage() {
   const params = useParams();
   const groupId = params.id as string;
   const router = useRouter();
   const [group, setGroup] = useState<GroupPromotion | null>(null);
+  const [members, setMembers] = useState<GroupMember[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [groupCart, setGroupCart] = useState<CartItem[]>([]);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [lojistas, setLojistas] = useState<Map<string, User>>(new Map());
   const [creatorName, setCreatorName] = useState<string>('Desconhecido');
@@ -363,29 +296,53 @@ export default function GroupDetailPage() {
   }, [user]);
 
 
-  // Use a single, unified effect for all real-time listeners
+  // Real-time listeners for all group data
   useEffect(() => {
     if (!groupId) return;
-
+    
     setLoading(true);
     let initialCreatorFetched = false;
 
-    const groupUnsub = listenToGroup(groupId, async (newGroupData) => {
-        setGroup(newGroupData);
-        if (newGroupData.creatorId && !initialCreatorFetched) {
-            initialCreatorFetched = true;
-            try {
-                const creator = await getUser(newGroupData.creatorId);
-                setCreatorName(creator.name);
-            } catch (error) {
-                console.error("Error fetching creator name:", error);
-                setCreatorName("Desconhecido");
+    const unsubscribers: (() => void)[] = [];
+
+    // Main group document
+    const groupRef = doc(db, 'groupPromotions', groupId);
+    const groupUnsub = onSnapshot(groupRef, async (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const groupData = { id: docSnap.id, ...data } as GroupPromotion;
+            setGroup(groupData);
+            
+            if (data.creatorId && !initialCreatorFetched) {
+                initialCreatorFetched = true;
+                const creator = await getUser(data.creatorId);
+                setCreatorName(creator?.name || "Desconhecido");
             }
+        } else {
+            setGroup(null);
         }
         setLoading(false);
     });
+    unsubscribers.push(groupUnsub);
 
-    
+    // Subcollections
+    const subcollections = ['members', 'joinRequests', 'groupCart', 'contributions'];
+    const setters:any = {
+        members: setMembers,
+        joinRequests: setJoinRequests,
+        groupCart: setGroupCart,
+        contributions: setContributions,
+    };
+
+    subcollections.forEach(name => {
+        const subColRef = collection(db, 'groupPromotions', groupId, name);
+        const subUnsub = onSnapshot(query(subColRef), (snapshot) => {
+            const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            setters[name](items);
+        });
+        unsubscribers.push(subUnsub);
+    });
+
     // Fetch static products data and lojista data
     const fetchProductsAndLojistas = async () => {
       const fetchedProducts = await getProducts();
@@ -403,7 +360,7 @@ export default function GroupDetailPage() {
     fetchProductsAndLojistas();
 
     return () => {
-      groupUnsub();
+      unsubscribers.forEach(unsub => unsub());
     };
   }, [groupId]);
 
@@ -495,7 +452,7 @@ export default function GroupDetailPage() {
   };
 
   const handleUpdateGroupCart = async (product: Product, change: 'add' | 'remove' | 'update', newQuantity?: number) => {
-    if (!group || !user || !group.members.some(m => m.uid === user.uid)) {
+    if (!group || !user || !members.some(m => m.uid === user.uid)) {
         toast({variant: "destructive", title: "Apenas membros do grupo podem modificar o carrinho."});
         return;
     }
@@ -504,15 +461,8 @@ export default function GroupDetailPage() {
         return;
     }
     
-    // Create a plain product object to avoid passing complex objects to server actions
-    const plainProduct: Product = {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        aiHint: product.aiHint,
-    };
-    await updateGroupCart(group.id, plainProduct, change, newQuantity);
+    await updateGroupCart(groupId, product, change, newQuantity);
+    
     if(change === 'add') {
          toast({
           title: "Adicionado ao Grupo!",
@@ -548,7 +498,7 @@ export default function GroupDetailPage() {
   };
 
   const handleContribution = () => {
-    if (!user || !group || !group.members.some(m => m.uid === user.uid)) {
+    if (!user || !group || !members.some(m => m.uid === user.uid)) {
         toast({ variant: "destructive", title: "Ação não permitida", description: "Apenas membros podem contribuir." });
         return;
     }
@@ -558,7 +508,7 @@ export default function GroupDetailPage() {
             const location: Geolocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
             toast({ title: "Localização obtida!", description: "A registar a sua contribuição..." });
             try {
-                const result = await contributeToGroup(group.id, user.uid, location);
+                const result = await contributeToGroup(groupId, user.uid, location);
                 if (result.success) {
                     toast({ title: "Contribuição Registada!", description: "Obrigado por contribuir." });
                 } else {
@@ -660,13 +610,11 @@ export default function GroupDetailPage() {
     )
   }
   
-  const groupCart = group.groupCart || [];
-  const contributions = group.contributions || [];
-  const isMember = user ? group.members.some(m => m.uid === user.uid) : false;
-  const hasContributed = user ? contributions.some(c => c.userId === user.uid) : false;
-  const allMembersContributed = group.members.length > 0 && contributions.length === group.members.length;
+  const isMember = user ? members.some(m => m.id === user.uid) : false;
+  const hasContributed = user ? contributions.some(c => c.id === user.uid) : false;
+  const allMembersContributed = members.length > 0 && contributions.length === members.length;
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
-  const totalMembers = group.members.length > 0 ? group.members.length : 1;
+  const totalMembers = members.length > 0 ? members.length : 1;
   const productsValuePerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
   const contributionPerMember = productsValuePerMember + SHIPPING_COST_PER_MEMBER;
   const isGroupFinalized = group.status === 'finalized';
@@ -796,7 +744,7 @@ export default function GroupDetailPage() {
                                     </SheetContent>
                                 </Sheet>
                             </div>
-                           {!isGroupFinalized && (
+                           {!isGroupFinalized && user?.uid === group.creatorId && (
                              <div className="mt-4 space-y-2">
                                 <Input 
                                     placeholder="Pesquisar produtos..."
@@ -899,10 +847,10 @@ export default function GroupDetailPage() {
                                 </div>
                                 <Progress value={(contributions.length / totalMembers) * 100} />
                                 <div className="mt-4 space-y-2 text-sm max-h-40 overflow-y-auto">
-                                     {group.members.map(member => {
-                                        const hasPaid = contributions.some(c => c.userId === member.uid);
+                                     {members.map(member => {
+                                        const hasPaid = contributions.some(c => c.id === member.id);
                                         return (
-                                            <div key={member.uid} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
+                                            <div key={member.id} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
                                                 <span className={cn(hasPaid && "line-through text-muted-foreground")}>{member.name}</span>
                                                 {hasPaid ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-muted-foreground/50"/>}
                                             </div>
@@ -986,16 +934,16 @@ export default function GroupDetailPage() {
                                   </Dialog>
                             </CardHeader>
                             <CardContent>
-                                {group.joinRequests.length > 0 && (
+                                {joinRequests.length > 0 && (
                                     <div className="space-y-2">
-                                        <h4 className="font-semibold text-sm">Pedidos de Adesão ({group.joinRequests.length})</h4>
-                                        {group.joinRequests.map(req => (
-                                            <div key={req.uid} className="flex justify-between items-center">
+                                        <h4 className="font-semibold text-sm">Pedidos de Adesão ({joinRequests.length})</h4>
+                                        {joinRequests.map(req => (
+                                            <div key={req.id} className="flex justify-between items-center">
                                                 <span>{req.name}</span>
-                                                {actionLoading[req.uid] ? <Loader2 className="animate-spin" /> : (
+                                                {actionLoading[req.id] ? <Loader2 className="animate-spin" /> : (
                                                     <div className="flex gap-2">
-                                                        <Button size="sm" variant="ghost" className="text-green-600" onClick={() => handleAction(req.uid, 'approve')} disabled={isGroupFinalized}><UserCheck/></Button>
-                                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(req.uid, 'remove')} disabled={isGroupFinalized}><UserMinus/></Button>
+                                                        <Button size="sm" variant="ghost" className="text-green-600" onClick={() => handleAction(req.id, 'approve')} disabled={isGroupFinalized}><UserCheck/></Button>
+                                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(req.id, 'remove')} disabled={isGroupFinalized}><UserMinus/></Button>
                                                     </div>
                                                 )}
                                             </div>
@@ -1003,21 +951,21 @@ export default function GroupDetailPage() {
                                     </div>
                                 )}
                                 
-                                {group.joinRequests.length > 0 && group.members.length > 0 && <Separator className="my-4"/>}
+                                {joinRequests.length > 0 && members.length > 0 && <Separator className="my-4"/>}
 
-                                {group.members.length > 0 && (
+                                {members.length > 0 && (
                                      <div className="space-y-2">
-                                        <h4 className="font-semibold text-sm">Membros Atuais ({group.members.length})</h4>
-                                        {group.members.map(mem => (
-                                            <div key={mem.uid} className="flex justify-between items-center">
-                                                <span>{mem.name} {mem.uid === group.creatorId && '(Criador)'}</span>
-                                                {actionLoading[mem.uid] ? <Loader2 className="animate-spin"/> : (<>{mem.uid !== group.creatorId && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(mem.uid, 'remove')} disabled={isGroupFinalized}><UserMinus/></Button>}</>)}
+                                        <h4 className="font-semibold text-sm">Membros Atuais ({members.length})</h4>
+                                        {members.map(mem => (
+                                            <div key={mem.id} className="flex justify-between items-center">
+                                                <span>{mem.name} {mem.id === group.creatorId && '(Criador)'}</span>
+                                                {actionLoading[mem.id] ? <Loader2 className="animate-spin"/> : (<>{mem.id !== group.creatorId && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleAction(mem.id, 'remove')} disabled={isGroupFinalized}><UserMinus/></Button>}</>)}
                                             </div>
                                         ))}
                                     </div>
                                 )}
 
-                                {group.members.length === 0 && group.joinRequests.length === 0 && (<p className="text-sm text-muted-foreground">Nenhum membro ou pedido de adesão.</p>)}
+                                {members.length === 0 && joinRequests.length === 0 && (<p className="text-sm text-muted-foreground">Nenhum membro ou pedido de adesão.</p>)}
                             </CardContent>
                             <CardFooter>
                                 <AlertDialog>
@@ -1061,3 +1009,5 @@ export default function GroupDetailPage() {
         </div>
     );
 }
+
+    
