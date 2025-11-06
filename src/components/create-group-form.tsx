@@ -43,12 +43,12 @@ const createGroupSchema = z.object({
   members: z.coerce.number().min(2, { message: 'O grupo deve ter pelo menos 2 membros.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   image: z.any()
-    .refine((file) => file, "A imagem é obrigatória.")
+    .refine((file) => !!file, "A imagem é obrigatória.")
     .refine((file) => file?.size <= MAX_FILE_SIZE, `O tamanho máximo do ficheiro é 5MB.`)
     .refine(
       (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
       "Apenas os formatos .jpg, .jpeg, .png e .webp são suportados."
-    ).optional(),
+    ),
 });
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
@@ -191,7 +191,7 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
                 <FormItem>
                   <FormLabel>Imagem do Grupo</FormLabel>
                   <FormControl>
-                    <>
+                    <div>
                       <Input 
                         type="file" 
                         className="hidden" 
@@ -203,11 +203,11 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
                         <Upload className="mr-2 h-4 w-4" />
                         Carregar Imagem
                       </Button>
-                    </>
+                    </div>
                   </FormControl>
                    {preview && (
                       <div className="mt-4 relative w-full h-48 rounded-md overflow-hidden">
-                        <Image src={preview} alt="Pré-visualização da imagem" layout="fill" objectFit="cover" />
+                        <Image src={preview} alt="Pré-visualização da imagem" fill style={{ objectFit: 'cover' }} />
                       </div>
                     )}
                   <FormMessage />
