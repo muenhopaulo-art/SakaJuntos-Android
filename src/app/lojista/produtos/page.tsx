@@ -59,10 +59,13 @@ export default function LojistaProductsPage() {
         }
         
         setLoading(true);
-        const productsQuery = query(collection(db, 'products'), where('lojistaId', '==', user.uid), orderBy('createdAt', 'desc'));
+        // Remove orderby from query to avoid composite index requirement
+        const productsQuery = query(collection(db, 'products'), where('lojistaId', '==', user.uid));
         
         const unsubscribe = onSnapshot(productsQuery, (snapshot) => {
-            const updatedProducts = snapshot.docs.map(convertDocToProduct);
+            let updatedProducts = snapshot.docs.map(convertDocToProduct);
+            // Sort products on the client-side
+            updatedProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setProducts(updatedProducts);
             setLoading(false);
         }, (err) => {
