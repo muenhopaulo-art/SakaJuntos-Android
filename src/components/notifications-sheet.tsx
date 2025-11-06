@@ -18,25 +18,24 @@ import Link from 'next/link';
 
 function NotificationItem({ notification, onRead }: { notification: Notification, onRead: (id: string) => void }) {
     return (
-        <Link href={notification.link} passHref legacyBehavior>
-            <a 
-                onClick={() => onRead(notification.id)}
-                className={cn(
-                    "block p-4 rounded-lg border text-card-foreground shadow-sm transition-colors hover:bg-muted/50",
-                    !notification.isRead && "bg-primary/10 border-primary/20"
-                )}
-            >
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h3 className="font-semibold text-sm">{notification.title}</h3>
-                        <p className="text-sm text-muted-foreground">{notification.message}</p>
-                    </div>
-                    {!notification.isRead && <span className="h-2 w-2 rounded-full bg-primary mt-1"></span>}
+        <Link
+            href={notification.link}
+            onClick={() => onRead(notification.id)}
+            className={cn(
+                "block p-4 rounded-lg border text-card-foreground shadow-sm transition-colors hover:bg-muted/50",
+                !notification.isRead && "bg-primary/10 border-primary/20"
+            )}
+        >
+            <div className="flex justify-between items-start">
+                <div>
+                    <h3 className="font-semibold text-sm">{notification.title}</h3>
+                    <p className="text-sm text-muted-foreground">{notification.message}</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: pt })}
-                </p>
-            </a>
+                {!notification.isRead && <span className="h-2 w-2 rounded-full bg-primary mt-1"></span>}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+                {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: pt })}
+            </p>
         </Link>
     )
 }
