@@ -128,3 +128,21 @@ export interface User {
     ownerLojistaId?: string; // ID of the lojista this courier works for
     online?: boolean;
 }
+
+export type ServiceRequestStatus = 'pendente' | 'confirmado' | 'concluído' | 'cancelado';
+
+export interface ServiceRequest {
+    id: string;
+    serviceId: string;
+    serviceName: string;
+    clientId: string;
+    clientName: string;
+    clientPhone: string;
+    lojistaId: string;
+    requestedDate: number;
+    requestedPeriod: 'manha' | 'tarde';
+    address: string;
+    notes?: string;
+    status: ServiceRequestStatus;
+    createdAt: number;
+}

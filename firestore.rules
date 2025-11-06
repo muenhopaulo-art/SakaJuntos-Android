@@ -123,5 +123,25 @@ service cloud.firestore {
         }
     }
 
+    // Service Requests collection rules
+    match /serviceRequests/{requestId} {
+        // A client can create their own request.
+        allow create: if isAuthenticated() && request.resource.data.clientId == request.auth.uid;
+        
+        // The client who made the request, the lojista assigned to it, or an admin can read it.
+        allow read: if isAuthenticated() && 
+                      (request.resource.data.clientId == request.auth.uid ||
+                       request.resource.data.lojistaId == request.auth.uid ||
+                       isAdmin(request.auth.uid));
+                       
+        // The lojista or an admin can update the status. The client can cancel it.
+        allow update: if isAuthenticated() &&
+                        ((isLojista(request.auth.uid) && resource.data.lojistaId == request.auth.uid) ||
+                         isAdmin(request.auth.uid) ||
+                         (isOwner(request.resource.data.clientId) && request.resource.data.status == 'cancelado'));
+                         
+        // Only admins can delete requests for record-keeping purposes.
+        allow delete: if isAdmin(request.auth.uid);
+    }
   }
 }

@@ -14,7 +14,8 @@ import {
   Users,
   LogOut,
   ChevronDown,
-  ShoppingBag
+  ShoppingBag,
+  CalendarCheck
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,7 @@ export function LojistaHeader() {
     { href: '/lojista', label: 'Dashboard' },
     { href: '/lojista/produtos', label: 'Produtos' },
     { href: '/lojista/pedidos', label: 'Pedidos' },
+    { href: '/lojista/agendamentos', label: 'Agendamentos' },
     { href: '/lojista/entregadores', label: 'Entregadores' },
     { href: '/lojista/ganhos', label: 'Ganhos' },
     { href: '/lojista/perfil', label: 'Perfil' },

@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Product } from '@/lib/types';
-import { Loader2, ShoppingCart, Phone, Package, AlertTriangle } from 'lucide-react';
+import { Loader2, ShoppingCart, Phone, Package, AlertTriangle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useCart } from '@/contexts/cart-context';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Timestamp } from 'firebase/firestore';
+import { ScheduleServiceDialog } from '@/components/schedule-service-dialog';
 
 const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -146,10 +147,12 @@ export default function ProductDetailPage() {
                         </CardContent>
                         <CardFooter>
                             {isService ? (
-                                <Button size="lg" className="w-full">
-                                    <Phone className="mr-2" />
-                                    Contactar Vendedor
-                                </Button>
+                                <ScheduleServiceDialog product={product}>
+                                    <Button size="lg" className="w-full">
+                                        <Calendar className="mr-2" />
+                                        Agendar Serviço
+                                    </Button>
+                                </ScheduleServiceDialog>
                             ) : (
                                 <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
                                     <ShoppingCart className="mr-2" />
