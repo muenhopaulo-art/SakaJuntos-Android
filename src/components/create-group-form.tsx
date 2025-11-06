@@ -36,7 +36,6 @@ const createGroupSchema = z.object({
   name: z.string().min(3, { message: 'O nome do grupo deve ter pelo menos 3 caracteres.' }),
   members: z.coerce.number().min(2, { message: 'O grupo deve ter pelo menos 2 membros.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
-  price: z.coerce.number().min(1, { message: 'O preço deve ser maior que zero.' }),
   imageUrl: z.string().url({ message: 'Por favor, insira um URL de imagem válido.' }).optional().or(z.literal('')),
 });
 
@@ -57,7 +56,6 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
       name: '',
       members: 2,
       description: '',
-      price: 0,
       imageUrl: '',
     },
   });
@@ -86,8 +84,8 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
             creatorId: user.uid,
             creatorName: appUser.name,
             description: data.description,
-            price: data.price,
-            imageUrl: data.imageUrl,
+            price: 0, // Price is now determined by products in group cart
+            imageUrls: data.imageUrl ? [data.imageUrl] : [],
             aiHint: "group purchase",
         });
 
@@ -153,26 +151,25 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
             />
              <FormField
               control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Preço Total (AOA)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>URL da Imagem</FormLabel>
+                  <FormLabel>Imagem</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://exemplo.com/imagem.png" {...field} />
+                    <Button asChild variant="outline">
+                        <label htmlFor="image-upload-group">Carregar Imagem</label>
+                    </Button>
                   </FormControl>
+                  <Input id="image-upload-group" type="file" className="sr-only" onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                              field.onChange(reader.result as string);
+                          }
+                          reader.readAsDataURL(file);
+                      }
+                  }}/>
                   <FormMessage />
                 </FormItem>
               )}
