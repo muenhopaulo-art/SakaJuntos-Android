@@ -56,10 +56,11 @@ export async function getLojistaDashboardAnalytics(lojistaId: string) {
             .reduce((sum, order) => sum + order.totalAmount, 0);
             
         const processedOrders = orders.filter(order => order.status === 'pronto para recolha' || order.status === 'a caminho' || order.status === 'entregue').length;
+        
+        // Corrected: `newOrders` now includes both 'pendente' and 'a aguardar lojista'
+        const newOrders = orders.filter(order => order.status === 'a aguardar lojista' || order.status === 'pendente').length;
 
-        const newOrders = orders.filter(order => order.status === 'a aguardar lojista').length;
-
-        // Sort orders by date client-side to avoid needing a composite index
+        // The list of recent orders should match the logic for `newOrders`
         const recentOrders = orders
             .filter(o => o.status === 'a aguardar lojista' || o.status === 'pendente')
             .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
