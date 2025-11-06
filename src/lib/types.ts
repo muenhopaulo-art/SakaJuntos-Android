@@ -13,6 +13,7 @@ export interface Product {
   imageUrls?: string[];
   createdAt?: number;
   lojistaId?: string;
+  promotionTier?: string;
   promotionPaymentId?: string; 
   aiHint?: string;
 }
@@ -145,4 +146,3 @@ export interface ServiceRequest {
     status: ServiceRequestStatus;
     createdAt: number;
 }
-

@@ -37,6 +37,7 @@ import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { uploadFile } from '@/services/storage-service';
 
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -46,13 +47,13 @@ const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
-  imageUrls: z.array(z.string()).max(4, { message: 'Pode carregar no máximo 4 imagens.' }).optional(),
+  images: z.array(z.any()).max(4, { message: 'Pode carregar no máximo 4 imagens.' }).optional(),
   category: z.string().min(2, { message: 'A categoria é obrigatória.'}),
   productType: z.enum(['product', 'service'], { required_error: 'Por favor, selecione o tipo.' }),
   stock: z.coerce.number().min(0, { message: 'O stock deve ser um número positivo.' }),
   isPromoted: z.boolean().default(false),
   promotionTier: z.string().optional(),
-  paymentProof: z.string().optional(),
+  paymentProof: z.any().optional(),
 });
 
 const categories = [
@@ -74,13 +75,16 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
+  
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       description: '',
       price: 0,
-      imageUrls: [],
+      images: [],
       category: '',
       productType: 'product',
       stock: 0,
@@ -90,45 +94,49 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
 
   const { isSubmitting } = form.formState;
   const productType = form.watch('productType');
-  const imageUrls = form.watch('imageUrls') || [];
   const isPromoted = form.watch('isPromoted');
-  const paymentProof = form.watch('paymentProof');
+  const images = form.watch('images') || [];
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-    if (imageUrls.length + files.length > 4) {
-        form.setError("imageUrls", { message: `Pode carregar no máximo 4 imagens.` });
+    const currentImages = form.getValues('images') || [];
+    if (currentImages.length + files.length > 4) {
+        form.setError("images", { message: `Pode carregar no máximo 4 imagens.` });
         return;
     }
+    
+    let validFiles: File[] = [...currentImages];
+    let newPreviews: string[] = [...previews];
 
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+    for (const file of files) {
          if (file.size > MAX_FILE_SIZE) {
-            form.setError("imageUrls", { message: `O ficheiro ${file.name} é demasiado grande (máx 4.5MB).` });
+            form.setError("images", { message: `O ficheiro ${file.name} é demasiado grande (máx 4.5MB).` });
             continue;
         }
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-            form.setError("imageUrls", { message: `Ficheiro ${file.name} tem um formato inválido.` });
+            form.setError("images", { message: `Ficheiro ${file.name} tem um formato inválido.` });
             continue;
         }
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            form.setValue('imageUrls', [...(form.getValues('imageUrls') || []), reader.result as string], { shouldValidate: true });
-            form.clearErrors("imageUrls");
-        };
-        reader.readAsDataURL(file);
+        
+        validFiles.push(file);
+        newPreviews.push(URL.createObjectURL(file));
     }
     
-    if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
+    form.setValue('images', validFiles, { shouldValidate: true });
+    setPreviews(newPreviews);
+    form.clearErrors("images");
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeImage = (index: number) => {
-    form.setValue('imageUrls', imageUrls.filter((_, i) => i !== index));
+    const currentImages = form.getValues('images') || [];
+    const updatedImages = currentImages.filter((_, i) => i !== index);
+    const updatedPreviews = previews.filter((_, i) => i !== index);
+    form.setValue('images', updatedImages);
+    setPreviews(updatedPreviews);
   };
   
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,29 +152,56 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         return;
     }
 
-    // Here you would typically upload the file and store the URL.
-    // For this example, we'll just store the file name as a placeholder.
-    form.setValue('paymentProof', file.name, { shouldValidate: true });
+    form.setValue('paymentProof', file, { shouldValidate: true });
+    setPdfFileName(file.name);
     form.clearErrors("paymentProof");
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
-    const productData = {
-        ...values,
-        stock: values.productType === 'service' ? Infinity : values.stock, // Services have infinite stock
-        lojistaId: lojistaId,
-        isPromoted: values.isPromoted ? 'active' : ('inactive' as 'active' | 'inactive'),
-        // In a real app, you'd upload files to a storage service and save the URLs
-        // For now, we are saving base64 data URIs which is not optimal
-    }
-    const result = await addProduct(productData);
-    if (result.success) {
-      toast({ title: 'Publicação Adicionada!', description: 'O seu produto/serviço foi adicionado com sucesso.' });
-      setOpen(false);
-      form.reset();
-      router.refresh();
-    } else {
-      toast({ variant: 'destructive', title: 'Erro!', description: result.message });
+    try {
+        let imageUrls: string[] = [];
+        if (values.images && values.images.length > 0) {
+            const uploadPromises = values.images.map(file => 
+                uploadFile(file, `product_images/${lojistaId}/${Date.now()}_${file.name}`)
+            );
+            imageUrls = await Promise.all(uploadPromises);
+        }
+
+        let paymentProofUrl: string | undefined = undefined;
+        if (values.isPromoted && values.paymentProof) {
+            paymentProofUrl = await uploadFile(
+                values.paymentProof, 
+                `payment_proofs/${lojistaId}/${Date.now()}_${values.paymentProof.name}`
+            );
+        }
+
+        const productData = {
+            name: values.name,
+            description: values.description,
+            price: values.price,
+            category: values.category,
+            productType: values.productType,
+            stock: values.productType === 'service' ? Infinity : values.stock,
+            lojistaId: lojistaId,
+            imageUrls: imageUrls,
+            isPromoted: values.isPromoted ? 'active' : ('inactive' as 'active' | 'inactive'),
+            promotionTier: values.promotionTier,
+            promotionPaymentId: paymentProofUrl, // In a real app this might be a transaction ID
+        }
+        
+        const result = await addProduct(productData);
+        if (result.success) {
+          toast({ title: 'Publicação Adicionada!', description: 'O seu produto/serviço foi adicionado com sucesso.' });
+          setOpen(false);
+          form.reset();
+          setPreviews([]);
+          setPdfFileName(null);
+          router.refresh();
+        } else {
+          throw new Error(result.message);
+        }
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Erro!', description: (error as Error).message });
     }
   };
 
@@ -174,6 +209,8 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     <Dialog open={open} onOpenChange={(isOpen) => {
         if(!isOpen) {
             form.reset();
+            setPreviews([]);
+            setPdfFileName(null);
         }
         setOpen(isOpen);
     }}>
@@ -294,12 +331,12 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
 
             <FormField
               control={form.control}
-              name="imageUrls"
+              name="images"
               render={() => (
                 <FormItem>
                   <FormLabel>Imagens (máx. 4)</FormLabel>
                   <div className="grid grid-cols-4 gap-2">
-                     {imageUrls.map((url, index) => (
+                     {previews.map((url, index) => (
                          <div key={index} className="relative aspect-square w-full">
                             <Image src={url} alt={`Pré-visualização ${index + 1}`} fill className="rounded-md object-cover"/>
                             <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
@@ -317,14 +354,14 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                         accept="image/*"
                         onChange={handleImageChange}
                         ref={fileInputRef}
-                        disabled={imageUrls.length >= 4}
+                        disabled={images.length >= 4}
                         multiple
                       />
                       <label
                         htmlFor="image-upload"
                         className={cn(
                             "cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full mt-2",
-                            imageUrls.length >= 4 && "opacity-50 cursor-not-allowed"
+                            images.length >= 4 && "opacity-50 cursor-not-allowed"
                         )}
                       >
                         <Upload className="mr-2 h-4 w-4" />
@@ -432,11 +469,11 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                                 <label
                                     htmlFor="pdf-upload"
                                     className={cn("cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full",
-                                    !!paymentProof && "border-green-500 text-green-700"
+                                    !!pdfFileName && "border-green-500 text-green-700"
                                     )}
                                 >
                                     <FileUp className="mr-2 h-4 w-4" />
-                                    {paymentProof ? `Ficheiro: ${paymentProof}` : 'Carregar PDF'}
+                                    {pdfFileName ? `Ficheiro: ${pdfFileName}` : 'Carregar PDF'}
                                 </label>
                                 </div>
                             </FormControl>

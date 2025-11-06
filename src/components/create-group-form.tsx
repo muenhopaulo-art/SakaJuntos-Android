@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,18 +25,30 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import { createGroupPromotion } from '@/services/product-service';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { getUser } from '@/services/user-service';
+import { uploadFile } from '@/services/storage-service';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const createGroupSchema = z.object({
   name: z.string().min(3, { message: 'O nome do grupo deve ter pelo menos 3 caracteres.' }),
   members: z.coerce.number().min(2, { message: 'O grupo deve ter pelo menos 2 membros.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
-  imageUrl: z.string().url({ message: 'Por favor, insira um URL de imagem válido.' }).optional().or(z.literal('')),
+  image: z.any()
+    .refine((file) => file, "A imagem é obrigatória.")
+    .refine((file) => file?.size <= MAX_FILE_SIZE, `O tamanho máximo do ficheiro é 5MB.`)
+    .refine(
+      (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
+      "Apenas os formatos .jpg, .jpeg, .png e .webp são suportados."
+    ).optional(),
 });
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
@@ -45,6 +57,8 @@ type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
 export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [user] = useAuthState(auth);
   const router = useRouter();
@@ -56,9 +70,21 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
       name: '',
       members: 2,
       description: '',
-      imageUrl: '',
     },
   });
+  
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      form.setValue('image', file, { shouldValidate: true });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   const onSubmit = async (data: CreateGroupFormValues) => {
     if (!user) {
@@ -69,6 +95,10 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
         });
         return;
     }
+     if (!data.image) {
+        form.setError('image', { message: 'Por favor, carregue uma imagem.' });
+        return;
+    }
     
     setIsLoading(true);
 
@@ -77,7 +107,11 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
         if (!appUser || !appUser.name) {
             throw new Error("Não foi possível encontrar os dados do seu perfil. Tente fazer login novamente.");
         }
+        
+        // 1. Upload image to Firebase Storage
+        const imageUrl = await uploadFile(data.image, `group_images/${Date.now()}_${data.image.name}`);
 
+        // 2. Create group with the returned image URL
         const result = await createGroupPromotion({
             name: data.name,
             target: data.members,
@@ -85,7 +119,7 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
             creatorName: appUser.name,
             description: data.description,
             price: 0, // Price is now determined by products in group cart
-            imageUrls: data.imageUrl ? [data.imageUrl] : [],
+            imageUrls: [imageUrl],
             aiHint: "group purchase",
         });
 
@@ -94,9 +128,10 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
                 title: 'Grupo Criado com Sucesso!',
                 description: `O grupo "${data.name}" foi criado.`,
             });
-            router.refresh(); // Refresh the page to show the new group
+            router.refresh();
             setOpen(false);
             form.reset();
+            setPreview(null);
         } else {
             throw new Error(result.message || "Não foi possível criar o grupo. Tente novamente.");
         }
@@ -151,13 +186,30 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
             />
              <FormField
               control={form.control}
-              name="imageUrl"
+              name="image"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>URL da Imagem</FormLabel>
+                  <FormLabel>Imagem do Grupo</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://exemplo.com/imagem.png" {...field} />
+                    <>
+                      <Input 
+                        type="file" 
+                        className="hidden" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange}
+                        accept="image/png, image/jpeg, image/webp"
+                      />
+                      <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Carregar Imagem
+                      </Button>
+                    </>
                   </FormControl>
+                   {preview && (
+                      <div className="mt-4 relative w-full h-48 rounded-md overflow-hidden">
+                        <Image src={preview} alt="Pré-visualização da imagem" layout="fill" objectFit="cover" />
+                      </div>
+                    )}
                   <FormMessage />
                 </FormItem>
               )}

@@ -24,6 +24,7 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     isPromoted: data.isPromoted,
     imageUrls: data.imageUrls,
     lojistaId: data.lojistaId,
+    promotionTier: data.promotionTier,
     promotionPaymentId: data.promotionPaymentId,
   };
 
