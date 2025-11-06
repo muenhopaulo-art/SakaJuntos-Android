@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -71,8 +70,8 @@ export function OrdersSheet() {
     }
 
     setLoading(true);
-    const activeOrderStatuses: OrderStatus[] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho'];
-    const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid), where('status', 'in', activeOrderStatuses));
+    // Get all orders for the user, filtering will happen client-side
+    const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid));
     
     const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
         const fetchedOrders: Order[] = [];
@@ -99,10 +98,14 @@ export function OrdersSheet() {
             });
         }
         
-        // Sort by date descending
-        fetchedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        // Filter for active orders client-side
+        const activeOrderStatuses: OrderStatus[] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho'];
+        const activeOrders = fetchedOrders.filter(order => activeOrderStatuses.includes(order.status));
 
-        setOrders(fetchedOrders);
+        // Sort by date descending
+        activeOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        setOrders(activeOrders);
         setLoading(false);
     }, (err) => {
         console.error("Error fetching orders in real-time:", err);
