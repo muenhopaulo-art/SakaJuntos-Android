@@ -57,9 +57,14 @@ export default function LojistaOrdersPage() {
 
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const updatedOrders = snapshot.docs.map(convertDocToOrder);
+            
+            // Filter for actionable orders for the lojista
+            const actionableOrders = updatedOrders.filter(order => order.status === 'a aguardar lojista');
+
             // Sort client-side
-            updatedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            setOrders(updatedOrders);
+            actionableOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            
+            setOrders(actionableOrders);
             setLoading(false);
         }, (err) => {
             console.error(err);
