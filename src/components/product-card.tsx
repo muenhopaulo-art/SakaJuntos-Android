@@ -17,9 +17,10 @@ import { cn } from '@/lib/utils';
 interface ProductCardProps {
   product: Product;
   lojistasMap?: Map<string, User>;
+  onAddToCart?: (product: Product) => void; // Allow custom add to cart action
 }
 
-export function ProductCard({ product, lojistasMap }: ProductCardProps) {
+export function ProductCard({ product, lojistasMap, onAddToCart }: ProductCardProps) {
   const { addItem } = useCart();
   const [user] = useAuthState(auth);
   
@@ -28,8 +29,12 @@ export function ProductCard({ product, lojistasMap }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if(isOwner) return; // double check
-    addItem(product, 1, user?.uid);
+    if (onAddToCart) {
+        onAddToCart(product);
+    } else {
+        if(isOwner) return; // double check
+        addItem(product, 1, user?.uid);
+    }
   };
   
   const lojista = product.lojistaId ? lojistasMap?.get(product.lojistaId) : null;

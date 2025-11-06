@@ -8,7 +8,7 @@ import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contrib
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, Hourglass } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, Hourglass, ListFilter, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -29,8 +29,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { finalizeGroupOrder } from './actions';
 import { approveJoinRequest } from '@/services/product-service';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const SHIPPING_COST_PER_MEMBER = 1000;
+const provinces = [ "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango", "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"];
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds)) return '0:00';
@@ -330,6 +333,7 @@ export default function GroupDetailPage() {
   const router = useRouter();
   const [group, setGroup] = useState<GroupPromotion | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [lojistas, setLojistas] = useState<Map<string, User>>(new Map());
   const [creatorName, setCreatorName] = useState<string>('Desconhecido');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
@@ -340,6 +344,9 @@ export default function GroupDetailPage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   const [productSearch, setProductSearch] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
+  
   const [isFinalizing, setIsFinalizing] = useState(false);
   
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
@@ -379,8 +386,21 @@ export default function GroupDetailPage() {
     });
 
     
-    // Fetch static products data
-    getProducts().then(setProducts);
+    // Fetch static products data and lojista data
+    const fetchProductsAndLojistas = async () => {
+      const fetchedProducts = await getProducts();
+      const lojistaIds = new Set(fetchedProducts.map(p => p.lojistaId).filter(Boolean));
+      const lojistaPromises = Array.from(lojistaIds).map(id => getUser(id!));
+      const lojistaResults = await Promise.all(lojistaPromises);
+      const lojistaMap = new Map();
+      lojistaResults.forEach(l => {
+        if (l) lojistaMap.set(l.uid, l);
+      });
+      setProducts(fetchedProducts);
+      setLojistas(lojistaMap);
+    }
+
+    fetchProductsAndLojistas();
 
     return () => {
       groupUnsub();
@@ -556,10 +576,33 @@ export default function GroupDetailPage() {
     );
   };
 
+  const productCategories = useMemo(() => [...new Set(products.map(p => p.category))], [products]);
+
   const filteredProducts = useMemo(() => {
-    if (!productSearch) return products;
-    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
-  }, [products, productSearch]);
+    return products.filter(p => {
+        const lojista = p.lojistaId ? lojistas.get(p.lojistaId) : null;
+        const matchesSearch = productSearch ? p.name.toLowerCase().includes(productSearch.toLowerCase()) : true;
+        const matchesCategory = selectedCategories.length > 0 ? selectedCategories.includes(p.category) : true;
+        const matchesProvince = selectedProvinces.length > 0 ? (lojista && lojista.province && selectedProvinces.includes(lojista.province)) : true;
+        return matchesSearch && matchesCategory && matchesProvince;
+    });
+  }, [products, productSearch, selectedCategories, selectedProvinces, lojistas]);
+  
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategories(prev => 
+        prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const handleProvinceChange = (province: string) => {
+    setSelectedProvinces(prev => 
+        prev.includes(province) 
+        ? prev.filter(p => p !== province)
+        : [...prev, province]
+    );
+  };
 
   if (loading || authLoading) {
     return (
@@ -754,12 +797,63 @@ export default function GroupDetailPage() {
                                 </Sheet>
                             </div>
                            {!isGroupFinalized && (
-                             <div className="mt-4">
+                             <div className="mt-4 space-y-2">
                                 <Input 
                                     placeholder="Pesquisar produtos..."
                                     value={productSearch}
                                     onChange={(e) => setProductSearch(e.target.value)}
+                                    className="h-12"
                                 />
+                                <div className="flex gap-2">
+                                     <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-start">
+                                                <ListFilter className="mr-2 h-4 w-4"/> Filtrar por categoria
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="w-56">
+                                            <DropdownMenuLabel>Categorias</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            <ScrollArea className="h-48">
+                                                {productCategories.map(category => (
+                                                    <DropdownMenuItem key={category} onSelect={(e) => e.preventDefault()}>
+                                                        <Checkbox 
+                                                            id={`cat-${category}`}
+                                                            checked={selectedCategories.includes(category)}
+                                                            onCheckedChange={() => handleCategoryChange(category)}
+                                                            className="mr-2"
+                                                        />
+                                                        <label htmlFor={`cat-${category}`} className="w-full cursor-pointer">{category}</label>
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </ScrollArea>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-start">
+                                                <Map className="mr-2 h-4 w-4"/> Ver produtos por província
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                         <DropdownMenuContent className="w-56">
+                                            <DropdownMenuLabel>Províncias</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            <ScrollArea className="h-48">
+                                                {provinces.map(province => (
+                                                    <DropdownMenuItem key={province} onSelect={(e) => e.preventDefault()}>
+                                                        <Checkbox 
+                                                            id={`prov-${province}`}
+                                                            checked={selectedProvinces.includes(province)}
+                                                            onCheckedChange={() => handleProvinceChange(province)}
+                                                            className="mr-2"
+                                                        />
+                                                         <label htmlFor={`prov-${province}`} className="w-full cursor-pointer">{province}</label>
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </ScrollArea>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
                            )}
                         </CardHeader>
