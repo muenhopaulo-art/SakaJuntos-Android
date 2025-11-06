@@ -154,22 +154,10 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Imagem</FormLabel>
+                  <FormLabel>URL da Imagem</FormLabel>
                   <FormControl>
-                    <Button asChild variant="outline">
-                        <label htmlFor="image-upload-group">Carregar Imagem</label>
-                    </Button>
+                    <Input placeholder="https://exemplo.com/imagem.png" {...field} />
                   </FormControl>
-                  <Input id="image-upload-group" type="file" className="sr-only" onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                          const file = e.target.files[0];
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                              field.onChange(reader.result as string);
-                          }
-                          reader.readAsDataURL(file);
-                      }
-                  }}/>
                   <FormMessage />
                 </FormItem>
               )}
