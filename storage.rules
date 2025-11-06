@@ -1,28 +1,9 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-
-    // 📂 Imagens de grupos — leitura pública, upload apenas por usuários autenticados
-    match /group_images/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    // 📂 Imagens de produtos — leitura pública, upload apenas do lojista autenticado
-    match /product_images/{lojistaId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == lojistaId;
-    }
-    
-    // 📂 Comprovativos de pagamento — apenas o lojista pode fazer upload, e admins podem ler
-    match /payment_proofs/{lojistaId}/{allPaths=**} {
-      allow read: if get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
-      allow write: if request.auth != null && request.auth.uid == lojistaId;
-    }
-
-    // 🚫 Bloqueia todo o resto por defeito
     match /{allPaths=**} {
-      allow read, write: if false;
+      // Permite leitura e escrita para qualquer utilizador autenticado
+      allow read, write: if request.auth != null;
     }
   }
 }
