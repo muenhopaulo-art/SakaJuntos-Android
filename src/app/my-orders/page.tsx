@@ -37,11 +37,12 @@ const serviceStatusColors: Record<ServiceRequestStatus, string> = {
     'cancelado': 'bg-red-500/20 text-red-800',
 };
 
-function AwaitingConfirmationCard({ order }: { order: Order }) {
+function OrderConfirmationAction({ order, className }: { order: Order; className?: string }) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
-    const handleConfirm = async () => {
+    const handleConfirm = async (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent accordion from toggling
         setLoading(true);
         const result = await confirmOrderReception(order.id);
         setLoading(false);
@@ -51,6 +52,21 @@ function AwaitingConfirmationCard({ order }: { order: Order }) {
             toast({ variant: 'destructive', title: 'Erro', description: result.message });
         }
     };
+
+    if (order.status !== 'aguardando confirmação') {
+        return <Badge className={cn("capitalize", statusColors[order.status])}>{order.status}</Badge>;
+    }
+    
+    return (
+        <Button onClick={handleConfirm} disabled={loading} size="sm" className={cn("bg-cyan-600 hover:bg-cyan-700", className)}>
+            {loading ? <Loader2 className="mr-2 animate-spin"/> : <Check className="mr-2"/>}
+            Confirmar Receção
+        </Button>
+    );
+}
+
+function AwaitingConfirmationCard({ order }: { order: Order }) {
+    if (order.status !== 'aguardando confirmação') return null;
     
     return (
         <Card className="bg-cyan-500/10 border-cyan-500/30">
@@ -67,10 +83,7 @@ function AwaitingConfirmationCard({ order }: { order: Order }) {
                 <p>O entregador <span className="font-semibold">{order.courierName}</span> indicou que a sua encomenda foi entregue. Por favor, confirme que a recebeu.</p>
             </CardContent>
             <CardFooter>
-                <Button onClick={handleConfirm} disabled={loading} className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700">
-                    {loading ? <Loader2 className="mr-2 animate-spin"/> : <Check className="mr-2"/>}
-                    Confirmar Receção
-                </Button>
+                <OrderConfirmationAction order={order} className="w-full sm:w-auto" />
             </CardFooter>
         </Card>
     );
@@ -178,7 +191,7 @@ export default function MyOrdersPage() {
     }
     
     const ordersToConfirm = orders.filter(o => o.status === 'aguardando confirmação');
-    const otherActiveOrders = orders.filter(o => o.status !== 'aguardando confirmação');
+    const activeOrders = orders.filter(o => o.status !== 'entregue' && o.status !== 'cancelado');
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -198,7 +211,7 @@ export default function MyOrdersPage() {
             <Tabs defaultValue="compras" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="compras">
-                        <Package className="mr-2 h-4 w-4" /> Compras Ativas ({otherActiveOrders.length})
+                        <Package className="mr-2 h-4 w-4" /> Compras Ativas ({activeOrders.length})
                     </TabsTrigger>
                     <TabsTrigger value="agendamentos">
                         <Calendar className="mr-2 h-4 w-4" /> Agendamentos Ativos ({serviceRequests.length})
@@ -207,7 +220,7 @@ export default function MyOrdersPage() {
 
                 {/* Tab for Orders/Compras */}
                 <TabsContent value="compras">
-                     {otherActiveOrders.length === 0 ? (
+                     {activeOrders.length === 0 ? (
                          <div className="text-center py-16 border-2 border-dashed rounded-lg mt-4">
                             <Truck className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
                             <p className="text-lg font-semibold text-muted-foreground">Nenhuma compra ativa encontrada.</p>
@@ -217,7 +230,7 @@ export default function MyOrdersPage() {
                         <Card className="mt-4">
                             <CardContent>
                                 <Accordion type="single" collapsible className="w-full">
-                                    {otherActiveOrders.map(order => (
+                                    {activeOrders.map(order => (
                                         <AccordionItem value={order.id} key={order.id}>
                                             <AccordionTrigger>
                                                 <div className="flex justify-between items-center w-full">
@@ -234,9 +247,7 @@ export default function MyOrdersPage() {
                                                          <p>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</p>
                                                     </div>
                                                     <div className="flex-1 text-right pr-4">
-                                                        <Badge className={cn("capitalize", statusColors[order.status])}>
-                                                            {order.status}
-                                                        </Badge>
+                                                        <OrderConfirmationAction order={order} />
                                                     </div>
                                                 </div>
                                             </AccordionTrigger>
