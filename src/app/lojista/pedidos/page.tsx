@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,13 +10,14 @@ import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, User as UserIcon, Users, DollarSign, Calendar, List, MoreVertical } from 'lucide-react';
+import { AlertTriangle, Loader2, User as UserIcon, Users, DollarSign, Calendar, List, MoreVertical, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { LojistaOrderStatusButton } from './lojista-order-status-button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -38,7 +40,9 @@ const convertDocToOrder = (doc: any): Order => {
     lojistaId: data.lojistaId,
     groupName: data.groupName,
     courierId: data.courierId,
-    courierName: data.courierName
+    courierName: data.courierName,
+    deliveryLocation: data.deliveryLocation,
+    address: data.address
   };
 };
 
@@ -80,6 +84,11 @@ export default function LojistaOrdersPage() {
         return () => unsubscribe();
     }, [user, authLoading]);
     
+    const canShowMap = (order: Order) => {
+        const showOnStatus: Order['status'][] = ['pronto para recolha', 'a caminho', 'aguardando confirmação'];
+        return order.deliveryLocation && showOnStatus.includes(order.status);
+    }
+
     if (loading || authLoading) {
         return (
              <div className="container mx-auto px-4 py-8 flex justify-center items-center h-64">
@@ -136,8 +145,16 @@ export default function LojistaOrdersPage() {
                                             <span className="text-muted-foreground flex items-center gap-1.5"><List className="h-4 w-4" /> Itens</span>
                                             <span>{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</span>
                                         </div>
-                                        <div>
+                                        <div className="flex items-center justify-between">
                                             <LojistaOrderStatusButton order={order} />
+                                             {canShowMap(order) && (
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation?.latitude},${order.deliveryLocation?.longitude}`} target="_blank">
+                                                        <MapPin className="mr-2 h-4 w-4"/>
+                                                        Mapa
+                                                    </Link>
+                                                </Button>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -182,7 +199,16 @@ export default function LojistaOrdersPage() {
                                                 <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
                                                 <TableCell>{order.courierName || 'N/A'}</TableCell>
                                                 <TableCell className="text-right">
-                                                    <LojistaOrderStatusButton order={order} />
+                                                    <div className="flex justify-end items-center gap-2">
+                                                         {canShowMap(order) && (
+                                                            <Button variant="outline" size="icon" asChild>
+                                                                <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation?.latitude},${order.deliveryLocation?.longitude}`} target="_blank">
+                                                                    <MapPin className="h-4 w-4"/>
+                                                                </Link>
+                                                            </Button>
+                                                        )}
+                                                        <LojistaOrderStatusButton order={order} />
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))

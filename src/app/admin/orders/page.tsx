@@ -1,8 +1,9 @@
 
+
 import { getOrders } from '../actions';
 import type { Order } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Package, User, Users, Calendar, DollarSign, List, MoreVertical, Home } from 'lucide-react';
+import { AlertTriangle, Package, User, Users, Calendar, DollarSign, List, MoreVertical, Home, MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -13,6 +14,7 @@ import { AssignDriverDialog } from './assign-driver-dialog';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {Button} from "@/components/ui/button";
+import Link from 'next/link';
 
 
 function getErrorMessage(error: any): string {
@@ -31,6 +33,11 @@ export default async function AdminOrdersPage() {
     } catch (e) {
         console.error(e);
         error = getErrorMessage(e);
+    }
+
+    const canShowMap = (order: Order) => {
+        const showOnStatus: Order['status'][] = ['pronto para recolha', 'a caminho', 'aguardando confirmação'];
+        return order.deliveryLocation && showOnStatus.includes(order.status);
     }
 
     return (
@@ -99,8 +106,16 @@ export default async function AdminOrdersPage() {
                                                 <span className="text-right max-w-[70%]">{order.address}</span>
                                             </div>
                                         )}
-                                        <div>
+                                        <div className="flex items-center justify-between">
                                             <OrderStatusDropdown order={order} />
+                                            {canShowMap(order) && (
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation?.latitude},${order.deliveryLocation?.longitude}`} target="_blank">
+                                                        <MapPin className="mr-2 h-4 w-4"/>
+                                                        Mapa
+                                                    </Link>
+                                                </Button>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -150,6 +165,13 @@ export default async function AdminOrdersPage() {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end items-center gap-2">
+                                                        {canShowMap(order) && (
+                                                            <Button variant="outline" size="icon" asChild>
+                                                                <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation?.latitude},${order.deliveryLocation?.longitude}`} target="_blank">
+                                                                    <MapPin className="h-4 w-4"/>
+                                                                </Link>
+                                                            </Button>
+                                                        )}
                                                         <AssignDriverDialog order={order} />
                                                         <OrderActions orderId={order.id} />
                                                     </div>

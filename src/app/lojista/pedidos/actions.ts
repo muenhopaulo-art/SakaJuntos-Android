@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -26,6 +27,8 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
     courierId: data.courierId,
     courierName: data.courierName,
     contributions: [], // Not loading contributions for lojista view by default
+    address: data.address,
+    deliveryLocation: data.deliveryLocation,
   };
 
   if (data.createdAt && data.createdAt instanceof Timestamp) {

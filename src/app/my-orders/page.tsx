@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { auth, db } from '@/lib/firebase';
 import type { Order, OrderStatus, ServiceRequest, ServiceRequestStatus } from '@/lib/types';
 import { collection, query, where, onSnapshot, getDocs, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, Package, Truck, ListOrdered, User as UserIcon, Users, Calendar, Hand, Check } from 'lucide-react';
+import { Loader2, Package, Truck, ListOrdered, User as UserIcon, Users, Calendar, Hand, Check, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { confirmOrderReception } from './actions';
+import Link from 'next/link';
 
 
 const statusColors: Record<OrderStatus, string> = {
@@ -54,7 +56,7 @@ function OrderConfirmationAction({ order, className }: { order: Order; className
     };
 
     if (order.status !== 'aguardando confirmação') {
-        return <Badge className={cn("capitalize", statusColors[order.status])}>{order.status}</Badge>;
+        return null;
     }
     
     return (
@@ -127,6 +129,7 @@ export default function MyOrdersPage() {
                     contributions,
                     courierId: data.courierId,
                     courierName: data.courierName,
+                    deliveryLocation: data.deliveryLocation,
                 };
             }));
             
@@ -265,9 +268,19 @@ export default function MyOrdersPage() {
                                                      {order.courierName && (
                                                         <div className="mt-4 pt-4 border-t">
                                                             <h5 className="font-semibold mb-2">Detalhes da Entrega</h5>
-                                                            <div className="flex justify-between text-sm">
-                                                                <span>Entregador:</span>
-                                                                <span>{order.courierName}</span>
+                                                            <div className="flex justify-between text-sm items-center">
+                                                                <div>
+                                                                    <span className="text-muted-foreground">Entregador:</span>
+                                                                    <span> {order.courierName}</span>
+                                                                </div>
+                                                                {order.deliveryLocation && (
+                                                                     <Button variant="outline" size="sm" asChild>
+                                                                        <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation.latitude},${order.deliveryLocation.longitude}`} target="_blank">
+                                                                            <MapPin className="mr-2 h-4 w-4" />
+                                                                            Ver no Mapa
+                                                                        </Link>
+                                                                    </Button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     )}

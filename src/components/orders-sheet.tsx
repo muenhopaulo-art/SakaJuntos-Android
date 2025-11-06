@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -126,6 +127,7 @@ export function OrdersSheet() {
                 contributions,
                 courierId: data.courierId,
                 courierName: data.courierName,
+                deliveryLocation: data.deliveryLocation,
             });
         }
         
