@@ -164,7 +164,6 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
             creatorId: user.uid,
             creatorName: appUser.name,
             description: data.description,
-            price: 0, // Price is now determined by products in group cart
             imageUrls: [imageUrl],
             aiHint: "group purchase",
         });

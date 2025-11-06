@@ -148,12 +148,12 @@ export async function createGroupPromotion(
     groupData: CreateGroupData
 ): Promise<{ success: boolean; id?: string; message?: string }> {
     try {
-        const { creatorName, ...restOfGroupData } = groupData;
+        const { creatorName, creatorId, ...restOfGroupData } = groupData;
         const promotionsCol = collection(db, 'groupPromotions');
         
-        // Data for the main group document
         const newGroupData = {
             ...restOfGroupData,
+            creatorId: creatorId,
             participants: 1, 
             status: 'active' as const,
             price: 0, // Price is dynamically calculated from the cart
@@ -163,7 +163,7 @@ export async function createGroupPromotion(
         const docRef = await addDoc(promotionsCol, newGroupData);
 
         // Add creator as the first member in the subcollection
-        const memberRef = doc(db, 'groupPromotions', docRef.id, 'members', groupData.creatorId);
+        const memberRef = doc(db, 'groupPromotions', docRef.id, 'members', creatorId);
         await setDoc(memberRef, { name: creatorName, joinedAt: serverTimestamp() });
 
         return { success: true, id: docRef.id };
