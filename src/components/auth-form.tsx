@@ -48,7 +48,7 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['client', 'lojista', 'courier']).default('client'), // Updated roles
+  role: z.enum(['client', 'courier']).default('client'),
 });
 
 
@@ -207,7 +207,6 @@ export function AuthForm() {
                                 </FormControl>
                                 <SelectContent>
                                     <SelectItem value="client">Cliente</SelectItem>
-                                    <SelectItem value="lojista">Vendedor</SelectItem>
                                     <SelectItem value="courier">Entregador</SelectItem>
                                 </SelectContent>
                             </Select>
