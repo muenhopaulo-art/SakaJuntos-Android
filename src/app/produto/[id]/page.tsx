@@ -67,7 +67,7 @@ export default function ProductDetailPage() {
                         productType: data.productType || 'product',
                         stock: data.stock,
                         isPromoted: data.isPromoted,
-                        imageUrl: data.imageUrl,
+                        imageUrls: data.imageUrls,
                         createdAt: (data.createdAt as Timestamp)?.toMillis(),
                         lojistaId: data.lojistaId,
                     };
@@ -117,7 +117,7 @@ export default function ProductDetailPage() {
         return null;
     }
 
-    const hasImage = product.imageUrl;
+    const hasImages = product.imageUrls && product.imageUrls.length > 0;
     const isService = product.productType === 'service';
 
     return (
@@ -125,8 +125,8 @@ export default function ProductDetailPage() {
             <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
                 <div className="grid gap-4">
                     <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-                        {hasImage ? (
-                            <Image src={product.imageUrl!} alt={product.name} fill className="object-contain" />
+                        {hasImages ? (
+                            <Image src={product.imageUrls![0]} alt={product.name} fill className="object-contain" />
                         ) : (
                             <Package className="h-32 w-32 text-muted-foreground"/>
                         )}

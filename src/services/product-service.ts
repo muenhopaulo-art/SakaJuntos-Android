@@ -22,7 +22,7 @@ const convertDocToProduct = (doc: DocumentSnapshot): Product => {
     productType: data.productType || 'product',
     stock: data.stock,
     isPromoted: data.isPromoted,
-    imageUrl: data.imageUrl,
+    imageUrls: data.imageUrls,
     lojistaId: data.lojistaId,
     promotionPaymentId: data.promotionPaymentId,
   };
@@ -80,7 +80,7 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
         status: data.status || 'active',
         description: data.description,
         price: data.price,
-        imageUrl: data.imageUrl,
+        imageUrls: data.imageUrls,
         participants: data.participants,
         target: data.target,
         creatorId: data.creatorId,
@@ -139,7 +139,7 @@ interface CreateGroupData {
     creatorName: string;
     description: string;
     price: number;
-    imageUrl?: string;
+    imageUrls?: string[];
     aiHint: string;
 }
 
@@ -311,7 +311,7 @@ export async function updateGroupCart(groupId: string, product: Product, change:
                 name: product.name,
                 description: product.description,
                 price: product.price,
-                imageUrl: product.imageUrl,
+                imageUrls: product.imageUrls,
                 lojistaId: product.lojistaId,
                 category: product.category,
                 productType: product.productType,

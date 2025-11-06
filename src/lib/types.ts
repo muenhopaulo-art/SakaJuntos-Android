@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -9,7 +10,7 @@ export interface Product {
   productType: 'product' | 'service';
   stock: number;
   isPromoted: 'active' | 'inactive';
-  imageUrl?: string;
+  imageUrls?: string[];
   createdAt?: number;
   lojistaId?: string;
   promotionPaymentId?: string; 
@@ -144,3 +145,4 @@ export interface ServiceRequest {
     status: ServiceRequestStatus;
     createdAt: number;
 }
+

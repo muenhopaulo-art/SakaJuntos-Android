@@ -46,8 +46,8 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
                 <div key={item.product.id} className="flex items-center justify-between space-x-4">
                   <div className="flex items-center space-x-4">
                     <div className="relative h-16 w-16 overflow-hidden rounded bg-muted flex items-center justify-center">
-                        {item.product.imageUrl ? (
-                           <Image src={item.product.imageUrl} alt={item.product.name} width={64} height={64} className="object-cover h-full w-full" />
+                        {item.product.imageUrls && item.product.imageUrls.length > 0 ? (
+                           <Image src={item.product.imageUrls[0]} alt={item.product.name} width={64} height={64} className="object-cover h-full w-full" />
                         ) : (
                            <Package className="h-8 w-8 text-muted-foreground" />
                         )}

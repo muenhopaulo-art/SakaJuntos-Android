@@ -34,13 +34,14 @@ export function ProductCard({ product, lojistasMap }: ProductCardProps) {
   
   const lojista = product.lojistaId ? lojistasMap?.get(product.lojistaId) : null;
   const isService = product.productType === 'service';
+  const imageUrl = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : undefined;
 
   const cardContent = (
     <Card className={cn("flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-xl group-hover:-translate-y-1 bg-card", isOwner && "bg-muted/30")}>
     <CardContent className="p-4 flex-grow flex flex-col">
         <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4 bg-muted flex items-center justify-center">
-            {product.imageUrl ? (
-                <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+            {imageUrl ? (
+                <Image src={imageUrl} alt={product.name} fill className="object-cover" />
             ) : (
                 <Package className="w-16 h-16 text-muted-foreground"/>
             )}

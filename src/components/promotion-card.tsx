@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type { GroupPromotion } from '@/lib/types';
@@ -21,6 +20,7 @@ export function PromotionCard({ promotion, showJoinButton, onJoin }: PromotionCa
   const progress = (promotion.participants / promotion.target) * 100;
   const isFinalized = promotion.status === 'finalized';
   const isDelivered = promotion.status === 'delivered';
+  const imageUrl = promotion.imageUrls && promotion.imageUrls.length > 0 ? promotion.imageUrls[0] : undefined;
 
   const cardContent = (
     <Card className={cn("flex flex-col h-full overflow-hidden bg-card transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1", isFinalized && "bg-muted/50")}>
@@ -42,8 +42,8 @@ export function PromotionCard({ promotion, showJoinButton, onJoin }: PromotionCa
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
         <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-            {promotion.imageUrl ? (
-              <Image src={promotion.imageUrl} alt={promotion.name} fill className="object-cover" data-ai-hint={promotion.aiHint}/>
+            {imageUrl ? (
+              <Image src={imageUrl} alt={promotion.name} fill className="object-cover" data-ai-hint={promotion.aiHint}/>
             ) : (
               <Package className="w-16 h-16 text-muted-foreground"/>
             )}

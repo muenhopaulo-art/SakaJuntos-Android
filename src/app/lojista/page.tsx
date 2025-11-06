@@ -205,8 +205,8 @@ export default function LojistaPage() {
                                     <div key={product.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 gap-4">
                                         <div className="flex items-center gap-4">
                                             <div className="relative h-10 w-10 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                                {product.imageUrl ? (
-                                                    <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="object-cover h-full w-full" />
+                                                {product.imageUrls && product.imageUrls.length > 0 ? (
+                                                    <Image src={product.imageUrls[0]} alt={product.name} width={40} height={40} className="object-cover h-full w-full" />
                                                 ) : (
                                                     <Package className="h-5 w-5 text-muted-foreground" />
                                                 )}

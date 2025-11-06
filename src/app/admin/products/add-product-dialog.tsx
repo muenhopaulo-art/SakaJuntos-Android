@@ -37,7 +37,7 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   category: z.string().min(2, { message: 'A categoria é obrigatória.'}),
   stock: z.coerce.number().min(0, { message: 'O stock deve ser um número positivo.' }),
-  imageUrl: z.string().url({ message: 'Por favor, insira um URL de imagem válido.' }).optional().or(z.literal('')),
+  imageUrls: z.array(z.string()).optional(),
   isPromoted: z.boolean().default(false),
 });
 
@@ -51,7 +51,7 @@ export function AddProductDialog() {
       name: '',
       description: '',
       price: 0,
-      imageUrl: '',
+      imageUrls: [],
       category: '',
       stock: 0,
       isPromoted: false,
@@ -65,6 +65,7 @@ export function AddProductDialog() {
     const productData = {
         ...values,
         isPromoted: values.isPromoted ? 'active' : ('inactive' as 'active' | 'inactive'),
+        productType: 'product' as const,
     };
     const result = await addProduct(productData);
     if (result.success) {
@@ -159,12 +160,12 @@ export function AddProductDialog() {
             </div>
              <FormField
               control={form.control}
-              name="imageUrl"
+              name="imageUrls"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>URL da Imagem</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://exemplo.com/imagem.png" {...field} />
+                    <Input placeholder="https://exemplo.com/imagem.png" {...field} value={field.value?.[0] || ''} onChange={(e) => field.onChange(e.target.value ? [e.target.value] : [])} />
                   </FormControl>
                    <FormMessage />
                 </FormItem>

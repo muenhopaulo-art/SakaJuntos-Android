@@ -35,7 +35,7 @@ const convertDocToProduct = (doc: any): Product => {
     name: data.name,
     description: data.description,
     price: data.price,
-    imageUrl: data.imageUrl,
+    imageUrls: data.imageUrls,
     lojistaId: data.lojistaId,
     category: data.category,
     productType: data.productType || 'product',
@@ -109,8 +109,8 @@ export default function LojistaProductsPage() {
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-4">
                                                 <div className="relative h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                                    {product.imageUrl ? (
-                                                        <Image src={product.imageUrl} alt={product.name} width={64} height={64} className="object-cover h-full w-full" />
+                                                    {product.imageUrls && product.imageUrls.length > 0 ? (
+                                                        <Image src={product.imageUrls[0]} alt={product.name} width={64} height={64} className="object-cover h-full w-full" />
                                                     ) : (
                                                         <Package className="h-8 w-8 text-muted-foreground" />
                                                     )}
@@ -181,8 +181,8 @@ export default function LojistaProductsPage() {
                                         <TableRow key={product.id}>
                                             <TableCell>
                                                 <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                                    {product.imageUrl ? (
-                                                        <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
+                                                    {product.imageUrls && product.imageUrls.length > 0 ? (
+                                                        <Image src={product.imageUrls[0]} alt={product.name} width={48} height={48} className="object-cover h-full w-full" />
                                                     ) : (
                                                         <Package className="h-6 w-6 text-muted-foreground" />
                                                     )}
