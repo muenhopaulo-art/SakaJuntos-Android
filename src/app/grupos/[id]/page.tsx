@@ -8,7 +8,7 @@ import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contrib
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, Map as MapIcon, Hourglass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -464,7 +464,7 @@ export default function GroupDetailPage() {
   };
 
   const handleUpdateGroupCart = async (product: Product, change: 'add' | 'remove' | 'update', newQuantity?: number) => {
-    if (!group || !user || !members.some(m => m.uid === user.uid)) {
+    if (!group || !user || !members.some(m => m.id === user.uid)) {
         toast({variant: "destructive", title: "Apenas membros do grupo podem modificar o carrinho."});
         return;
     }
@@ -510,7 +510,7 @@ export default function GroupDetailPage() {
   };
 
   const handleContribution = () => {
-    if (!user || !group || !members.some(m => m.uid === user.uid)) {
+    if (!user || !group || !members.some(m => m.id === user.uid)) {
         toast({ variant: "destructive", title: "Ação não permitida", description: "Apenas membros podem contribuir." });
         return;
     }
@@ -565,6 +565,8 @@ export default function GroupDetailPage() {
         : [...prev, province]
     );
   };
+
+  const isMember = user ? members.some(m => m.id === user.uid) : false;
 
   if (loading || authLoading) {
     return (
@@ -622,7 +624,6 @@ export default function GroupDetailPage() {
     )
   }
   
-  const isMember = user ? members.some(m => m.id === user.uid) : false;
   const hasContributed = user ? contributions.some(c => c.id === user.uid) : false;
   const allMembersContributed = members.length > 0 && contributions.length === members.length;
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
@@ -665,7 +666,7 @@ export default function GroupDetailPage() {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <CardTitle>Produtos para o Grupo</CardTitle>
-                                    <CardDescription>{isGroupFinalized ? 'Estes foram os produtos selecionados.' : 'O criador do grupo seleciona os produtos.'}</CardDescription>
+                                    <CardDescription>{isGroupFinalized ? 'Estes foram os produtos selecionados.' : 'Adicionem produtos para a compra em grupo.'}</CardDescription>
                                 </div>
                                 <Sheet>
                                     <SheetTrigger asChild>
@@ -694,7 +695,7 @@ export default function GroupDetailPage() {
                                                                         <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
                                                                     </div>
                                                                 </div>
-                                                                {user?.uid === group.creatorId && !isGroupFinalized ? (
+                                                                {(isMember) && !isGroupFinalized ? (
                                                                     <div className="flex items-center gap-1">
                                                                         <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
                                                                         <span className="w-4 text-center text-sm">{item.quantity}</span>
@@ -756,7 +757,7 @@ export default function GroupDetailPage() {
                                     </SheetContent>
                                 </Sheet>
                             </div>
-                           {!isGroupFinalized && user?.uid === group.creatorId && (
+                           {!isGroupFinalized && isMember && (
                              <div className="mt-4 space-y-2">
                                 <Input 
                                     placeholder="Pesquisar produtos..."
@@ -1021,7 +1022,3 @@ export default function GroupDetailPage() {
         </div>
     );
 }
-
-    
-
-    
