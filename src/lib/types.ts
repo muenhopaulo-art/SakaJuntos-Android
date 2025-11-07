@@ -67,7 +67,8 @@ export interface Contribution {
     userId: string;
     userName: string;
     amount: number;
-    location: Geolocation;
+    address: string;
+    location: Geolocation | null;
     createdAt: number;
 }
 

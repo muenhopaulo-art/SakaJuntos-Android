@@ -8,7 +8,7 @@ import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contrib
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, MapPin as MapIcon, Hourglass } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, MapPin as MapIcon, Hourglass, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -31,9 +31,10 @@ import { finalizeGroupOrder } from './actions';
 import { approveJoinRequest } from '@/services/product-service';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 const SHIPPING_COST_PER_MEMBER = 1000;
-const provinces = [ "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango", "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"];
+const provinces = [ "Bengo", "Benguela", "Bié", "Cabinda", "Quando Cubango", "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"];
 
 const formatTime = (seconds: number) => {
   if (isNaN(seconds)) return '0:00';
@@ -256,6 +257,117 @@ const ChatDialogContent = ({ groupId, user }: { groupId: string; user: User | nu
   );
 };
 
+function ContributionDialog({ contributionPerMember, onConfirm, open, onOpenChange }: {
+    contributionPerMember: number;
+    onConfirm: (address: string, location: Geolocation | null) => void;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const [isContributing, setIsContributing] = useState(false);
+    const [address, setAddress] = useState('');
+    const [location, setLocation] = useState<Geolocation | null>(null);
+    const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+    const { toast } = useToast();
+
+    const handleGetLocation = () => {
+        setIsFetchingLocation(true);
+        setLocation(null);
+        setAddress('');
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                const newLocation = { latitude, longitude };
+                setLocation(newLocation);
+                setAddress(`Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`);
+                toast({ title: 'Localização Obtida!', description: 'O seu endereço foi preenchido com as suas coordenadas.' });
+                setIsFetchingLocation(false);
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                toast({ variant: 'destructive', title: 'Erro de Localização', description: 'Não foi possível obter a sua localização. Verifique as permissões do navegador.' });
+                setIsFetchingLocation(false);
+            },
+            { enableHighAccuracy: true }
+        );
+    };
+
+    const handleConfirm = async () => {
+        if (!address.trim()) {
+            toast({ variant: 'destructive', title: 'Endereço Inválido', description: 'Por favor, insira um endereço de entrega válido.' });
+            return;
+        }
+        setIsContributing(true);
+        await onConfirm(address, location);
+        setIsContributing(false);
+        onOpenChange(false); // Close dialog on success
+    };
+
+    useEffect(() => {
+      // Reset state when dialog is closed
+      if (!open) {
+        setAddress('');
+        setLocation(null);
+        setIsContributing(false);
+        setIsFetchingLocation(false);
+      }
+    }, [open]);
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Confirmar Contribuição e Entrega</DialogTitle>
+                    <DialogDescription>
+                        A sua parte é de <span className="font-bold text-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>.
+                        Por favor, insira a morada para receber a sua parte da encomenda.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="relative">
+                        <Label htmlFor="address" className="sr-only">Endereço</Label>
+                        <Home className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                            id="address" 
+                            value={address} 
+                            onChange={(e) => {
+                                setAddress(e.target.value);
+                                setLocation(null); // Clear location if user types manually
+                            }} 
+                            className="pl-10"
+                            placeholder="Ex: Rua da Liberdade, Bairro Azul"
+                            disabled={isFetchingLocation || isContributing}
+                        />
+                    </div>
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">Ou</span>
+                        </div>
+                    </div>
+                    <Button variant="outline" onClick={handleGetLocation} disabled={isFetchingLocation || isContributing}>
+                        {isFetchingLocation ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <MapIcon className="mr-2 h-4 w-4" />
+                        )}
+                        Usar minha localização exata
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</p>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isContributing}>Cancelar</Button>
+                    <Button onClick={handleConfirm} disabled={isContributing || !address.trim()}>
+                        {isContributing && <Loader2 className="animate-spin mr-2" />}
+                        Confirmar Contribuição
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function GroupDetailPage() {
   const params = useParams();
   const groupId = params.id as string;
@@ -275,6 +387,7 @@ export default function GroupDetailPage() {
   const { toast } = useToast();
   
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isContributionDialogOpen, setIsContributionDialogOpen] = useState(false);
   
   const [productSearch, setProductSearch] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -509,33 +622,22 @@ export default function GroupDetailPage() {
     }
   };
 
-  const handleContribution = () => {
+  const handleContribution = async (address: string, location: Geolocation | null) => {
     if (!user || !group || !members.some(m => m.id === user.uid)) {
         toast({ variant: "destructive", title: "Ação não permitida", description: "Apenas membros podem contribuir." });
         return;
     }
-    toast({ title: "A obter localização...", description: "Por favor, autorize o acesso à sua localização." });
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const location: Geolocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-            toast({ title: "Localização obtida!", description: "A registar a sua contribuição..." });
-            try {
-                const result = await contributeToGroup(groupId, user.uid, location);
-                if (result.success) {
-                    toast({ title: "Contribuição Registada!", description: "Obrigado por contribuir." });
-                } else {
-                   throw new Error(result.message);
-                }
-            } catch (error) {
-                 toast({ variant: "destructive", title: "Erro ao Contribuir", description: error instanceof Error ? error.message : "Ocorreu um erro." });
-            }
-        },
-        (error) => {
-            console.error("Geolocation error:", error);
-            toast({ variant: "destructive", title: "Erro de Localização", description: "Não foi possível obter a sua localização." });
-        },
-        { enableHighAccuracy: true }
-    );
+
+    try {
+        const result = await contributeToGroup(groupId, user.uid, address, location);
+        if (result.success) {
+            toast({ title: "Contribuição Registada!", description: "Obrigado por contribuir. A sua morada de entrega foi guardada." });
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        toast({ variant: "destructive", title: "Erro ao Contribuir", description: error instanceof Error ? error.message : "Ocorreu um erro." });
+    }
   };
 
   const productCategories = useMemo(() => [...new Set(products.map(p => p.category))], [products]);
@@ -874,33 +976,20 @@ export default function GroupDetailPage() {
                         </CardContent>
                         {groupCartTotal > 0 && !isGroupFinalized && (
                             <CardFooter>
-                                <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button className="w-full" disabled={hasContributed || !isMember}>
-                                        {hasContributed ? 'Já Contribuiu' : 'Contribuir'}
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar Contribuição</AlertDialogTitle>
-                                    <AlertDialogDescription asChild>
-                                        <div>
-                                            <p>
-                                            A sua localização será solicitada para a entrega. Tem a certeza que deseja contribuir com <span className="font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>?
-                                            </p>
-                                            <span className="block text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</span>
-                                        </div>
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleContribution}>Confirmar</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                                </AlertDialog>
+                                <Button className="w-full" disabled={hasContributed || !isMember} onClick={() => setIsContributionDialogOpen(true)}>
+                                    {hasContributed ? 'Já Contribuiu' : 'Contribuir'}
+                                </Button>
                             </CardFooter>
                         )}
                     </Card>
+                    
+                    <ContributionDialog 
+                        open={isContributionDialogOpen}
+                        onOpenChange={setIsContributionDialogOpen}
+                        contributionPerMember={contributionPerMember}
+                        onConfirm={handleContribution}
+                    />
+
 
                     {user?.uid === group.creatorId && (
                          <Card>

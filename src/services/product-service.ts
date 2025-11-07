@@ -361,7 +361,7 @@ export async function updateGroupCart(groupId: string, product: Product, change:
     }
 }
 
-export async function contributeToGroup(groupId: string, userId: string, location: Geolocation) {
+export async function contributeToGroup(groupId: string, userId: string, address: string, location: Geolocation | null) {
     try {
         await runTransaction(db, async (transaction) => {
             const groupRef = doc(db, 'groupPromotions', groupId);
@@ -393,7 +393,8 @@ export async function contributeToGroup(groupId: string, userId: string, locatio
                 userId,
                 userName: user.name,
                 amount: contributionAmount,
-                location,
+                address,
+                location: location || null,
                 createdAt: serverTimestamp(),
             });
         });
