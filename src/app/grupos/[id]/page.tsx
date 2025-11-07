@@ -8,7 +8,7 @@ import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contrib
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, MapPin as MapIcon, Hourglass, Home } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, MapPin as MapIcon, Hourglass, Home, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -409,6 +409,10 @@ export default function GroupDetailPage() {
     }
   }, [user]);
 
+  const allMembersContributed = useMemo(() => {
+    if (members.length === 0) return false;
+    return members.length === contributions.length;
+  }, [members, contributions]);
 
   // Real-time listeners for all group data
   useEffect(() => {
@@ -592,6 +596,10 @@ export default function GroupDetailPage() {
         toast({variant: "destructive", title: "Ação não permitida", description: "Este grupo já foi finalizado e não pode ser modificado."});
         return;
     }
+    if (allMembersContributed) {
+        toast({variant: "destructive", title: "Carrinho Bloqueado", description: "Todos os membros já contribuíram. Não é possível alterar o carrinho."});
+        return;
+    }
     
     await updateGroupCart(groupId, product, change, newQuantity);
     
@@ -734,7 +742,7 @@ export default function GroupDetailPage() {
   }
   
   const hasContributed = user ? contributions.some(c => c.id === user.uid) : false;
-  const allMembersContributed = members.length > 0 && contributions.length === members.length;
+  
   const groupCartTotal = groupCart.reduce((total, item) => total + item.product.price * item.quantity, 0);
   const totalMembers = members.length > 0 ? members.length : 1;
   const productsValuePerMember = groupCartTotal > 0 ? groupCartTotal / totalMembers : 0;
@@ -789,6 +797,12 @@ export default function GroupDetailPage() {
                                             <SheetTitle>Carrinho do Grupo</SheetTitle>
                                         </SheetHeader>
                                         <div className="flex-1 flex flex-col">
+                                            {allMembersContributed && !isGroupFinalized && (
+                                                <div className="p-4 mb-4 rounded-md bg-yellow-100 text-yellow-800 text-sm flex items-center gap-2">
+                                                    <Lock className="h-4 w-4"/>
+                                                    <span>O carrinho está bloqueado pois todos os membros contribuíram.</span>
+                                                </div>
+                                            )}
                                             {groupCart.length > 0 ? (
                                             <>
                                                 <ScrollArea className="flex-1 my-4">
@@ -806,10 +820,10 @@ export default function GroupDetailPage() {
                                                                 </div>
                                                                 {(isMember) && !isGroupFinalized ? (
                                                                     <div className="flex items-center gap-1">
-                                                                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)}><Minus className="h-3 w-3"/></Button>
+                                                                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)} disabled={allMembersContributed}><Minus className="h-3 w-3"/></Button>
                                                                         <span className="w-4 text-center text-sm">{item.quantity}</span>
-                                                                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)}><Plus className="h-3 w-3"/></Button>
-                                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleUpdateGroupCart(item.product, 'remove')}><Trash2 className="h-4 w-4"/></Button>
+                                                                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)} disabled={allMembersContributed}><Plus className="h-3 w-3"/></Button>
+                                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleUpdateGroupCart(item.product, 'remove')} disabled={allMembersContributed}><Trash2 className="h-4 w-4"/></Button>
                                                                     </div>
                                                                 ) : (
                                                                     <p className="text-sm font-medium">x{item.quantity}</p>
