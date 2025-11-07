@@ -8,7 +8,7 @@ import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contrib
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, Hourglass, ListFilter, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, Map as MapIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -266,7 +266,7 @@ export default function GroupDetailPage() {
   const [groupCart, setGroupCart] = useState<CartItem[]>([]);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [lojistas, setLojistas] = useState<Map<string, User>>(new Map());
+  const [lojistas, setLojistas] = useState<{[key: string]: User}>({});
   const [creatorName, setCreatorName] = useState<string>('Desconhecido');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
@@ -345,16 +345,28 @@ export default function GroupDetailPage() {
 
     // Fetch static products data and lojista data
     const fetchProductsAndLojistas = async () => {
-      const fetchedProducts = await getProducts();
-      const lojistaIds = new Set(fetchedProducts.map(p => p.lojistaId).filter(Boolean));
-      const lojistaPromises = Array.from(lojistaIds).map(id => getUser(id!));
-      const lojistaResults = await Promise.all(lojistaPromises);
-      const lojistaMap = new Map();
-      lojistaResults.forEach(l => {
-        if (l) lojistaMap.set(l.uid, l);
-      });
-      setProducts(fetchedProducts);
-      setLojistas(lojistaMap);
+        try {
+            const fetchedProducts = await getProducts();
+            setProducts(fetchedProducts);
+
+            const lojistaIds = [...new Set(fetchedProducts.map(p => p.lojistaId).filter(Boolean))];
+            
+            if (lojistaIds.length > 0) {
+                const lojistaPromises = lojistaIds.map(id => getUser(id!));
+                const lojistaResults = await Promise.all(lojistaPromises);
+                
+                const lojistaMap: {[key: string]: User} = {};
+                lojistaResults.forEach(lojista => {
+                    if (lojista) {
+                        lojistaMap[lojista.uid] = lojista;
+                    }
+                });
+                setLojistas(lojistaMap);
+            }
+        } catch (e) {
+            console.error("Failed to fetch products or lojistas", e);
+            toast({variant: 'destructive', title: "Erro ao carregar produtos"});
+        }
     }
 
     fetchProductsAndLojistas();
@@ -362,7 +374,7 @@ export default function GroupDetailPage() {
     return () => {
       unsubscribers.forEach(unsub => unsub());
     };
-  }, [groupId]);
+  }, [groupId, toast]);
 
 
   const handleAction = async (userId: string, action: 'approve' | 'remove') => {
@@ -530,7 +542,7 @@ export default function GroupDetailPage() {
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-        const lojista = p.lojistaId ? lojistas.get(p.lojistaId) : null;
+        const lojista = p.lojistaId ? lojistas[p.lojistaId] : null;
         const matchesSearch = productSearch ? p.name.toLowerCase().includes(productSearch.toLowerCase()) : true;
         const matchesCategory = selectedCategories.length > 0 ? selectedCategories.includes(p.category) : true;
         const matchesProvince = selectedProvinces.length > 0 ? (lojista && lojista.province && selectedProvinces.includes(lojista.province)) : true;
@@ -657,9 +669,9 @@ export default function GroupDetailPage() {
                                 </div>
                                 <Sheet>
                                     <SheetTrigger asChild>
-                                        <Button variant="outline" size="icon" className="relative">
-                                            <ShoppingCart />
-                                            {groupCart.length > 0 && <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">{groupCart.reduce((acc, item) => acc + item.quantity, 0)}</span>}
+                                        <Button variant="outline" className="relative">
+                                            <ShoppingCart className="mr-2 h-4 w-4" />
+                                            Ver Carrinho ({groupCart.reduce((acc, item) => acc + item.quantity, 0)})
                                         </Button>
                                     </SheetTrigger>
                                     <SheetContent className="flex flex-col">
@@ -1009,5 +1021,7 @@ export default function GroupDetailPage() {
         </div>
     );
 }
+
+    
 
     
