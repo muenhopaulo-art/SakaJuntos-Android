@@ -146,7 +146,7 @@ export default function LojistaOrdersPage() {
                             <AccordionItem value={order.id} key={order.id} className="border-b-0">
                                 <Card>
                                     <div className="flex items-center p-4">
-                                        <AccordionTrigger className="hover:no-underline flex-grow">
+                                        <AccordionTrigger className="hover:no-underline flex-grow p-0">
                                             <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left gap-4 md:gap-0">
                                                 <div className="flex-1">
                                                     <p className="font-mono text-xs text-muted-foreground">#{order.id.substring(0, 6)}</p>
