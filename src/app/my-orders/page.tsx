@@ -93,6 +93,10 @@ function AwaitingConfirmationCard({ order }: { order: Order }) {
     );
 }
 
+interface GroupedOrders {
+    [key: string]: Order[];
+}
+
 
 export default function MyOrdersPage() {
     const [user] = useAuthState(auth);
@@ -197,6 +201,16 @@ export default function MyOrdersPage() {
     
     const ordersToConfirm = orders.filter(o => o.status === 'aguardando confirmação');
     const activeOrders = orders.filter(o => o.status !== 'entregue' && o.status !== 'cancelado');
+    
+    const groupedByGroup = activeOrders.reduce<GroupedOrders>((acc, order) => {
+        const key = order.groupId || order.id; // Group by groupId, or use order.id for individual orders
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(order);
+        return acc;
+    }, {});
+
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -216,7 +230,7 @@ export default function MyOrdersPage() {
             <Tabs defaultValue="compras" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="compras">
-                        <Package className="mr-2 h-4 w-4" /> Compras Ativas ({activeOrders.length})
+                        <Package className="mr-2 h-4 w-4" /> Compras Ativas ({Object.keys(groupedByGroup).length})
                     </TabsTrigger>
                     <TabsTrigger value="agendamentos">
                         <Calendar className="mr-2 h-4 w-4" /> Agendamentos Ativos ({serviceRequests.length})
@@ -225,7 +239,7 @@ export default function MyOrdersPage() {
 
                 {/* Tab for Orders/Compras */}
                 <TabsContent value="compras">
-                     {activeOrders.length === 0 ? (
+                     {Object.keys(groupedByGroup).length === 0 ? (
                          <div className="text-center py-16 border-2 border-dashed rounded-lg mt-4">
                             <Truck className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
                             <p className="text-lg font-semibold text-muted-foreground">Nenhuma compra ativa encontrada.</p>
@@ -235,66 +249,82 @@ export default function MyOrdersPage() {
                         <Card className="mt-4">
                             <CardContent>
                                 <Accordion type="single" collapsible className="w-full">
-                                    {activeOrders.map(order => (
-                                        <AccordionItem value={order.id} key={order.id}>
-                                            <AccordionTrigger className="hover:no-underline">
-                                                <div className="flex justify-between items-center w-full">
-                                                    <div className="flex-1 text-left">
-                                                        <p className="font-mono text-xs">#{order.id.substring(0, 6)}</p>
-                                                        <p className="font-semibold">{order.groupName || 'Compra Individual'}</p>
+                                    {Object.entries(groupedByGroup).map(([groupId, ordersInGroup]) => {
+                                        const firstOrder = ordersInGroup[0];
+                                        const isGroupOrder = firstOrder.orderType === 'group';
+                                        const title = isGroupOrder ? firstOrder.groupName : 'Compra Individual';
+                                        const totalAmount = ordersInGroup.reduce((sum, o) => sum + o.totalAmount, 0);
+
+                                        return (
+                                            <AccordionItem value={groupId} key={groupId}>
+                                                <AccordionTrigger className="hover:no-underline">
+                                                    <div className="flex justify-between items-center w-full">
+                                                        <div className="flex-1 text-left">
+                                                            <p className="font-mono text-xs text-muted-foreground">{isGroupOrder ? 'Grupo' : 'Individual'}</p>
+                                                            <p className="font-semibold">{title}</p>
+                                                        </div>
+                                                        <div className="flex-1 text-left hidden md:block">
+                                                            <p className="text-sm text-muted-foreground">Data</p>
+                                                            <p>{firstOrder.createdAt ? format(new Date(firstOrder.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</p>
+                                                        </div>
+                                                        <div className="flex-1 text-left">
+                                                            <p className="text-sm text-muted-foreground">Total</p>
+                                                            <p>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(totalAmount)}</p>
+                                                        </div>
+                                                        <div className="flex-1 text-right pr-4">
+                                                            <Badge className={cn("capitalize")} variant="secondary">
+                                                                {ordersInGroup.length} {ordersInGroup.length > 1 ? 'entregas' : 'entrega'}
+                                                            </Badge>
+                                                        </div>
                                                     </div>
-                                                     <div className="flex-1 text-left hidden md:block">
-                                                         <p className="text-sm text-muted-foreground">Data</p>
-                                                         <p>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</p>
-                                                     </div>
-                                                    <div className="flex-1 text-left">
-                                                         <p className="text-sm text-muted-foreground">Total</p>
-                                                         <p>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</p>
-                                                    </div>
-                                                    <div className="flex-1 text-right pr-4">
-                                                        <Badge className={cn("capitalize", statusColors[order.status])}>{order.status}</Badge>
-                                                    </div>
-                                                </div>
-                                            </AccordionTrigger>
-                                            <AccordionContent>
-                                                <div className="p-4 bg-muted/50">
-                                                    <h4 className="font-semibold mb-2 flex items-center gap-2"><ListOrdered/> Detalhes da Compra</h4>
-                                                    <ul className="space-y-1 text-sm text-muted-foreground">
-                                                        {order.items.map((item, index) => (
-                                                            <li key={index} className="flex justify-between">
-                                                                <span>{item.quantity} x {item.name}</span>
-                                                                <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.price * item.quantity)}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                     {order.courierName && (
-                                                        <div className="mt-4 pt-4 border-t">
-                                                            <h5 className="font-semibold mb-2">Detalhes da Entrega</h5>
-                                                            <div className="flex justify-between text-sm items-center">
-                                                                <div>
-                                                                    <span className="text-muted-foreground">Entregador:</span>
-                                                                    <span> {order.courierName}</span>
+                                                </AccordionTrigger>
+                                                <AccordionContent>
+                                                    <div className="p-4 bg-muted/50 space-y-4">
+                                                        <h4 className="font-semibold mb-2 flex items-center gap-2"><ListOrdered/> Detalhes da Compra</h4>
+                                                        {ordersInGroup.map(order => (
+                                                             <div key={order.id} className="p-3 border rounded-md bg-background">
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                     <p className="font-mono text-xs">#{order.id.substring(0, 6)}</p>
+                                                                     <Badge className={cn("capitalize", statusColors[order.status])}>{order.status}</Badge>
                                                                 </div>
-                                                                {order.deliveryLocation && (
-                                                                     <Button variant="outline" size="sm" asChild>
-                                                                        <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation.latitude},${order.deliveryLocation.longitude}`} target="_blank">
-                                                                            <MapPin className="mr-2 h-4 w-4" />
-                                                                            Ver no Mapa
-                                                                        </Link>
-                                                                    </Button>
+                                                                <ul className="space-y-1 text-sm text-muted-foreground">
+                                                                    {order.items.map((item, index) => (
+                                                                        <li key={index} className="flex justify-between">
+                                                                            <span>{item.quantity} x {item.name}</span>
+                                                                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.price * item.quantity)}</span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                                 {order.courierName && (
+                                                                    <div className="mt-2 pt-2 border-t">
+                                                                        <div className="flex justify-between text-sm items-center">
+                                                                            <div>
+                                                                                <span className="text-muted-foreground">Entregador:</span>
+                                                                                <span> {order.courierName}</span>
+                                                                            </div>
+                                                                            {order.deliveryLocation && (
+                                                                                <Button variant="outline" size="sm" asChild>
+                                                                                    <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation.latitude},${order.deliveryLocation.longitude}`} target="_blank">
+                                                                                        <MapPin className="mr-2 h-4 w-4" />
+                                                                                        Ver no Mapa
+                                                                                    </Link>
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {order.status === 'aguardando confirmação' && (
+                                                                    <div className="mt-2 pt-2 border-t">
+                                                                        <OrderConfirmationAction order={order} className="w-full sm:w-auto" />
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                    {order.status === 'aguardando confirmação' && (
-                                                        <div className="mt-4 pt-4 border-t">
-                                                            <OrderConfirmationAction order={order} className="w-full sm:w-auto" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
+                                                        ))}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        );
+                                    })}
                                 </Accordion>
                             </CardContent>
                         </Card>

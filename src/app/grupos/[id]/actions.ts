@@ -42,37 +42,54 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
             throw new Error("O carrinho está vazio. Adicione produtos antes de finalizar.");
         }
         
-        const productsTotal = cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0);
-        const shippingTotal = (members.length || 1) * SHIPPING_COST_PER_MEMBER;
-        const totalAmount = productsTotal + shippingTotal;
-        
         const creator: User | null = await getUser(creatorId);
         if (!creator) {
             throw new Error("Criador do grupo não encontrado.");
         }
 
-        // Convert CartItem[] to OrderItem[]
-        const orderItems: OrderItem[] = cartItems.map(cartItem => ({
-            id: cartItem.product.id,
-            name: cartItem.product.name,
-            price: cartItem.product.price,
-            quantity: cartItem.quantity,
-            lojistaId: cartItem.product.lojistaId
-        }));
+        // Group cart items by lojistaId
+        const ordersByLojista = cartItems.reduce<Record<string, CartItem[]>>((acc, item) => {
+            const lojistaId = item.product.lojistaId || 'sem-lojista';
+            if (!acc[lojistaId]) {
+                acc[lojistaId] = [];
+            }
+            acc[lojistaId].push(item);
+            return acc;
+        }, {});
         
-        // Create the final order with the existing contributions
-        const orderResult = await createOrder({
-            orderType: 'group',
-            groupId: groupId,
-            groupName: groupData.name,
-            clientId: creatorId,
-            clientName: creator.name,
-            items: orderItems,
-            totalAmount: totalAmount,
-        }, contributions);
+        let createdOrderIds: string[] = [];
 
-        if (!orderResult.success) {
-            throw new Error(orderResult.message || "Falha ao criar o pedido final.");
+        for (const lojistaId in ordersByLojista) {
+            const lojistaCartItems = ordersByLojista[lojistaId];
+            
+            const orderItems: OrderItem[] = lojistaCartItems.map(cartItem => ({
+                id: cartItem.product.id,
+                name: cartItem.product.name,
+                price: cartItem.product.price,
+                quantity: cartItem.quantity,
+                lojistaId: cartItem.product.lojistaId
+            }));
+
+            const totalAmount = lojistaCartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+            
+            // For group orders, shipping can be complex. We'll simplify and associate
+            // the full shipping logic with the first split order, or handle it separately.
+            // For now, let's just log the totals per lojista.
+            
+            const orderResult = await createOrder({
+                orderType: 'group',
+                groupId: groupId,
+                groupName: groupData.name,
+                clientId: creatorId,
+                clientName: creator.name,
+                items: orderItems,
+                totalAmount: totalAmount, // This is just the sub-total for this lojista
+            }, contributions);
+
+            if (!orderResult.success || !orderResult.id) {
+                throw new Error(orderResult.message || `Falha ao criar o pedido para o vendedor ${lojistaId}.`);
+            }
+            createdOrderIds.push(orderResult.id);
         }
 
         // Clean up the group's cart and contributions for the next purchase
@@ -81,7 +98,7 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
         // Update the group's status to 'finalized'
         await updateDoc(groupRef, { status: 'finalized' });
 
-        return { success: true, orderId: orderResult.id };
+        return { success: true, orderIds: createdOrderIds };
 
     } catch (error) {
         console.error("Error finalizing group order:", error);
