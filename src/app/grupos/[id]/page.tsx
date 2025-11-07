@@ -343,7 +343,9 @@ function ContributionDialog({ contributionPerMember, onConfirm, open, onOpenChan
                             <span className="w-full border-t" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">Ou</span>
+                            <span className="bg-background px-2 text-muted-foreground">
+                                Ou
+                            </span>
                         </div>
                     </div>
                     <Button variant="outline" onClick={handleGetLocation} disabled={isFetchingLocation || isContributing}>
@@ -354,7 +356,6 @@ function ContributionDialog({ contributionPerMember, onConfirm, open, onOpenChan
                         )}
                         Usar minha localização exata
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-2">(Nota: Isto é uma simulação. Nenhum pagamento real será processado.)</p>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isContributing}>Cancelar</Button>
