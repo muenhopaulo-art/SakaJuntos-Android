@@ -8,7 +8,7 @@ import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contrib
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, Map as MapIcon, Hourglass } from 'lucide-react';
+import { ArrowLeft, Users, MessagesSquare, ListChecks, MapPin, UserCheck, UserPlus, UserMinus, Loader2, ShoppingCart, Trash2, Plus, Minus, Send, Mic, Square, Play, Pause, X, MessageCircle, ShieldAlert, Trash, CheckCircle, XCircle, Package, Search, ListFilter, MapPin as MapIcon, Hourglass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -663,14 +663,14 @@ export default function GroupDetailPage() {
 
                     <Card>
                          <CardHeader>
-                            <div className="flex justify-between items-center">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
                                     <CardTitle>Produtos para o Grupo</CardTitle>
                                     <CardDescription>{isGroupFinalized ? 'Estes foram os produtos selecionados.' : 'Adicionem produtos para a compra em grupo.'}</CardDescription>
                                 </div>
                                 <Sheet>
                                     <SheetTrigger asChild>
-                                        <Button variant="outline" className="relative">
+                                        <Button variant="outline" className="relative w-full sm:w-auto">
                                             <ShoppingCart className="mr-2 h-4 w-4" />
                                             Ver Carrinho ({groupCart.reduce((acc, item) => acc + item.quantity, 0)})
                                         </Button>
@@ -765,7 +765,7 @@ export default function GroupDetailPage() {
                                     onChange={(e) => setProductSearch(e.target.value)}
                                     className="h-12"
                                 />
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                      <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start">
