@@ -620,7 +620,7 @@ export default function GroupDetailPage() {
         if (result.success) {
             toast({
                 title: "Pedido Finalizado!",
-                description: "O pedido foi enviado ao administrador e o carrinho foi limpo.",
+                description: "O pedido foi enviado aos vendedores e o carrinho foi limpo.",
             });
             // The sheet will close and the cart will be empty due to real-time updates.
         } else {
@@ -860,7 +860,7 @@ export default function GroupDetailPage() {
                                                                 <AlertDialogHeader>
                                                                     <AlertDialogTitle>Confirmar Finalização?</AlertDialogTitle>
                                                                     <AlertDialogDescription>
-                                                                        Esta ação enviará o pedido para o administrador e limpará o carrinho do grupo. Deseja continuar?
+                                                                        Esta ação irá dividir e enviar os pedidos aos respectivos vendedores, e limpará o carrinho do grupo. Deseja continuar?
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
