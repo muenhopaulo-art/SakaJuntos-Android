@@ -145,33 +145,35 @@ export default function LojistaOrdersPage() {
                         {orders.map(order => (
                             <AccordionItem value={order.id} key={order.id} className="border-b-0">
                                 <Card>
-                                    <AccordionTrigger className="p-4 hover:no-underline [&[data-state=open]]:border-b">
-                                         <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left gap-4 md:gap-0">
-                                            <div className="flex-1">
-                                                <p className="font-mono text-xs text-muted-foreground">#{order.id.substring(0, 6)}</p>
-                                                <p className="font-semibold">{order.clientName}</p>
+                                    <div className="flex items-center p-4">
+                                        <AccordionTrigger className="hover:no-underline flex-grow">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left gap-4 md:gap-0">
+                                                <div className="flex-1">
+                                                    <p className="font-mono text-xs text-muted-foreground">#{order.id.substring(0, 6)}</p>
+                                                    <p className="font-semibold">{order.clientName}</p>
+                                                </div>
+                                                <div className="flex-1 flex items-center">
+                                                    <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
+                                                        {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
+                                                        {order.groupName || 'Individual'}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex-1 hidden md:block">
+                                                    <p className="text-sm text-muted-foreground">Data</p>
+                                                    <p>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</p>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm text-muted-foreground">Total</p>
+                                                    <p className="font-semibold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</p>
+                                                </div>
                                             </div>
-                                             <div className="flex-1 flex items-center">
-                                                <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
-                                                    {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
-                                                    {order.groupName || 'Individual'}
-                                                </Badge>
-                                             </div>
-                                            <div className="flex-1 hidden md:block">
-                                                <p className="text-sm text-muted-foreground">Data</p>
-                                                <p>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</p>
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm text-muted-foreground">Total</p>
-                                                <p className="font-semibold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</p>
-                                            </div>
-                                            <div className="flex-1 text-right md:pr-4">
-                                                <LojistaOrderStatusButton order={order} />
-                                            </div>
-                                         </div>
-                                    </AccordionTrigger>
+                                        </AccordionTrigger>
+                                        <div className="flex-shrink-0 pl-4">
+                                            <LojistaOrderStatusButton order={order} />
+                                        </div>
+                                    </div>
                                     <AccordionContent>
-                                        <div className="p-4 bg-muted/30">
+                                        <div className="p-4 pt-0 bg-muted/30">
                                             <h4 className="font-semibold mb-2">Itens do Pedido</h4>
                                             <ul className="space-y-2 text-sm">
                                                 {order.items.map(item => (
