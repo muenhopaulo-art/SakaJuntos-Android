@@ -135,11 +135,12 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
           link: '/my-orders'
       });
 
+      // When order is delivered or cancelled, reset the group status to 'active' for future purchases
       if ((status === 'entregue' || status === 'cancelado') && orderData.groupId) {
           const groupRef = doc(db, 'groupPromotions', orderData.groupId);
           const groupSnap = await getDoc(groupRef);
           if (groupSnap.exists()) {
-              await updateDoc(groupRef, { status: status === 'entregue' ? 'delivered' : 'active' });
+              await updateDoc(groupRef, { status: 'active' });
           }
       }
 
