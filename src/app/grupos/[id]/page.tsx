@@ -436,6 +436,10 @@ export default function GroupDetailPage() {
             setGroup(null);
         }
         setLoading(false);
+    }, (err) => {
+        console.error("Error listening to group document:", err);
+        setGroup(null);
+        setLoading(false);
     });
     unsubscribers.push(groupUnsub);
 
@@ -453,6 +457,8 @@ export default function GroupDetailPage() {
         const subUnsub = onSnapshot(query(subColRef), (snapshot) => {
             const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             setters[name](items);
+        }, (err) => {
+            console.error(`Error listening to ${name} subcollection:`, err);
         });
         unsubscribers.push(subUnsub);
     });
