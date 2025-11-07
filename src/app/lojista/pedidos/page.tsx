@@ -10,14 +10,17 @@ import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, User as UserIcon, Users, DollarSign, Calendar, List, MoreVertical, MapPin } from 'lucide-react';
+import { AlertTriangle, Loader2, User as UserIcon, Users, DollarSign, Calendar, List, MoreVertical, MapPin, Package, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { LojistaOrderStatusButton } from './lojista-order-status-button';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Separator } from '@/components/ui/separator';
+import { updateLojistaOrderStatus } from './actions';
+import { useToast } from '@/hooks/use-toast';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -46,6 +49,34 @@ const convertDocToOrder = (doc: any): Order => {
   };
 };
 
+function CancelOrderButton({ order, lojistaId }: { order: Order; lojistaId: string }) {
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
+
+    const handleCancel = async () => {
+        setIsLoading(true);
+        const result = await updateLojistaOrderStatus(order.id, 'cancelado', lojistaId);
+        setIsLoading(false);
+
+        if (result.success) {
+            toast({ title: 'Pedido Cancelado', description: 'O pedido foi cancelado com sucesso.' });
+        } else {
+            toast({ variant: 'destructive', title: 'Erro!', description: result.message });
+        }
+    };
+
+    if (order.status !== 'a aguardar lojista' && order.status !== 'pendente') {
+        return null;
+    }
+
+    return (
+        <Button variant="destructive" size="sm" onClick={handleCancel} disabled={isLoading}>
+            {isLoading ? <Loader2 className="animate-spin mr-2" /> : <XCircle className="mr-2" />}
+            Cancelar Pedido
+        </Button>
+    );
+}
+
 export default function LojistaOrdersPage() {
     const [user, authLoading] = useAuthState(auth);
     const [orders, setOrders] = useState<Order[]>([]);
@@ -64,12 +95,10 @@ export default function LojistaOrdersPage() {
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const updatedOrders = snapshot.docs.map(convertDocToOrder);
             
-            // Show all non-delivered/cancelled orders to the lojista
             const actionableOrders = updatedOrders.filter(order => 
                 order.status !== 'entregue' && order.status !== 'cancelado'
             );
 
-            // Sort client-side
             actionableOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             
             setOrders(actionableOrders);
@@ -80,7 +109,6 @@ export default function LojistaOrdersPage() {
             setLoading(false);
         });
 
-        // Cleanup subscription on component unmount
         return () => unsubscribe();
     }, [user, authLoading]);
     
@@ -112,115 +140,79 @@ export default function LojistaOrdersPage() {
                 </Alert>
              ) : (
                 <>
-                    {/* Mobile View - List of Cards */}
-                    <div className="md:hidden space-y-4">
-                        {orders.length > 0 ? (
-                            orders.map(order => (
-                                <Card key={order.id}>
-                                    <CardHeader>
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <CardTitle className="text-base">Pedido #{order.id.substring(0, 6)}</CardTitle>
-                                                <CardDescription>{order.clientName}</CardDescription>
+                {orders.length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full space-y-4">
+                        {orders.map(order => (
+                            <AccordionItem value={order.id} key={order.id} className="border-b-0">
+                                <Card>
+                                    <AccordionTrigger className="p-4 hover:no-underline [&[data-state=open]]:border-b">
+                                         <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left gap-4 md:gap-0">
+                                            <div className="flex-1">
+                                                <p className="font-mono text-xs text-muted-foreground">#{order.id.substring(0, 6)}</p>
+                                                <p className="font-semibold">{order.clientName}</p>
+                                            </div>
+                                             <div className="flex-1 flex items-center">
+                                                <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
+                                                    {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
+                                                    {order.groupName || 'Individual'}
+                                                </Badge>
+                                             </div>
+                                            <div className="flex-1 hidden md:block">
+                                                <p className="text-sm text-muted-foreground">Data</p>
+                                                <p>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</p>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-muted-foreground">Total</p>
+                                                <p className="font-semibold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</p>
+                                            </div>
+                                            <div className="flex-1 text-right md:pr-4">
+                                                <LojistaOrderStatusButton order={order} />
+                                            </div>
+                                         </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="p-4 bg-muted/30">
+                                            <h4 className="font-semibold mb-2">Itens do Pedido</h4>
+                                            <ul className="space-y-2 text-sm">
+                                                {order.items.map(item => (
+                                                    <li key={item.id} className="flex justify-between items-center bg-background p-2 rounded-md">
+                                                        <div>
+                                                            <span className="font-medium">{item.name}</span>
+                                                            <span className="text-muted-foreground"> (x{item.quantity})</span>
+                                                        </div>
+                                                        <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.price * item.quantity)}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <Separator className="my-4" />
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-2">
+                                                    {user && <CancelOrderButton order={order} lojistaId={user.uid} />}
+                                                </div>
+                                                {canShowMap(order) && (
+                                                    <Button variant="outline" size="sm" asChild>
+                                                        <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation?.latitude},${order.deliveryLocation?.longitude}`} target="_blank">
+                                                            <MapPin className="mr-2 h-4 w-4"/>
+                                                            Ver Mapa
+                                                        </Link>
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground flex items-center gap-1.5"><List className="h-4 w-4" /> Tipo</span>
-                                            <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
-                                                {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
-                                                {order.groupName || 'Individual'}
-                                            </Badge>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Data</span>
-                                            <span>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</span>
-                                        </div>
-                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground flex items-center gap-1.5"><DollarSign className="h-4 w-4" /> Total</span>
-                                            <span className="font-semibold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground flex items-center gap-1.5"><List className="h-4 w-4" /> Itens</span>
-                                            <span>{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <LojistaOrderStatusButton order={order} />
-                                             {canShowMap(order) && (
-                                                <Button variant="outline" size="sm" asChild>
-                                                    <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation?.latitude},${order.deliveryLocation?.longitude}`} target="_blank">
-                                                        <MapPin className="mr-2 h-4 w-4"/>
-                                                        Mapa
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </CardContent>
+                                    </AccordionContent>
                                 </Card>
-                            ))
-                        ) : (
-                             <Card className="text-center h-48 flex items-center justify-center">
-                                <CardContent>
-                                    <p>Nenhum pedido ativo encontrado.</p>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-
-                    {/* Desktop View - Table */}
-                    <Card className="hidden md:block">
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Pedido ID</TableHead>
-                                        <TableHead>Tipo</TableHead>
-                                        <TableHead>Cliente</TableHead>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Total</TableHead>
-                                        <TableHead>Entregador</TableHead>
-                                        <TableHead className="text-right">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {orders.length > 0 ? (
-                                        orders.map(order => (
-                                            <TableRow key={order.id}>
-                                                <TableCell className="font-mono text-xs">#{order.id.substring(0, 6)}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={order.orderType === 'group' ? 'default' : 'secondary'} className="capitalize">
-                                                        {order.orderType === 'group' ? <Users className="mr-1 h-3 w-3"/> : <UserIcon className="mr-1 h-3 w-3"/>}
-                                                        {order.groupName || 'Individual'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>{order.clientName}</TableCell>
-                                                <TableCell>{order.createdAt ? format(new Date(order.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
-                                                <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(order.totalAmount)}</TableCell>
-                                                <TableCell>{order.courierName || 'N/A'}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end items-center gap-2">
-                                                         {canShowMap(order) && (
-                                                            <Button variant="outline" size="icon" asChild>
-                                                                <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation?.latitude},${order.deliveryLocation?.longitude}`} target="_blank">
-                                                                    <MapPin className="h-4 w-4"/>
-                                                                </Link>
-                                                            </Button>
-                                                        )}
-                                                        <LojistaOrderStatusButton order={order} />
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-24">Nenhum pedido ativo encontrado.</TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                    ) : (
+                        <Card className="text-center h-48 flex items-center justify-center">
+                            <CardContent className="pt-6">
+                                <Package className="h-12 w-12 mx-auto text-muted-foreground mb-2"/>
+                                <p className="font-semibold">Nenhum pedido ativo encontrado.</p>
+                                <p className="text-sm text-muted-foreground">Novos pedidos aparecerão aqui.</p>
+                            </CardContent>
+                        </Card>
+                    )}
                 </>
              )}
         </>

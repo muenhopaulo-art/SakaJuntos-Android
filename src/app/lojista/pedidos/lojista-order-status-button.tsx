@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, CheckCheck, Send, Bike, Truck } from 'lucide-react';
+import { Loader2, CheckCheck, Send, Bike, Truck, X } from 'lucide-react';
 import { updateLojistaOrderStatus, confirmLojistaDelivery } from './actions';
 import type { Order } from '@/lib/types';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -75,6 +75,10 @@ export function LojistaOrderStatusButton({ order }: { order: Order }) {
                 <DropdownMenuItem onClick={() => handleUpdate('a caminho')}>
                     <Bike className="mr-2 h-4 w-4" />
                     <span>Eu Mesmo Entrego</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive" onClick={() => handleUpdate('cancelado')}>
+                    <X className="mr-2 h-4 w-4" />
+                    <span>Cancelar Pedido</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
