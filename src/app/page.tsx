@@ -47,12 +47,11 @@ export default async function HomePage() {
   // Separate promoted and non-promoted products
   const nonPromotedProducts = allProducts.filter(p => p.isPromoted !== 'active');
   
-  // Shuffle both lists independently
-  const shuffledPromoted = [...promotedProducts].sort(() => 0.5 - Math.random());
+  // Shuffle non-promoted products
   const shuffledNonPromoted = [...nonPromotedProducts].sort(() => 0.5 - Math.random());
 
-  // Prioritize promoted products in the final list
-  const shuffledProducts = [...shuffledPromoted, ...shuffledNonPromoted];
+  // The final list for the feed will be handled by ProductList, but we can pass the shuffled version
+  const shuffledProductsForFeed = [...promotedProducts, ...shuffledNonPromoted];
 
 
   return (
@@ -110,7 +109,7 @@ export default async function HomePage() {
                         Encontre tudo o que precisa, à distância de um clique.
                     </p>
                 </div>
-                <ProductList allProducts={shuffledProducts} />
+                <ProductList allProducts={shuffledProductsForFeed} />
             </section>
         </div>
       )}

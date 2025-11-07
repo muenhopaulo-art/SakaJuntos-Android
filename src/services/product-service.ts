@@ -105,7 +105,9 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
 
 export async function getProducts(searchTerm?: string): Promise<Product[]> {
   const productsCollection = collection(db, 'products');
-  const q = query(productsCollection, orderBy("createdAt", "desc"));
+  // We remove orderBy to avoid needing a composite index for client-side filtering.
+  // The sorting will be handled on the client (e.g., by promotion status).
+  const q = query(productsCollection);
   const productSnapshot = await getDocs(q);
   let productList = productSnapshot.docs.map(convertDocToProduct);
   

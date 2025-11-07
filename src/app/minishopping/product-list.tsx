@@ -27,15 +27,30 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
   const filteredProducts = useMemo(() => {
+    // Separate promoted and non-promoted for prioritization
+    const promoted = allProducts.filter(p => p.isPromoted === 'active');
+    const notPromoted = allProducts.filter(p => p.isPromoted !== 'active');
+
     if (!debouncedSearchTerm) {
-      // Return a shuffled list if no search term
-      return [...allProducts].sort(() => 0.5 - Math.random());
+      // If no search term, return promoted first, then the rest (already shuffled from server)
+      return [...promoted, ...notPromoted];
     }
+    
     const lowercasedTerm = debouncedSearchTerm.toLowerCase();
-    return allProducts.filter(p => 
+    
+    // Filter both lists
+    const filteredPromoted = promoted.filter(p => 
       p.name.toLowerCase().includes(lowercasedTerm) ||
       p.category.toLowerCase().includes(lowercasedTerm)
     );
+    const filteredNotPromoted = notPromoted.filter(p => 
+      p.name.toLowerCase().includes(lowercasedTerm) ||
+      p.category.toLowerCase().includes(lowercasedTerm)
+    );
+    
+    // Return filtered promoted products first
+    return [...filteredPromoted, ...filteredNotPromoted];
+
   }, [allProducts, debouncedSearchTerm]);
   
   const [displayedProducts, setDisplayedProducts] = useState(filteredProducts.slice(0, ITEMS_PER_PAGE));

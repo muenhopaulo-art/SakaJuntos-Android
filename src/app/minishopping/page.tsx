@@ -38,6 +38,13 @@ export default async function MiniShoppingPage({
     error = getErrorMessage(e);
   }
 
+  // Shuffle products for a more dynamic feed, but keep promoted ones on top
+  const promoted = allProducts.filter(p => p.isPromoted === 'active');
+  const notPromoted = allProducts.filter(p => p.isPromoted !== 'active');
+  const shuffledNotPromoted = [...notPromoted].sort(() => 0.5 - Math.random());
+  const finalProductList = [...promoted, ...shuffledNotPromoted];
+
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-8">
@@ -56,7 +63,7 @@ export default async function MiniShoppingPage({
           </AlertDescription>
         </Alert>
       ) : (
-        <ProductList allProducts={allProducts} initialSearchTerm={searchTerm} />
+        <ProductList allProducts={finalProductList} initialSearchTerm={searchTerm} />
       )}
     </div>
   );
