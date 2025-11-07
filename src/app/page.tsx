@@ -43,7 +43,17 @@ export default async function HomePage() {
 
   const hasData = allProducts.length > 0 || groupPromotions.length > 0;
   const promotedProducts = allProducts.filter(p => p.isPromoted === 'active');
-  const shuffledProducts = [...allProducts].sort(() => 0.5 - Math.random());
+  
+  // Separate promoted and non-promoted products
+  const nonPromotedProducts = allProducts.filter(p => p.isPromoted !== 'active');
+  
+  // Shuffle both lists independently
+  const shuffledPromoted = [...promotedProducts].sort(() => 0.5 - Math.random());
+  const shuffledNonPromoted = [...nonPromotedProducts].sort(() => 0.5 - Math.random());
+
+  // Prioritize promoted products in the final list
+  const shuffledProducts = [...shuffledPromoted, ...shuffledNonPromoted];
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -76,7 +86,7 @@ export default async function HomePage() {
             {promotedProducts.length > 0 && (
                  <section>
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> MiniShopping</h2>
+                        <h2 className="text-2xl font-bold flex items-center gap-2 font-headline"><ShoppingBag/> Produtos em Destaque</h2>
                         <Link href="/minishopping" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
                             Ver Tudo
                         </Link>
