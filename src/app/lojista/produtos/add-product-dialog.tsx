@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -28,7 +28,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, X, FileUp, Trophy } from 'lucide-react';
+import { Loader2, Upload, X, Trophy, Smartphone, Copy, Hourglass } from 'lucide-react';
 import { addProduct } from './actions';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -38,10 +38,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-
-const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-const ACCEPTED_PDF_TYPES = ["application/pdf"];
+import type { PromotionPayment } from '@/lib/types';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { getUser } from '@/services/user-service';
 
 const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
@@ -53,8 +53,11 @@ const productSchema = z.object({
   stock: z.coerce.number().min(0, { message: 'O stock deve ser um número positivo.' }),
   isPromoted: z.boolean().default(false),
   promotionTier: z.string().optional(),
-  paymentProof: z.any().optional(),
+}).refine(data => !data.isPromoted || (data.isPromoted && data.promotionTier), {
+    message: "Por favor, selecione um plano de destaque.",
+    path: ["promotionTier"],
 });
+
 
 const categories = [
     "Alimentação e Bebidas",
@@ -67,16 +70,109 @@ const categories = [
     "Outros"
 ];
 
+const promotionTiers: { [key: string]: number } = {
+    tier1: 1000,
+    tier2: 1500,
+    tier3: 2500,
+};
+
+
+function PaymentInstructionsDialog({ open, onOpenChange, paymentData }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  paymentData: PromotionPayment | null;
+}) {
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) return;
+
+    setTimeLeft(300);
+    const timer = setInterval(() => {
+      setTimeLeft((prevTime) => {
+        if (prevTime <= 1) {
+          clearInterval(timer);
+          onOpenChange(false);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [open, onOpenChange]);
+  
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copiado!", description: "O texto foi copiado para a área de transferência." });
+  };
+
+  if (!paymentData) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader className="items-center text-center">
+            <div className="rounded-full bg-primary/10 p-3 w-fit">
+                <Smartphone className="h-6 w-6 text-primary"/>
+            </div>
+          <DialogTitle className="text-xl">Instruções de Pagamento</DialogTitle>
+          <DialogDescription>
+            Para finalizar, siga os passos abaixo no seu Multicaixa Express.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4 text-center">
+            <div className="rounded-lg bg-muted p-3">
+                <p className="text-sm text-muted-foreground">Faça o pagamento via Express neste número:</p>
+                <p className="text-2xl font-bold tracking-widest">{paymentData.paymentPhoneNumber}</p>
+            </div>
+             <div className="rounded-lg bg-muted p-3">
+                <p className="text-sm text-muted-foreground">Valor a Pagar:</p>
+                <p className="text-2xl font-bold">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(paymentData.amount)}</p>
+            </div>
+             <div className="rounded-lg bg-muted p-3">
+                <p className="text-sm text-muted-foreground">Insira o teu nome no "Nome de Ordenante":</p>
+                <p className="text-lg font-bold">{paymentData.userName}</p>
+            </div>
+            <div className="rounded-lg border-2 border-dashed border-primary/50 bg-primary/10 p-4">
+                 <p className="text-sm text-muted-foreground">Insira este Código na "Mensagem Opcional":</p>
+                 <div className="flex items-center justify-center gap-2">
+                    <p className="text-2xl font-bold font-mono tracking-widest text-primary">{paymentData.referenceCode}</p>
+                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(paymentData.referenceCode)}>
+                        <Copy className="h-5 w-5"/>
+                    </Button>
+                 </div>
+            </div>
+            <div className="rounded-lg bg-yellow-100 text-yellow-800 p-3 text-sm flex items-center justify-center gap-2">
+                <Hourglass className="h-4 w-4"/>
+                <span>Aguardando Validação. O pedido expira em {formatTime(timeLeft)}.</span>
+            </div>
+        </div>
+        <DialogFooter>
+            <Button className="w-full" onClick={() => onOpenChange(false)}>Entendido</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
   
   const [previews, setPreviews] = useState<string[]>([]);
-  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
+  const [paymentData, setPaymentData] = useState<PromotionPayment | null>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [user] = useAuthState(auth);
   
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -111,15 +207,6 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     let newPreviews: string[] = [...previews];
 
     for (const file of files) {
-         if (file.size > MAX_FILE_SIZE) {
-            form.setError("images", { message: `O ficheiro ${file.name} é demasiado grande (máx 4.5MB).` });
-            continue;
-        }
-        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-            form.setError("images", { message: `Ficheiro ${file.name} tem um formato inválido.` });
-            continue;
-        }
-        
         validFiles.push(file);
         newPreviews.push(URL.createObjectURL(file));
     }
@@ -138,26 +225,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     form.setValue('images', updatedImages);
     setPreviews(updatedPreviews);
   };
-  
-  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (file.size > MAX_FILE_SIZE) {
-        form.setError("paymentProof", { message: `O PDF é demasiado grande (máx 4.5MB).` });
-        return;
-    }
-    if (!ACCEPTED_PDF_TYPES.includes(file.type)) {
-        form.setError("paymentProof", { message: `Formato de ficheiro inválido. Apenas PDF.` });
-        return;
-    }
-
-    form.setValue('paymentProof', file, { shouldValidate: true });
-    setPdfFileName(file.name);
-    form.clearErrors("paymentProof");
-  };
-
-  // Client-side file upload utility
   const uploadFile = async (file: File, path: string): Promise<string> => {
     const storage = getStorage();
     const storageRef = ref(storage, path);
@@ -165,10 +233,13 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     return getDownloadURL(snapshot.ref);
   };
 
-
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
+    if (!user) {
+        toast({variant: 'destructive', title: 'Erro!', description: 'Utilizador não autenticado.'});
+        return;
+    }
+
     try {
-        form.control.register('images'); // Ensure 'images' is registered
         const imageFiles = form.getValues('images') || [];
         let imageUrls: string[] = [];
 
@@ -177,14 +248,6 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                 uploadFile(file, `product_images/${lojistaId}/${Date.now()}_${file.name}`)
             );
             imageUrls = await Promise.all(uploadPromises);
-        }
-        
-        let paymentProofUrl: string | undefined = undefined;
-        if (values.isPromoted && values.paymentProof) {
-            paymentProofUrl = await uploadFile(
-                values.paymentProof, 
-                `payment_proofs/${lojistaId}/${Date.now()}_${values.paymentProof.name}`
-            );
         }
 
         const productData = {
@@ -196,33 +259,40 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             stock: values.productType === 'service' ? Infinity : values.stock,
             lojistaId: lojistaId,
             imageUrls: imageUrls,
-            isPromoted: values.isPromoted ? 'active' : ('inactive' as 'active' | 'inactive'),
-            promotionTier: values.promotionTier,
-            promotionPaymentId: paymentProofUrl, // In a real app this might be a transaction ID
-        }
+            isPromoted: 'inactive' as 'active' | 'inactive', // Start as inactive
+        };
         
-        const result = await addProduct(productData);
-        if (result.success) {
+        const tier = values.isPromoted && values.promotionTier ? values.promotionTier : undefined;
+
+        const result = await addProduct(productData, tier);
+        
+        if (result.success && result.paymentData) {
+          // Show payment instructions
+          const appUser = await getUser(user.uid);
+          setPaymentData({ ...result.paymentData, userName: appUser?.name || 'N/A' });
+          setIsPaymentDialogOpen(true);
+        } else if (result.success) {
           toast({ title: 'Publicação Adicionada!', description: 'O seu produto/serviço foi adicionado com sucesso.' });
-          setOpen(false);
-          form.reset();
-          setPreviews([]);
-          setPdfFileName(null);
-          router.refresh();
         } else {
           throw new Error(result.message);
         }
+
+        setOpen(false);
+        form.reset();
+        setPreviews([]);
+        router.refresh();
+
     } catch (error) {
         toast({ variant: 'destructive', title: 'Erro!', description: (error as Error).message });
     }
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(isOpen) => {
         if(!isOpen) {
             form.reset();
             setPreviews([]);
-            setPdfFileName(null);
         }
         setOpen(isOpen);
     }}>
@@ -429,7 +499,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                                     </FormControl>
                                     <FormLabel className="font-normal flex-1 cursor-pointer">
                                         <span className="font-bold">1 Mês de Destaque</span> - Alcance até 10,000 utilizadores.
-                                        <p className="font-bold text-lg">1000 Kz</p>
+                                        <p className="font-bold text-lg">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(promotionTiers.tier1)}</p>
                                     </FormLabel>
                                 </FormItem>
                                  <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3 hover:bg-zinc-100 transition-colors">
@@ -438,7 +508,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                                     </FormControl>
                                     <FormLabel className="font-normal flex-1 cursor-pointer">
                                          <span className="font-bold">2 Meses de Destaque</span> - Alcance até 25,000 utilizadores.
-                                        <p className="font-bold text-lg">1500 Kz</p>
+                                        <p className="font-bold text-lg">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(promotionTiers.tier2)}</p>
                                     </FormLabel>
                                 </FormItem>
                                 <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-3 hover:bg-zinc-100 transition-colors">
@@ -447,47 +517,10 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                                     </FormControl>
                                     <FormLabel className="font-normal flex-1 cursor-pointer">
                                          <span className="font-bold">3.5 Meses de Destaque</span> - Máxima visibilidade!
-                                        <p className="font-bold text-lg">2500 Kz</p>
+                                        <p className="font-bold text-lg">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(promotionTiers.tier3)}</p>
                                     </FormLabel>
                                 </FormItem>
                                 </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                    
-                    <div className="text-sm">
-                        <p>Efetue o pagamento por Express para o número: <strong className="text-base">939282065</strong>.</p>
-                        <p className="text-xs text-muted-foreground">Após o pagamento, anexe o comprovativo em PDF abaixo. A sua promoção será ativada após aprovação do administrador.</p>
-                    </div>
-
-                     <FormField
-                        control={form.control}
-                        name="paymentProof"
-                        render={() => (
-                            <FormItem>
-                            <FormLabel>Comprovativo de Pagamento (PDF)</FormLabel>
-                             <FormControl>
-                                <div>
-                                <Input
-                                    type="file"
-                                    id="pdf-upload"
-                                    className="hidden"
-                                    accept=".pdf"
-                                    onChange={handlePdfChange}
-                                    ref={pdfInputRef}
-                                />
-                                <label
-                                    htmlFor="pdf-upload"
-                                    className={cn("cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full",
-                                    !!pdfFileName && "border-green-500 text-green-700"
-                                    )}
-                                >
-                                    <FileUp className="mr-2 h-4 w-4" />
-                                    {pdfFileName ? `Ficheiro: ${pdfFileName}` : 'Carregar PDF'}
-                                </label>
-                                </div>
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -506,5 +539,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         </Form>
       </DialogContent>
     </Dialog>
+    <PaymentInstructionsDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} paymentData={paymentData} />
+    </>
   );
 }

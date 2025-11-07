@@ -2,7 +2,7 @@
 'use client'
 
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarContent, SidebarInset, SidebarFooter } from '@/components/ui/sidebar';
-import { Home, Package, LogOut, Users } from 'lucide-react';
+import { Home, Package, LogOut, Users, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
@@ -24,6 +24,7 @@ export default function AdminLayout({
     { href: '/admin/orders', label: 'Pedidos', icon: Package },
     { href: '/admin/products', label: 'Produtos', icon: Package },
     { href: '/admin/users', label: 'Utilizadores', icon: Users },
+    { href: '/admin/promotions', label: 'Promoções', icon: Megaphone },
   ];
   
   const handleLogout = async () => {

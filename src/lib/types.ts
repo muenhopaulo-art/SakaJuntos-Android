@@ -160,3 +160,20 @@ export interface Notification {
   isRead: boolean;
   createdAt: number;
 }
+
+export type PromotionPaymentStatus = 'pendente' | 'aprovado' | 'rejeitado';
+
+export interface PromotionPayment {
+    id: string;
+    lojistaId: string;
+    lojistaName: string;
+    productId: string;
+    productName: string;
+    tier: string;
+    amount: number;
+    referenceCode: string;
+    status: PromotionPaymentStatus;
+    createdAt: number;
+    paymentPhoneNumber: string; // The number to pay to
+    userName: string; // The name of the user making the payment
+}

@@ -59,6 +59,14 @@ service cloud.firestore {
       allow write: if isAuthenticated() && (isAdmin(request.auth.uid) || isLojista(request.auth.uid));
     }
 
+    // Promotion Payments collection rules
+    match /promotionPayments/{paymentId} {
+      // Lojista can create their own payment request.
+      allow create: if isAuthenticated() && isLojista(request.auth.uid) && request.resource.data.lojistaId == request.auth.uid;
+      // Admins can read, update (approve/reject), and delete payment requests.
+      allow read, update, delete: if isAuthenticated() && isAdmin(request.auth.uid);
+    }
+
     // Group promotions rules
     match /groupPromotions/{groupId} {
       // Any authenticated user can create a group or read the list of groups.
