@@ -4,20 +4,21 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
-import { Package, Truck, Loader2, Check } from 'lucide-react';
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Package, Truck, Loader2, Check, Calendar } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
-import type { Order, OrderStatus } from '@/lib/types';
+import type { Order, OrderStatus, ServiceRequest, ServiceRequestStatus } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { confirmOrderReception } from '../app/my-orders/actions';
 import { useToast } from '@/hooks/use-toast';
 
+type CombinedItem = (Order & { type: 'order' }) | (ServiceRequest & { type: 'service' });
 
 const statusColors: Record<OrderStatus, string> = {
     'pendente': 'bg-gray-500/20 text-gray-800',
@@ -30,18 +31,27 @@ const statusColors: Record<OrderStatus, string> = {
     'cancelado': 'bg-red-500/20 text-red-800',
 };
 
+const serviceStatusColors: Record<ServiceRequestStatus, string> = {
+    'pendente': 'bg-yellow-500/20 text-yellow-800',
+    'confirmado': 'bg-blue-500/20 text-blue-800',
+    'concluído': 'bg-green-500/20 text-green-800',
+    'cancelado': 'bg-red-500/20 text-red-800',
+};
+
+
 function OrderItem({ order }: { order: Order }) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+    const [user] = useAuthState(auth);
 
     const handleConfirm = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (!user) return;
         setLoading(true);
-        const result = await confirmOrderReception(order.id);
+        const result = await confirmOrderReception(order.id, user.uid);
         setLoading(false);
         if (result.success) {
             toast({ title: 'Pedido Confirmado!', description: 'O seu pedido foi marcado como entregue.' });
-            // The sheet will auto-update due to the onSnapshot listener
         } else {
             toast({ variant: 'destructive', title: 'Erro', description: result.message });
         }
@@ -51,7 +61,7 @@ function OrderItem({ order }: { order: Order }) {
         <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="flex justify-between items-start">
                 <div>
-                    <h3 className="font-semibold">{order.groupName || `Encomenda ${order.orderType}`}</h3>
+                    <h3 className="font-semibold flex items-center gap-2"><Package className="h-4 w-4"/> {order.groupName || `Encomenda ${order.orderType}`}</h3>
                     <p className="text-xs text-muted-foreground font-mono">ID: #{order.id.substring(0, 6)}</p>
                 </div>
                 {order.status !== 'aguardando confirmação' && (
@@ -90,62 +100,98 @@ function OrderItem({ order }: { order: Order }) {
     )
 }
 
+function ServiceRequestItem({ request }: { request: ServiceRequest }) {
+    return (
+        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h3 className="font-semibold flex items-center gap-2"><Calendar className="h-4 w-4"/> {request.serviceName}</h3>
+                    <p className="text-xs text-muted-foreground font-mono">ID: #{request.id.substring(0, 6)}</p>
+                </div>
+                <div className={cn("text-xs font-semibold px-2 py-1 rounded-full capitalize", serviceStatusColors[request.status])}>
+                    {request.status}
+                </div>
+            </div>
+            <Separator className="my-3" />
+            <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Data Solicitada</span>
+                    <span>{request.requestedDate ? format(new Date(request.requestedDate), "d MMM, yyyy", { locale: pt }) : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Período</span>
+                    <span className="font-medium capitalize">{request.requestedPeriod}</span>
+                </div>
+                 <div className="flex justify-between">
+                    <span className="text-muted-foreground">Endereço</span>
+                    <span className="font-medium text-right truncate">{request.address}</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+
 export function OrdersSheet() {
   const [user] = useAuthState(auth);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [items, setItems] = useState<CombinedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
-        setOrders([]);
+        setItems([]);
         setLoading(false);
         return;
     }
 
     setLoading(true);
-    const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid));
+
+    const activeOrderStatuses: OrderStatus[] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho', 'aguardando confirmação'];
+    const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid), where('status', 'in', activeOrderStatuses));
     
-    const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
-        const fetchedOrders: Order[] = [];
-        for (const doc of snapshot.docs) {
-            const data = doc.data();
-            const contributionsCol = collection(db, 'orders', doc.id, 'contributions');
-            const contributionsSnapshot = await getDocs(contributionsCol);
-            const contributions = contributionsSnapshot.docs.map(c => c.data()) as any;
+    const activeServiceStatuses: ServiceRequestStatus[] = ['pendente', 'confirmado'];
+    const servicesQuery = query(collection(db, 'serviceRequests'), where('clientId', '==', user.uid), where('status', 'in', activeServiceStatuses));
 
-            fetchedOrders.push({
-                id: doc.id,
-                clientId: data.clientId,
-                groupId: data.groupId,
-                groupName: data.groupName,
-                clientName: data.clientName,
-                items: data.items,
-                totalAmount: data.totalAmount,
-                status: data.status,
-                orderType: data.orderType || 'group',
-                createdAt: data.createdAt?.toMillis(),
-                contributions,
-                courierId: data.courierId,
-                courierName: data.courierName,
-                deliveryLocation: data.deliveryLocation,
-            });
-        }
-        
-         // Filter for active orders client-side
-        const activeOrderStatuses: OrderStatus[] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho', 'aguardando confirmação'];
-        const activeOrders = fetchedOrders.filter(order => activeOrderStatuses.includes(order.status));
-
-        // Sort by date descending
-        activeOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
-        setOrders(activeOrders);
+    const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
+        const fetchedOrders: CombinedItem[] = snapshot.docs.map(doc => ({
+            ...(doc.data() as Order),
+            id: doc.id,
+            createdAt: doc.data().createdAt?.toMillis() || Date.now(),
+            type: 'order',
+        }));
+        setItems(prev => {
+            const otherItems = prev.filter(item => item.type !== 'order');
+            const combined = [...otherItems, ...fetchedOrders];
+            return combined.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        });
         setLoading(false);
     }, (err) => {
-        console.error("Error fetching orders in real-time:", err);
+        console.error("Error fetching orders:", err);
+        setLoading(false);
+    });
+    
+    const unsubscribeServices = onSnapshot(servicesQuery, (snapshot) => {
+        const fetchedServices: CombinedItem[] = snapshot.docs.map(doc => ({
+            ...(doc.data() as ServiceRequest),
+            id: doc.id,
+            createdAt: doc.data().createdAt?.toMillis() || Date.now(),
+            type: 'service',
+        }));
+        setItems(prev => {
+            const otherItems = prev.filter(item => item.type !== 'service');
+            const combined = [...otherItems, ...fetchedServices];
+            return combined.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        });
+        setLoading(false);
+    }, (err) => {
+        console.error("Error fetching service requests:", err);
         setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+        unsubscribeOrders();
+        unsubscribeServices();
+    };
   }, [user]);
   
 
@@ -154,19 +200,19 @@ export function OrdersSheet() {
       <SheetTrigger asChild>
         <Button variant="outline" size="icon" className="relative ml-2 rounded-full h-14 w-14 shadow-lg">
           <Truck className="h-6 w-6" />
-          {orders.length > 0 && (
+          {items.length > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
-              {orders.length}
+              {items.length}
             </span>
           )}
-          <span className="sr-only">Acompanhar Encomendas</span>
+          <span className="sr-only">Acompanhar Encomendas e Serviços</span>
         </Button>
       </SheetTrigger>
        <SheetContent className="flex w-full flex-col pr-0 sm:max-w-md">
         <SheetHeader className="px-6">
-            <SheetTitle>Minhas Encomendas Ativas</SheetTitle>
+            <SheetTitle>Minhas Atividades Ativas</SheetTitle>
             <SheetDescription>
-                Acompanhe o estado das suas encomendas em andamento.
+                Acompanhe o estado das suas encomendas e agendamentos.
             </SheetDescription>
         </SheetHeader>
         <Separator />
@@ -176,13 +222,17 @@ export function OrdersSheet() {
                     <div className="flex items-center justify-center h-full pt-20">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                ) : orders.length > 0 ? (
-                    orders.map(order => <OrderItem key={order.id} order={order} />)
+                ) : items.length > 0 ? (
+                    items.map(item =>
+                        item.type === 'order'
+                            ? <OrderItem key={item.id} order={item} />
+                            : <ServiceRequestItem key={item.id} request={item} />
+                    )
                 ) : (
                     <div className="text-center pt-20 text-muted-foreground space-y-4">
                         <Truck className="h-12 w-12 mx-auto" />
-                        <p className="font-semibold">Nenhuma encomenda ativa.</p>
-                        <p className="text-sm">Quando fizer uma compra, ela aparecerá aqui.</p>
+                        <p className="font-semibold">Nenhuma atividade ativa.</p>
+                        <p className="text-sm">As suas compras e agendamentos aparecerão aqui.</p>
                     </div>
                 )}
             </div>
