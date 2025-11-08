@@ -106,6 +106,7 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
         clientId: user.uid,
         serviceId: product.id,
         lojistaId: product.lojistaId,
+        location,
     });
 
     if (result.success) {

@@ -9,7 +9,7 @@ import type { ServiceRequest, ServiceRequestStatus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, Calendar as CalendarIcon, Clock, Phone, User, Home, Check, X } from 'lucide-react';
+import { AlertTriangle, Loader2, Calendar as CalendarIcon, Clock, Phone, User, Home, Check, X, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { updateServiceRequestStatus } from '@/services/service-actions';
+import Link from 'next/link';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -49,6 +50,7 @@ const convertDocToServiceRequest = (doc: any): ServiceRequest => {
     notes: data.notes,
     status: data.status,
     createdAt: (data.createdAt as Timestamp)?.toMillis(),
+    location: data.location,
   };
 };
 
@@ -175,7 +177,18 @@ export default function LojistaAgendamentosPage() {
                                                 <div>{format(new Date(request.requestedDate), "d MMM, yyyy", { locale: pt })}</div>
                                                 <div className="text-sm text-muted-foreground capitalize">{request.requestedPeriod}</div>
                                             </TableCell>
-                                            <TableCell>{request.address}</TableCell>
+                                            <TableCell>
+                                                {request.location ? (
+                                                     <Button variant="outline" size="sm" asChild>
+                                                        <Link href={`https://www.google.com/maps/search/?api=1&query=${request.location.latitude},${request.location.longitude}`} target="_blank">
+                                                            <MapPin className="mr-2 h-4 w-4"/>
+                                                            Ver no Mapa
+                                                        </Link>
+                                                    </Button>
+                                                ) : (
+                                                    request.address
+                                                )}
+                                            </TableCell>
                                             <TableCell>
                                                  <Badge variant="outline" className={cn("capitalize", statusColors[request.status])}>
                                                     {request.status}

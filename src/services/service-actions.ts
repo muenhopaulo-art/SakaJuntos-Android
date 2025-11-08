@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
 import { getUser } from './user-service';
 import { createNotification } from './notification-service';
+import type { Geolocation } from '@/lib/types';
 
 interface ServiceRequestData {
     clientId: string;
@@ -13,6 +14,7 @@ interface ServiceRequestData {
     requestedDate: Date;
     requestedPeriod: 'manha' | 'tarde';
     address: string;
+    location: Geolocation | null;
     notes?: string;
 }
 
@@ -23,10 +25,16 @@ export async function createServiceRequest(data: ServiceRequestData) {
             throw new Error("Utilizador não encontrado.");
         }
 
+        const serviceProduct = await getDoc(doc(db, 'products', data.serviceId));
+        if (!serviceProduct.exists()) {
+            throw new Error("Serviço não encontrado.");
+        }
+
         const serviceRequestsCol = collection(db, 'serviceRequests');
         
         const docRef = await addDoc(serviceRequestsCol, {
             serviceId: data.serviceId,
+            serviceName: serviceProduct.data().name,
             clientId: data.clientId,
             clientName: user.name,
             clientPhone: user.phone,
@@ -34,6 +42,7 @@ export async function createServiceRequest(data: ServiceRequestData) {
             requestedDate: Timestamp.fromDate(data.requestedDate),
             requestedPeriod: data.requestedPeriod,
             address: data.address,
+            location: data.location,
             notes: data.notes || '',
             status: 'pendente',
             createdAt: serverTimestamp(),

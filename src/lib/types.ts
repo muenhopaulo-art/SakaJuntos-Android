@@ -145,6 +145,7 @@ export interface ServiceRequest {
     requestedDate: number;
     requestedPeriod: 'manha' | 'tarde';
     address: string;
+    location?: Geolocation;
     notes?: string;
     status: ServiceRequestStatus;
     createdAt: number;
