@@ -24,8 +24,8 @@ import { cn } from '@/lib/utils';
 
 const SHIPPING_COST = 1000;
 
-export function CartView() {
-  const { items, removeItem, updateItemQuantity, totalPrice, totalItems, clearCart, isInitialized } = useCart();
+export function CheckoutDialog({ onOrderConfirmed, children }: { onOrderConfirmed: () => void, children: React.ReactNode }) {
+  const { items, totalPrice, clearCart } = useCart();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [user] = useAuthState(auth);
   const router = useRouter();
@@ -79,10 +79,79 @@ export function CartView() {
           setIsAddressDialogOpen(false);
           setAddress('');
           setLocation(null);
-          router.push('/my-orders');
+          onOrderConfirmed();
       } else {
           toast({ variant: 'destructive', title: 'Erro ao Finalizar', description: result.message });
       }
+  }
+
+  return (
+    <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
+      <DialogTrigger asChild>
+          {children}
+      </DialogTrigger>
+      <DialogContent>
+          <DialogHeader>
+              <DialogTitle>Endereço de Entrega</DialogTitle>
+              <DialogDescription>
+                  Insira um endereço ou use a sua localização exata para a entrega.
+              </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+              <div className="relative">
+                  <Label htmlFor="address" className="sr-only">
+                      Endereço
+                  </Label>
+                    <Home className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input 
+                      id="address" 
+                      value={address} 
+                      onChange={(e) => {
+                          setAddress(e.target.value);
+                          setLocation(null); // Clear location if user types manually
+                      }} 
+                      className="pl-10"
+                      placeholder="Ex: Rua da Liberdade, Bairro Azul"
+                      disabled={isFetchingLocation}
+                  />
+              </div>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                      Ou
+                      </span>
+                  </div>
+              </div>
+                <Button variant="outline" onClick={handleGetLocation} disabled={isFetchingLocation}>
+                  {isFetchingLocation ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                      <MapPin className="mr-2 h-4 w-4" />
+                  )}
+                  Usar minha localização exata
+              </Button>
+          </div>
+          <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddressDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleConfirmOrder} disabled={isCheckoutLoading || !address.trim()}>
+                  {isCheckoutLoading && <Loader2 className="animate-spin mr-2" />}
+                  Confirmar Encomenda
+              </Button>
+          </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function CartView() {
+  const { items, removeItem, updateItemQuantity, totalPrice, totalItems, isInitialized } = useCart();
+  const router = useRouter();
+  
+  const onOrderConfirmed = () => {
+    router.push('/my-orders');
   }
 
   if (isInitialized && totalItems === 0) {
@@ -178,65 +247,11 @@ export function CartView() {
             </div>
           </CardContent>
           <CardFooter className="flex-col gap-2">
-             <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button size="lg" className="w-full">
-                        Finalizar Compra
-                    </Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Endereço de Entrega</DialogTitle>
-                        <DialogDescription>
-                            Insira um endereço ou use a sua localização exata para a entrega.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="relative">
-                            <Label htmlFor="address" className="sr-only">
-                                Endereço
-                            </Label>
-                             <Home className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input 
-                                id="address" 
-                                value={address} 
-                                onChange={(e) => {
-                                    setAddress(e.target.value);
-                                    setLocation(null); // Clear location if user types manually
-                                }} 
-                                className="pl-10"
-                                placeholder="Ex: Rua da Liberdade, Bairro Azul"
-                                disabled={isFetchingLocation}
-                            />
-                        </div>
-                         <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-background px-2 text-muted-foreground">
-                                Ou
-                                </span>
-                            </div>
-                        </div>
-                         <Button variant="outline" onClick={handleGetLocation} disabled={isFetchingLocation}>
-                            {isFetchingLocation ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <MapPin className="mr-2 h-4 w-4" />
-                            )}
-                            Usar minha localização exata
-                        </Button>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddressDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleConfirmOrder} disabled={isCheckoutLoading || !address.trim()}>
-                            {isCheckoutLoading && <Loader2 className="animate-spin mr-2" />}
-                            Confirmar Encomenda
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <CheckoutDialog onOrderConfirmed={onOrderConfirmed}>
+                <Button size="lg" className="w-full">
+                    Finalizar Compra
+                </Button>
+            </CheckoutDialog>
           </CardFooter>
         </Card>
       </div>

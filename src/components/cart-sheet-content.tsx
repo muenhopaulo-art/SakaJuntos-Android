@@ -10,6 +10,8 @@ import { Separator } from './ui/separator';
 import { Minus, Plus, Trash2, Package } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { CheckoutDialog } from '@/app/cart/cart-view';
+import { useRouter } from 'next/navigation';
 
 interface CartSheetContentProps {
     side?: 'top' | 'bottom' | 'left' | 'right' | null | undefined;
@@ -20,6 +22,7 @@ interface CartSheetContentProps {
 
 export function CartSheetContent({ side = 'right', className, children, isSheet = false }: CartSheetContentProps) {
   const { items, removeItem, updateItemQuantity, totalPrice, isInitialized } = useCart();
+  const router = useRouter();
 
   if(children && isSheet) {
     return (
@@ -27,6 +30,12 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
             {children}
         </SheetContent>
     )
+  }
+
+  const onOrderConfirmed = () => {
+    // This assumes the sheet will be closed by the Dialog closing.
+    // Then we navigate.
+    router.push('/my-orders');
   }
 
   return (
@@ -93,11 +102,11 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
                 <span>Subtotal</span>
                 <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(totalPrice)}</span>
               </div>
-              <SheetClose asChild>
-                <Button asChild size="lg" className="w-full">
-                  <Link href="/cart">Ver Carrinho</Link>
-                </Button>
-              </SheetClose>
+              <CheckoutDialog onOrderConfirmed={onOrderConfirmed}>
+                 <Button size="lg" className="w-full">
+                    Finalizar Compra
+                 </Button>
+              </CheckoutDialog>
             </div>
           </SheetFooter>
         </>
