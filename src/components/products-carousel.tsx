@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ProductCard } from '@/components/product-card';
@@ -25,15 +24,15 @@ export function ProductsCarousel({ products }: ProductsCarouselProps) {
             >
             <CarouselContent className="-ml-4">
                 {products.map(product => (
-                <CarouselItem key={product.id} className="sm:basis-1/2 md:basis-1/3 lg:basis-1/4 pl-4">
+                <CarouselItem key={product.id} className="basis-1/2 md:basis-1/3 lg:basis-1/4 pl-4">
                     <div className="p-1 h-full">
                     <ProductCard product={product} />
                     </div>
                 </CarouselItem>
                 ))}
             </CarouselContent>
-            <CarouselPrevious className="hidden md:flex" />
-            <CarouselNext className="hidden md:flex" />
+            <CarouselPrevious className="flex" />
+            <CarouselNext className="flex" />
         </Carousel>
     )
 }
