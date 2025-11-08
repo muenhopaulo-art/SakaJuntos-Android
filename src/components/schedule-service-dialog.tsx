@@ -26,7 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, MapPin, Home } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +36,7 @@ import { createServiceRequest } from '@/services/service-actions';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import type { Product } from '@/lib/types';
+import type { Product, Geolocation } from '@/lib/types';
 
 const scheduleSchema = z.object({
   requestedDate: z.date({ required_error: 'A data do agendamento é obrigatória.' }),
@@ -54,6 +54,8 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
   const [open, setOpen] = useState(false);
   const [user, loadingUser] = useAuthState(auth);
   const { toast } = useToast();
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [location, setLocation] = useState<Geolocation | null>(null);
 
   const form = useForm<z.infer<typeof scheduleSchema>>({
     resolver: zodResolver(scheduleSchema),
@@ -63,7 +65,30 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
     },
   });
 
-  const { isSubmitting } = form.formState;
+  const { isSubmitting, setValue } = form;
+
+  const handleGetLocation = () => {
+    setIsFetchingLocation(true);
+    setLocation(null);
+    setValue('address', '');
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            const newLocation = { latitude, longitude };
+            setLocation(newLocation);
+            setValue('address', `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`, { shouldValidate: true });
+            toast({ title: 'Localização Obtida!', description: 'O seu endereço foi preenchido com as suas coordenadas.' });
+            setIsFetchingLocation(false);
+        },
+        (error) => {
+            console.error("Geolocation error:", error);
+            toast({ variant: 'destructive', title: 'Erro de Localização', description: 'Não foi possível obter a sua localização. Verifique as permissões do navegador.' });
+            setIsFetchingLocation(false);
+        },
+        { enableHighAccuracy: true }
+    );
+  };
+
 
   const onSubmit = async (values: z.infer<typeof scheduleSchema>) => {
     if (!user || !user.email) {
@@ -178,13 +203,40 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Endereço</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Rua, Bairro, Cidade" {...field} />
-                  </FormControl>
+                   <FormControl>
+                        <div className="relative">
+                            <Home className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input 
+                                {...field}
+                                className="pl-10"
+                                placeholder="Rua, Bairro, Cidade"
+                                disabled={isFetchingLocation}
+                            />
+                        </div>
+                    </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+             <div className="relative -mt-2">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    Ou
+                    </span>
+                </div>
+            </div>
+             <Button type="button" variant="outline" onClick={handleGetLocation} disabled={isFetchingLocation}>
+                {isFetchingLocation ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <MapPin className="mr-2 h-4 w-4" />
+                )}
+                Usar minha localização exata
+            </Button>
+
              <FormField
               control={form.control}
               name="notes"
