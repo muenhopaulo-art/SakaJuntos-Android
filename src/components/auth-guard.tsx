@@ -9,8 +9,9 @@ import { Logo } from './Logo';
 import { getUser, User } from '@/services/user-service';
 import { SiteHeader } from './site-header';
 import { SiteFooter } from './site-footer';
-import { OrdersSheet } from '@/app/orders-sheet';
-import { Truck } from 'lucide-react';
+import { Package } from 'lucide-react';
+import { Button } from './ui/button';
+import Link from 'next/link';
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
@@ -119,7 +120,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         <SiteFooter />
         {user && !pathIsGroupDetails && (
           <div className="fixed bottom-4 right-4 z-50">
-            <OrdersSheet />
+            <Button asChild variant="outline" size="icon" className="relative ml-2 rounded-full h-14 w-14 shadow-lg">
+                <Link href="/my-orders">
+                    <Package className="h-6 w-6" />
+                    <span className="sr-only">Meus Pedidos</span>
+                </Link>
+            </Button>
           </div>
         )}
     </div>
