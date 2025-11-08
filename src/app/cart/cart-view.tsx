@@ -182,17 +182,17 @@ export function CartView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">Produto</TableHead>
+                    <TableHead className="w-[80px] hidden sm:table-cell">Produto</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Quantidade</TableHead>
-                    <TableHead>Preço</TableHead>
+                    <TableHead className="hidden sm:table-cell">Preço</TableHead>
                     <TableHead className="text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map(item => (
                     <TableRow key={item.product.id}>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                          <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
                             {item.product.imageUrls && item.product.imageUrls.length > 0 ? (
                                 <Image src={item.product.imageUrls[0]} alt={item.product.name} width={64} height={64} className="object-cover h-full w-full" />
@@ -213,7 +213,7 @@ export function CartView() {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price * item.quantity)}</TableCell>
+                      <TableCell className="whitespace-nowrap hidden sm:table-cell">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price * item.quantity)}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => removeItem(item.product.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
