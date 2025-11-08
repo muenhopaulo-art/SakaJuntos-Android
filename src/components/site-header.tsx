@@ -76,45 +76,104 @@ export function SiteHeader() {
              ))}
           </nav>
         </div>
-
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle Menu</span>
-            </Button>
-          </SheetTrigger>
-          <CartSheetContent side="left" className="pr-0" isSheet={true}>
-            <div className='flex flex-col h-full'>
-            <Link href="/" className="mb-4 flex items-center space-x-2">
-                <SheetClose asChild>
-                   <Logo className="h-8 w-auto" />
-                </SheetClose>
-            </Link>
-            <div className="flex flex-col space-y-3">
-                {navLinks.map((link) => (
-                    <SheetClose asChild key={link.href}>
-                      <Link href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
-                        {link.label}
-                      </Link>
-                    </SheetClose>
-                 ))}
-                 {!user && (
-                    <SheetClose asChild>
-                      <Link href="/login" className="transition-colors hover:text-foreground/80 text-foreground/60">
-                        Login
-                      </Link>
-                    </SheetClose>
-                )}
-            </div>
-            </div>
-          </CartSheetContent>
-        </Sheet>
         
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            {/* Search can go here */}
-          </div>
+        {/* Mobile Header Layout */}
+        <div className="flex w-full items-center justify-between md:hidden">
+            <Sheet>
+            <SheetTrigger asChild>
+                <Button variant="ghost" className="px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle Menu</span>
+                </Button>
+            </SheetTrigger>
+            <CartSheetContent side="left" className="pr-0" isSheet={true}>
+                <div className='flex flex-col h-full'>
+                <Link href="/" className="mb-4 flex items-center space-x-2">
+                    <SheetClose asChild>
+                    <Logo className="h-8 w-auto" />
+                    </SheetClose>
+                </Link>
+                <div className="flex flex-col space-y-3">
+                    {navLinks.map((link) => (
+                        <SheetClose asChild key={link.href}>
+                        <Link href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                            {link.label}
+                        </Link>
+                        </SheetClose>
+                    ))}
+                    {!user && (
+                        <SheetClose asChild>
+                        <Link href="/login" className="transition-colors hover:text-foreground/80 text-foreground/60">
+                            Login
+                        </Link>
+                        </SheetClose>
+                    )}
+                </div>
+                </div>
+            </CartSheetContent>
+            </Sheet>
+
+            <Link href="/" className="flex items-center">
+                <Logo className="h-7 w-auto" />
+            </Link>
+
+             <div className="flex items-center">
+                <nav className="flex items-center">
+                    {loading ? (
+                        <div className='h-8 w-8 bg-muted animate-pulse rounded-full' />
+                    ) : user && appUser ? (
+                        <>
+                        <NotificationsSheet />
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                            <Avatar className="h-8 w-8">
+                                <AvatarFallback>{getInitials(appUser.name || '')}</AvatarFallback>
+                            </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal">
+                            <div className="flex flex-col space-y-1">
+                                <p className="text-sm font-medium leading-none">{appUser.name}</p>
+                                <p className="text-xs leading-none text-muted-foreground">
+                                {user.email}
+                                </p>
+                            </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {appUser.role !== 'courier' && (
+                                <DropdownMenuItem asChild>
+                                <Link href={appUser.role === 'admin' ? '/admin' : '/lojista'}>
+                                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                                    <span>Mudar para Vendedor</span>
+                                </Link>
+                                </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem asChild>
+                                <Link href="/my-orders">
+                                    <Package className="mr-2 h-4 w-4" />
+                                    <span>Meus Pedidos</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Sair</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                        <CartSheet />
+                        </>
+                    ) : (
+                       null // No button on mobile if not logged in
+                    )}
+                </nav>
+            </div>
+        </div>
+        
+        {/* Desktop Header Layout */}
+        <div className="hidden w-full flex-1 md:flex md:items-center md:justify-end">
           <nav className="flex items-center">
              {loading ? (
                 <div className='h-8 w-20 bg-muted animate-pulse rounded-md' />
