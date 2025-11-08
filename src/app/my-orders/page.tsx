@@ -112,8 +112,9 @@ export default function MyOrdersPage() {
 
         setLoading(true);
 
-        // Listener for Orders
-        const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid));
+        const activeOrderStatuses: OrderStatus[] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho', 'aguardando confirmação'];
+        const ordersQuery = query(collection(db, 'orders'), where('clientId', '==', user.uid), where('status', 'in', activeOrderStatuses));
+        
         const unsubscribeOrders = onSnapshot(ordersQuery, async (snapshot) => {
             const fetchedOrders: Order[] = await Promise.all(snapshot.docs.map(async (doc) => {
                 const data = doc.data();
@@ -139,20 +140,17 @@ export default function MyOrdersPage() {
                 };
             }));
             
-            // Show all non-cancelled/delivered orders
-            const activeOrderStatuses: OrderStatus[] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho', 'aguardando confirmação'];
-            const activeOrders = fetchedOrders.filter(order => activeOrderStatuses.includes(order.status));
-            
-            activeOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            setOrders(activeOrders);
+            fetchedOrders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            setOrders(fetchedOrders);
             setLoading(false);
         }, (err) => {
             console.error("Error fetching orders:", err);
             setLoading(false);
         });
 
-        // Listener for Service Requests
-        const servicesQuery = query(collection(db, 'serviceRequests'), where('clientId', '==', user.uid));
+        const activeServiceStatuses: ServiceRequestStatus[] = ['pendente', 'confirmado'];
+        const servicesQuery = query(collection(db, 'serviceRequests'), where('clientId', '==', user.uid), where('status', 'in', activeServiceStatuses));
+        
         const unsubscribeServices = onSnapshot(servicesQuery, (snapshot) => {
             const fetchedServices: ServiceRequest[] = snapshot.docs.map(doc => {
                  const data = doc.data();
@@ -173,12 +171,8 @@ export default function MyOrdersPage() {
                  }
             });
 
-            // Filter for active service requests on the client side
-            const activeServiceStatuses: ServiceRequestStatus[] = ['pendente', 'confirmado'];
-            const activeServices = fetchedServices.filter(req => activeServiceStatuses.includes(req.status));
-
-            activeServices.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            setServiceRequests(activeServices);
+            fetchedServices.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            setServiceRequests(fetchedServices);
             setLoading(false); 
         }, (err) => {
             console.error("Error fetching service requests:", err);
@@ -200,9 +194,8 @@ export default function MyOrdersPage() {
     }
     
     const ordersToConfirm = orders.filter(o => o.status === 'aguardando confirmação');
-    const activeOrders = orders.filter(o => o.status !== 'entregue' && o.status !== 'cancelado');
     
-    const groupedByGroup = activeOrders.reduce<GroupedOrders>((acc, order) => {
+    const groupedByGroup = orders.reduce<GroupedOrders>((acc, order) => {
         const key = order.groupId || order.id; // Group by groupId, or use order.id for individual orders
         if (!acc[key]) {
             acc[key] = [];
