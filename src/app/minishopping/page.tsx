@@ -39,7 +39,7 @@ export default async function MiniShoppingPage({
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-8 hidden md:block">
+      <div className="text-center mb-8">
           <h1 className="text-4xl font-bold tracking-tight font-headline">MiniShopping</h1>
           <p className="text-xl text-muted-foreground">
             Encontre tudo o que precisa, à distância de um clique.

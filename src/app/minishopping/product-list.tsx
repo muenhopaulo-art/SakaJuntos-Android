@@ -112,25 +112,26 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
     };
   }, [loaderRef, hasMore, isFetchingMore, loadMoreProducts]);
   
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newSearch = formData.get('q') as string;
+    router.push(`/minishopping?q=${encodeURIComponent(newSearch)}`);
+  };
 
   return (
     <>
-      <div className="relative w-full max-w-lg mx-auto mb-8 hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-           <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const newSearch = formData.get('q') as string;
-              router.push(`/minishopping?q=${encodeURIComponent(newSearch)}`);
-            }}>
-                <Input
-                    type="search"
-                    name="q"
-                    placeholder="Pesquisar por produtos..."
-                    className="pl-10 h-12 text-base"
-                    defaultValue={searchTerm}
-                />
-           </form>
+      <div className="sticky top-16 md:top-20 z-40 bg-background/95 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-lg mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+                type="search"
+                name="q"
+                placeholder="Pesquisar por produtos..."
+                className="pl-10 h-12 text-base"
+                defaultValue={searchTerm}
+            />
+        </form>
       </div>
       
       {isPending ? (
@@ -154,7 +155,7 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
         </div>
       ) : (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4">
             {displayedProducts.map(product => (
                 <ProductCard key={product.id} product={product} />
             ))}

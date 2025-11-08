@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Sheet, SheetTrigger, SheetClose } from './ui/sheet';
-import { Menu, User, LogOut, LayoutDashboard, Shield, Package, ShoppingBag, Bell, Search } from 'lucide-react';
+import { Menu, User, LogOut, LayoutDashboard, Shield, Package, ShoppingBag, Bell } from 'lucide-react';
 import { useCart } from '@/contexts/cart-context';
 import { CartSheetContent } from './cart-sheet-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -24,7 +24,6 @@ import { getUser, setUserOnlineStatus, type User as AppUser } from '@/services/u
 import { CartSheet } from './cart-sheet';
 import { Logo } from './Logo';
 import { NotificationsSheet } from './notifications-sheet';
-import { Input } from './ui/input';
 
 
 export function SiteHeader() {
@@ -55,13 +54,6 @@ export function SiteHeader() {
     const initials = names.map(n => n[0]).join('');
     return initials.substring(0, 2).toUpperCase();
   }
-  
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const searchQuery = formData.get('q') as string;
-    router.push(`/minishopping?q=${encodeURIComponent(searchQuery)}`);
-  };
 
   const navLinks = [
     { href: '/', label: 'Início'},
@@ -71,81 +63,26 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-auto flex-col gap-4 py-2">
-         {/* Combined Header for both Mobile and Desktop */}
-        <div className="flex h-14 items-center">
-            <div className="flex items-center gap-4 md:mr-6">
-                 <Link href="/" className="flex items-center space-x-2">
-                    <Logo className="h-6 w-auto" />
+      <div className="container flex h-14 items-center">
+        <div className="mr-4 hidden md:flex">
+          <Link href="/" className="mr-6 flex items-center space-x-2">
+            <Logo />
+          </Link>
+          <nav className="flex items-center space-x-6 text-sm font-medium">
+            {navLinks.map((link) => (
+                <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                    {link.label}
                 </Link>
-                <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
-                    {navLinks.map((link) => (
-                        <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60">
-                            {link.label}
-                        </Link>
-                    ))}
-                </nav>
-            </div>
-            
-            {/* Desktop User Nav */}
-            <div className="hidden w-full flex-1 md:flex md:items-center md:justify-end">
-              <nav className="flex items-center">
-                {loading ? (
-                    <div className='h-8 w-20 bg-muted animate-pulse rounded-md' />
-                ) : user && appUser ? (
-                    <>
-                    <NotificationsSheet />
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback>{getInitials(appUser.name || '')}</AvatarFallback>
-                          </Avatar>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56" align="end" forceMount>
-                        <DropdownMenuLabel className="font-normal">
-                          <div className="flex flex-col space-y-1">
-                            <p className="text-sm font-medium leading-none">{appUser.name}</p>
-                            <p className="text-xs leading-none text-muted-foreground">
-                              {user.email}
-                            </p>
-                          </div>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                          {appUser.role !== 'courier' && (
-                            <DropdownMenuItem asChild>
-                              <Link href={appUser.role === 'admin' ? '/admin' : '/lojista'}>
-                                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                                  <span>Mudar para Vendedor</span>
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem asChild>
-                            <Link href="/my-orders">
-                                <Package className="mr-2 h-4 w-4" />
-                                <span>Meus Pedidos</span>
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout}>
-                          <LogOut className="mr-2 h-4 w-4" />
-                          <span>Sair</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <CartSheet />
-                    </>
-                ) : (
-                    <Button asChild>
-                        <Link href="/login">Login</Link>
-                    </Button>
-                )}
-              </nav>
-            </div>
+            ))}
+          </nav>
+        </div>
 
-            {/* Mobile User Nav */}
-            <div className="ml-auto flex items-center md:hidden">
+        {/* Mobile Header */}
+        <div className="flex md:hidden items-center justify-between w-full">
+            <Link href="/" className="flex items-center space-x-2">
+                <Logo />
+            </Link>
+            <div className="flex items-center">
                 {loading ? (
                     <div className='h-8 w-8 bg-muted animate-pulse rounded-full' />
                 ) : user && appUser ? (
@@ -154,7 +91,7 @@ export function SiteHeader() {
                     <CartSheet />
                     </>
                 ) : (
-                    <Button asChild>
+                    <Button asChild size="sm">
                         <Link href="/login">Login</Link>
                     </Button>
                 )}
@@ -169,7 +106,7 @@ export function SiteHeader() {
                         <div className='flex flex-col h-full'>
                         <Link href="/" className="mb-4 flex items-center space-x-2">
                             <SheetClose asChild>
-                            <Logo className="h-8 w-auto" />
+                            <Logo />
                             </SheetClose>
                         </Link>
                         <div className="flex flex-col space-y-3">
@@ -212,16 +149,61 @@ export function SiteHeader() {
             </div>
         </div>
 
-        {/* Mobile Search Bar - now part of the sticky header */}
-        <form onSubmit={handleSearch} className="relative w-full md:hidden">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-                type="search"
-                name="q"
-                placeholder="Pesquisar por produtos..."
-                className="pl-10 h-11 text-base"
-            />
-        </form>
+        <div className="hidden w-full flex-1 md:flex md:items-center md:justify-end">
+          <nav className="flex items-center">
+            {loading ? (
+                <div className='h-8 w-20 bg-muted animate-pulse rounded-md' />
+            ) : user && appUser ? (
+                <>
+                <NotificationsSheet />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>{getInitials(appUser.name || '')}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{appUser.name}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                      {appUser.role !== 'courier' && (
+                        <DropdownMenuItem asChild>
+                          <Link href={appUser.role === 'admin' ? '/admin' : '/lojista'}>
+                              <LayoutDashboard className="mr-2 h-4 w-4" />
+                              <span>Mudar para Vendedor</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem asChild>
+                        <Link href="/my-orders">
+                            <Package className="mr-2 h-4 w-4" />
+                            <span>Meus Pedidos</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sair</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <CartSheet />
+                </>
+            ) : (
+                <Button asChild>
+                    <Link href="/login">Login</Link>
+                </Button>
+            )}
+          </nav>
+        </div>
       </div>
     </header>
   );
