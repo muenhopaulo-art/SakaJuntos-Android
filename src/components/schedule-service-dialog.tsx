@@ -56,6 +56,7 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
   const { toast } = useToast();
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [location, setLocation] = useState<Geolocation | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const form = useForm<z.infer<typeof scheduleSchema>>({
     resolver: zodResolver(scheduleSchema),
@@ -134,7 +135,7 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data Desejada</FormLabel>
-                  <Popover>
+                  <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -157,7 +158,10 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setIsCalendarOpen(false);
+                        }}
                         disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
                         initialFocus
                       />
