@@ -18,10 +18,11 @@ interface ProductListProps {
 const ITEMS_PER_PAGE = 8;
 
 export function ProductList({ allProducts, initialSearchTerm = '' }: ProductListProps) {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const q = searchParams.get('q') || initialSearchTerm;
+  
   const [searchTerm, setSearchTerm] = useState(q);
   const [isPending, startTransition] = useTransition();
 
@@ -65,6 +66,20 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
   useEffect(() => {
     setSearchTerm(searchParams.get('q') || '');
   }, [searchParams]);
+  
+  // Effect to update URL from search input
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (debouncedSearchTerm) {
+      params.set('q', debouncedSearchTerm);
+    } else {
+      params.delete('q');
+    }
+    startTransition(() => {
+      // Using replace to not pollute browser history
+      router.replace(`${pathname}?${params.toString()}`);
+    });
+  }, [debouncedSearchTerm, pathname, router, searchParams]);
 
 
   // Effect to reset pagination when search term changes
@@ -116,7 +131,7 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const newSearch = formData.get('q') as string;
-    router.push(`/minishopping?q=${encodeURIComponent(newSearch)}`);
+    router.push(`${pathname}?q=${encodeURIComponent(newSearch)}`);
   };
 
   return (
@@ -130,6 +145,7 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
                 placeholder="Pesquisar por produtos..."
                 className="pl-10 h-12 text-base"
                 defaultValue={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
             />
         </form>
       </div>
