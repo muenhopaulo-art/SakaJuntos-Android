@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { Product, User } from '@/lib/types';
