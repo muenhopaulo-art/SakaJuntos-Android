@@ -2,9 +2,10 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getProducts } from '@/services/product-service';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Search } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { ProductList } from './product-list';
+import { Input } from '@/components/ui/input';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -30,24 +31,15 @@ export default async function MiniShoppingPage({
   let error: string | null = null;
 
   try {
-    // getProducts now handles the server-side part of searching if possible
-    // but the final filtering is done client-side in the ProductList for consistency
     allProducts = await getProducts();
   } catch (e) {
     console.error(e);
     error = getErrorMessage(e);
   }
 
-  // Shuffle products for a more dynamic feed, but keep promoted ones on top
-  const promoted = allProducts.filter(p => p.isPromoted === 'active');
-  const notPromoted = allProducts.filter(p => p.isPromoted !== 'active');
-  const shuffledNotPromoted = [...notPromoted].sort(() => 0.5 - Math.random());
-  const finalProductList = [...promoted, ...shuffledNotPromoted];
-
-
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 hidden md:block">
           <h1 className="text-4xl font-bold tracking-tight font-headline">MiniShopping</h1>
           <p className="text-xl text-muted-foreground">
             Encontre tudo o que precisa, à distância de um clique.
@@ -63,7 +55,7 @@ export default async function MiniShoppingPage({
           </AlertDescription>
         </Alert>
       ) : (
-        <ProductList allProducts={finalProductList} initialSearchTerm={searchTerm} />
+        <ProductList allProducts={allProducts} initialSearchTerm={searchTerm} />
       )}
     </div>
   );

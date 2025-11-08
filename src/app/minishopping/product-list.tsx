@@ -18,12 +18,14 @@ interface ProductListProps {
 const ITEMS_PER_PAGE = 8;
 
 export function ProductList({ allProducts, initialSearchTerm = '' }: ProductListProps) {
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const q = searchParams.get('q') || initialSearchTerm;
+  const [searchTerm, setSearchTerm] = useState(q);
+  const [isPending, startTransition] = useTransition();
 
+  // Debounce the search term that comes from the URL or initial prop
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
   const filteredProducts = useMemo(() => {
@@ -58,20 +60,12 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
   const [hasMore, setHasMore] = useState(filteredProducts.length > ITEMS_PER_PAGE);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const loaderRef = useRef(null);
-
-  // Effect to update URL from search input
+  
+   // Sync state with URL search params
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (debouncedSearchTerm) {
-      params.set('q', debouncedSearchTerm);
-    } else {
-      params.delete('q');
-    }
-    startTransition(() => {
-      // Using replace to not pollute browser history
-      router.replace(`${pathname}?${params.toString()}`);
-    });
-  }, [debouncedSearchTerm, pathname, router, searchParams]);
+    setSearchTerm(searchParams.get('q') || '');
+  }, [searchParams]);
+
 
   // Effect to reset pagination when search term changes
   useEffect(() => {
@@ -121,15 +115,22 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
 
   return (
     <>
-      <div className="relative w-full max-w-lg mx-auto mb-8">
+      <div className="relative w-full max-w-lg mx-auto mb-8 hidden md:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-              type="text"
-              placeholder="Pesquisar por produtos..."
-              className="pl-10 h-12 text-base"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-          />
+           <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const newSearch = formData.get('q') as string;
+              router.push(`/minishopping?q=${encodeURIComponent(newSearch)}`);
+            }}>
+                <Input
+                    type="search"
+                    name="q"
+                    placeholder="Pesquisar por produtos..."
+                    className="pl-10 h-12 text-base"
+                    defaultValue={searchTerm}
+                />
+           </form>
       </div>
       
       {isPending ? (

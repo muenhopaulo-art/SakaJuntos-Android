@@ -2,7 +2,7 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getProducts, getGroupPromotions } from '@/services/product-service';
-import { AlertTriangle, ShoppingBag } from 'lucide-react';
+import { AlertTriangle, ShoppingBag, Search } from 'lucide-react';
 import type { Product, GroupPromotion } from '@/lib/types';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { ProductsCarousel } from '@/components/products-carousel';
 import { Separator } from '@/components/ui/separator';
 import { ProductList } from './minishopping/product-list';
 import { buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 
 function getErrorMessage(error: any): string {
@@ -56,9 +57,9 @@ export default async function HomePage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-       <div className="space-y-4 mb-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight font-headline">Bem-vindo à SakaJuntos</h1>
-        <p className="text-xl text-muted-foreground">
+       <div className="space-y-4 mb-8 text-center md:hidden">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Bem-vindo à SakaJuntos</h1>
+        <p className="text-lg text-muted-foreground">
           A sua plataforma para compras individuais e em grupo. Mais perto de si.
         </p>
       </div>
