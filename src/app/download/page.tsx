@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, CheckCircle, ArrowRight, Users, ShoppingBag, Truck } from 'lucide-react';
+import { Download, CheckCircle, ArrowRight, Users, ShoppingBag, Truck, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
@@ -44,10 +43,7 @@ export default function DownloadPage() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-        alert("Para instalar a aplicação, procure a opção 'Adicionar ao ecrã principal' ou 'Instalar aplicação' no menu do seu navegador.");
-        return;
-    };
+    if (!deferredPrompt) return;
 
     // Mostra o prompt de instalação
     await deferredPrompt.prompt();
@@ -85,6 +81,32 @@ export default function DownloadPage() {
       },
   ]
 
+  const renderInstallButton = () => {
+    if (isInstalled) {
+      return (
+        <Button size="lg" className="w-full" disabled>
+          <CheckCircle className="mr-2 h-5 w-5" />
+          Aplicação Já Instalada
+        </Button>
+      );
+    }
+    if (deferredPrompt) {
+      return (
+        <Button size="lg" className="w-full" onClick={handleInstallClick}>
+          <Download className="mr-2 h-5 w-5" />
+          Instalar Aplicação
+        </Button>
+      );
+    }
+    // Show a disabled button while waiting for the prompt
+    return (
+        <Button size="lg" className="w-full" disabled>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            A preparar instalação...
+        </Button>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-screen bg-muted/40">
       <Card className="w-full max-w-lg text-center shadow-lg">
@@ -111,22 +133,7 @@ export default function DownloadPage() {
             <div className="space-y-4">
                <h3 className="text-lg font-semibold">Leve a experiência completa!</h3>
               
-              {isInstalled ? (
-                 <Button size="lg" className="w-full" disabled>
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  Aplicação Já Instalada
-                </Button>
-              ) : deferredPrompt ? (
-                <Button size="lg" className="w-full" onClick={handleInstallClick}>
-                  <Download className="mr-2 h-5 w-5" />
-                  Instalar Aplicação
-                </Button>
-              ) : (
-                <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
-                    <p>A aplicação já está instalada ou o seu navegador não suporta a instalação direta.</p>
-                    <p className="mt-1 font-medium">No iOS, use o menu "Partilhar" do Safari e selecione "Adicionar ao ecrã principal".</p>
-                </div>
-              )}
+              {renderInstallButton()}
 
                <p className="text-xs text-muted-foreground">Instalar a aplicação adiciona um atalho ao seu ecrã inicial para um acesso mais rápido e notificações em tempo real.</p>
                <p className="text-xs text-muted-foreground">Se o botão não funcionar, procure a opção "Adicionar ao ecrã principal" no menu do seu navegador.</p>
