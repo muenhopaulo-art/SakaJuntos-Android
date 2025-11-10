@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, CheckCircle, ArrowRight } from 'lucide-react';
+import { Download, CheckCircle, ArrowRight, Users, ShoppingBag, Truck } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { Separator } from '@/components/ui/separator';
 
@@ -68,19 +68,19 @@ export default function DownloadPage() {
 
   const benefits = [
       {
-          icon: ArrowRight,
-          title: "Acesso Rápido",
-          description: "Inicie o SakaJuntos diretamente do seu ecrã principal, como uma aplicação nativa."
+          icon: Users,
+          title: "Poupança em Grupo",
+          description: "Junte-se a outras pessoas para comprar produtos em quantidade e consiga preços muito mais baixos do que compraria sozinho."
       },
       {
-          icon: ArrowRight,
-          title: "Melhor Desempenho",
-          description: "Desfrute de uma experiência mais rápida e fluida, otimizada para o seu dispositivo."
+          icon: ShoppingBag,
+          title: "MiniShopping Conveniente",
+          description: "Explore uma vasta gama de produtos e serviços de vendedores locais, tudo num único lugar, e faça as suas compras individuais com facilidade."
       },
       {
-          icon: ArrowRight,
-          title: "Notificações em Tempo Real",
-          description: "Receba alertas sobre o estado dos seus pedidos, mensagens de grupo e promoções."
+          icon: Truck,
+          title: "Entregas à Sua Porta",
+          description: "Seja em grupo ou individualmente, as suas compras são entregues onde quer que esteja, com rapidez e segurança."
       },
   ]
 
@@ -89,9 +89,9 @@ export default function DownloadPage() {
       <Card className="w-full max-w-lg text-center shadow-lg">
         <CardHeader>
            <Logo className="mx-auto h-20" />
-          <CardTitle className="text-3xl font-bold tracking-tight font-headline mt-4">Tenha o SakaJuntos Sempre à Mão</CardTitle>
-          <CardDescription>
-            Junte-se, contribua e receba. A sua plataforma para compras inteligentes em grupo e individuais, agora na palma da sua mão.
+          <CardTitle className="text-3xl font-bold tracking-tight font-headline mt-4">Bem-vindo ao SakaJuntos!</CardTitle>
+          <CardDescription className="text-base">
+            A sua plataforma para compras inteligentes em Angola. Junte-se, contribua e receba produtos a preços incríveis.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -107,8 +107,9 @@ export default function DownloadPage() {
                 ))}
             </div>
             <Separator />
-            <div>
-              {isInstallable && (
+            <div className="space-y-4">
+               <h3 className="text-lg font-semibold">Leve a experiência completa!</h3>
+              {isInstallable && !isInstalled && (
                 <Button size="lg" className="w-full" onClick={handleInstallClick}>
                   <Download className="mr-2 h-5 w-5" />
                   Instalar Aplicação
@@ -122,12 +123,14 @@ export default function DownloadPage() {
               )}
               {!isInstallable && !isInstalled && (
                  <p className="text-sm text-muted-foreground p-4 bg-muted rounded-md">
-                  Para instalar, abra esta página no seu navegador. No iOS (iPhone), use o menu "Partilhar" e depois "Adicionar ao Ecrã Principal".
+                  A aplicação já está instalada ou o seu navegador não suporta a instalação. No iOS, use o menu "Partilhar" do Safari.
                 </p>
               )}
+               <p className="text-xs text-muted-foreground">Instalar a aplicação adiciona um atalho ao seu ecrã inicial para um acesso mais rápido e notificações em tempo real.</p>
             </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
