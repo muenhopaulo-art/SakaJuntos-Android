@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useCart } from '@/contexts/cart-context';
@@ -62,15 +61,15 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
                            <Package className="h-8 w-8 text-muted-foreground" />
                         )}
                     </div>
-                    <div>
-                      <h3 className="font-medium">{item.product.name}</h3>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{item.product.name}</h3>
                       <p className="text-sm text-muted-foreground">
                         {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                     <div className="flex items-center gap-2">
+                  <div className="flex items-center">
+                     <div className="flex items-center gap-1">
                         <Button
                           variant="outline"
                           size="icon"
@@ -79,7 +78,7 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span>{item.quantity}</span>
+                        <span className="w-5 text-center">{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="icon"
