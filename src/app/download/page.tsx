@@ -20,7 +20,6 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function DownloadPage() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
@@ -34,7 +33,6 @@ export default function DownloadPage() {
       e.preventDefault();
       // Guarda o evento para que possa ser acionado mais tarde
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -45,7 +43,10 @@ export default function DownloadPage() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+        alert("Para instalar a aplicação, procure a opção 'Adicionar ao ecrã principal' ou 'Instalar aplicação' no menu do seu navegador.");
+        return;
+    };
 
     // Mostra o prompt de instalação
     await deferredPrompt.prompt();
@@ -63,7 +64,6 @@ export default function DownloadPage() {
 
     // O prompt só pode ser usado uma vez.
     setDeferredPrompt(null);
-    setIsInstallable(false);
   };
 
   const benefits = [
@@ -109,28 +109,24 @@ export default function DownloadPage() {
             <Separator />
             <div className="space-y-4">
                <h3 className="text-lg font-semibold">Leve a experiência completa!</h3>
-              {isInstallable && !isInstalled && (
+              
+              {isInstalled ? (
+                 <Button size="lg" className="w-full" disabled>
+                  <CheckCircle className="mr-2 h-5 w-5" />
+                  Aplicação Já Instalada
+                </Button>
+              ) : (
                 <Button size="lg" className="w-full" onClick={handleInstallClick}>
                   <Download className="mr-2 h-5 w-5" />
                   Instalar Aplicação
                 </Button>
               )}
-              {isInstalled && (
-                 <Button size="lg" className="w-full" disabled>
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  Aplicação Já Instalada
-                </Button>
-              )}
-              {!isInstallable && !isInstalled && (
-                 <p className="text-sm text-muted-foreground p-4 bg-muted rounded-md">
-                  A aplicação já está instalada ou o seu navegador não suporta a instalação. No iOS, use o menu "Partilhar" do Safari.
-                </p>
-              )}
+
                <p className="text-xs text-muted-foreground">Instalar a aplicação adiciona um atalho ao seu ecrã inicial para um acesso mais rápido e notificações em tempo real.</p>
+               <p className="text-xs text-muted-foreground">Se o botão não funcionar, procure a opção "Adicionar ao ecrã principal" no menu do seu navegador.</p>
             </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
