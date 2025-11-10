@@ -4,13 +4,14 @@
 import { useCart } from '@/contexts/cart-context';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
-import { SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription, SheetClose } from './ui/sheet';
+import { SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose, SheetFooter } from './ui/sheet';
 import { Separator } from './ui/separator';
 import { Minus, Plus, Trash2, Package } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { CheckoutDialog } from '@/app/cart/cart-view';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface CartSheetContentProps {
     side?: 'top' | 'bottom' | 'left' | 'right' | null | undefined;
@@ -26,7 +27,7 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
   if(children && isSheet) {
     return (
         <SheetContent side={side} className={className}>
-            <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
+             <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
             {children}
         </SheetContent>
     )
@@ -52,45 +53,45 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
           <ScrollArea className="flex-1">
             <div className="flex flex-col gap-4 px-6 py-4">
               {items.map(item => (
-                <div key={item.product.id} className="flex items-center justify-between space-x-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="relative h-16 w-16 overflow-hidden rounded bg-muted flex items-center justify-center">
-                        {item.product.imageUrls && item.product.imageUrls.length > 0 ? (
-                           <Image src={item.product.imageUrls[0]} alt={item.product.name} width={64} height={64} className="object-cover h-full w-full" />
-                        ) : (
-                           <Package className="h-8 w-8 text-muted-foreground" />
-                        )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">{item.product.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}
-                      </p>
-                    </div>
+                <div key={item.product.id} className="flex items-start space-x-4">
+                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded bg-muted flex items-center justify-center">
+                      {item.product.imageUrls && item.product.imageUrls.length > 0 ? (
+                         <Image src={item.product.imageUrls[0]} alt={item.product.name} width={64} height={64} className="object-cover h-full w-full" />
+                      ) : (
+                         <Package className="h-8 w-8 text-muted-foreground" />
+                      )}
                   </div>
-                  <div className="flex items-center">
-                     <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateItemQuantity(item.product.id, item.quantity - 1)}
-                        >
-                          <Minus className="h-4 w-4" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                        <h3 className="font-medium text-sm pr-2">{item.product.name}</h3>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => removeItem(item.product.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                        <span className="w-5 text-center">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateItemQuantity(item.product.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeItem(item.product.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                         <p className="text-sm font-semibold text-muted-foreground">
+                            {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}
+                        </p>
+                        <div className="flex items-center gap-1">
+                            <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateItemQuantity(item.product.id, item.quantity - 1)}
+                            >
+                            <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-5 text-center text-sm font-medium">{item.quantity}</span>
+                            <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateItemQuantity(item.product.id, item.quantity + 1)}
+                            >
+                            <Plus className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                   </div>
                 </div>
               ))}
