@@ -797,7 +797,7 @@ export default function GroupDetailPage() {
                                             Ver Carrinho ({groupCart.reduce((acc, item) => acc + item.quantity, 0)})
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent className="flex flex-col">
+                                    <SheetContent className="flex flex-col sm:max-w-md">
                                         <SheetHeader>
                                             <SheetTitle>Carrinho do Grupo</SheetTitle>
                                         </SheetHeader>
@@ -813,26 +813,38 @@ export default function GroupDetailPage() {
                                                 <ScrollArea className="flex-1 my-4">
                                                     <div className="space-y-4 pr-6">
                                                         {groupCart.map(item => (
-                                                            <div key={item.product.id} className="flex justify-between items-center gap-2">
-                                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                    <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
-                                                                        <Package className="h-6 w-6 text-muted-foreground" />
+                                                            <div key={item.product.id} className="flex gap-4">
+                                                                <div className="relative h-16 w-16 flex-shrink-0 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                                                    <Package className="h-8 w-8 text-muted-foreground" />
+                                                                </div>
+                                                                <div className="flex flex-1 flex-col justify-between">
+                                                                    <div className="flex justify-between items-start">
+                                                                        <h3 className="font-medium text-sm pr-2">{item.product.name}</h3>
+                                                                        {(isMember && !isGroupClosed) && (
+                                                                            <Button variant="ghost" size="icon" className="-mr-2 -mt-2 h-8 w-8 flex-shrink-0" onClick={() => handleUpdateGroupCart(item.product, 'remove')} disabled={allMembersContributed}>
+                                                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                                            </Button>
+                                                                        )}
                                                                     </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <p className="font-medium text-sm truncate">{item.product.name}</p>
-                                                                        <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}</p>
+                                                                    <div className="flex justify-between items-center mt-1">
+                                                                        <p className="text-sm font-semibold text-muted-foreground">
+                                                                            {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}
+                                                                        </p>
+                                                                        {(isMember && !isGroupClosed) ? (
+                                                                            <div className="flex items-center gap-1">
+                                                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)} disabled={allMembersContributed}>
+                                                                                    <Minus className="h-4 w-4" />
+                                                                                </Button>
+                                                                                <span className="w-5 text-center text-sm font-medium">{item.quantity}</span>
+                                                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)} disabled={allMembersContributed}>
+                                                                                    <Plus className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <p className="text-sm font-medium">x{item.quantity}</p>
+                                                                        )}
                                                                     </div>
                                                                 </div>
-                                                                {(isMember) && !isGroupClosed ? (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)} disabled={allMembersContributed}><Minus className="h-3 w-3"/></Button>
-                                                                        <span className="w-4 text-center text-sm">{item.quantity}</span>
-                                                                        <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)} disabled={allMembersContributed}><Plus className="h-3 w-3"/></Button>
-                                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleUpdateGroupCart(item.product, 'remove')} disabled={allMembersContributed}><Trash2 className="h-4 w-4"/></Button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <p className="text-sm font-medium">x{item.quantity}</p>
-                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1137,3 +1149,5 @@ export default function GroupDetailPage() {
         </div>
     );
 }
+
+    
