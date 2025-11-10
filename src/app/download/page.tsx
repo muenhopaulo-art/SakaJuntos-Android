@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Download, CheckCircle, ArrowRight, Users, ShoppingBag, Truck } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
 
 // Define a interface para o evento de instalação
 interface BeforeInstallPromptEvent extends Event {
@@ -85,7 +86,7 @@ export default function DownloadPage() {
   ]
 
   return (
-    <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[calc(100vh-8rem)]">
+    <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-screen bg-muted/40">
       <Card className="w-full max-w-lg text-center shadow-lg">
         <CardHeader>
            <Logo className="mx-auto h-20" />
@@ -115,17 +116,28 @@ export default function DownloadPage() {
                   <CheckCircle className="mr-2 h-5 w-5" />
                   Aplicação Já Instalada
                 </Button>
-              ) : (
+              ) : deferredPrompt ? (
                 <Button size="lg" className="w-full" onClick={handleInstallClick}>
                   <Download className="mr-2 h-5 w-5" />
                   Instalar Aplicação
                 </Button>
+              ) : (
+                <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                    <p>A aplicação já está instalada ou o seu navegador não suporta a instalação direta.</p>
+                    <p className="mt-1 font-medium">No iOS, use o menu "Partilhar" do Safari e selecione "Adicionar ao ecrã principal".</p>
+                </div>
               )}
 
                <p className="text-xs text-muted-foreground">Instalar a aplicação adiciona um atalho ao seu ecrã inicial para um acesso mais rápido e notificações em tempo real.</p>
                <p className="text-xs text-muted-foreground">Se o botão não funcionar, procure a opção "Adicionar ao ecrã principal" no menu do seu navegador.</p>
             </div>
         </CardContent>
+         <CardFooter className="flex-col gap-4 pt-6">
+            <Separator/>
+            <Button asChild variant="link">
+                <Link href="/login">Já tem conta? Entrar</Link>
+            </Button>
+        </CardFooter>
       </Card>
     </div>
   );

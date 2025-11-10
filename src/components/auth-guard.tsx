@@ -14,7 +14,7 @@ import { Button } from './ui/button';
 import Link from 'next/link';
 
 // Allow access to the main page for the auth logic to handle roles
-const publicPaths = ['/login', '/seed'];
+const publicPaths = ['/login', '/seed', '/download'];
 const adminPaths = ['/admin', '/admin/orders', '/admin/products', '/admin/users'];
 const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos', '/lojista/agendamentos', '/lojista/entregadores'];
 // Client-facing paths that are not dashboards
@@ -65,7 +65,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     
     if (user && appUser) {
         // Redirect logged-in users from public pages to their respective dashboards
-        if (pathIsPublic) {
+        if (pathIsPublic && pathname !== '/download') { // Allow logged-in users to see download page
              if (appUser.role === 'admin') router.push('/admin');
              else if (appUser.role === 'lojista') router.push('/lojista');
              else if (appUser.role === 'client') router.push('/'); // Clients should go to homepage
