@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, CheckCircle, ArrowRight, Users, ShoppingBag, Truck, Loader2 } from 'lucide-react';
+import { Download, CheckCircle, ArrowRight, Users, ShoppingBag, Truck, Loader2, Target } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
@@ -74,6 +74,11 @@ export default function DownloadPage() {
           title: "MiniShopping Conveniente",
           description: "Explore uma vasta gama de produtos e serviços de vendedores locais, tudo num único lugar, e faça as suas compras individuais com facilidade."
       },
+       {
+          icon: Target,
+          title: "Venda para Toda Angola",
+          description: "É vendedor? Alcance mais de 100.000 potenciais clientes em todo o país e veja o seu negócio crescer como nunca."
+      },
       {
           icon: Truck,
           title: "Entregas à Sua Porta",
@@ -136,6 +141,9 @@ export default function DownloadPage() {
               {renderInstallButton()}
 
                <p className="text-xs text-muted-foreground">Instalar a aplicação adiciona um atalho ao seu ecrã inicial para um acesso mais rápido e notificações em tempo real.</p>
+               {!deferredPrompt && !isInstalled && (
+                 <p className="text-xs text-muted-foreground">O botão de instalação ficará disponível em instantes. Enquanto isso, que tal <Link href="/login" className="underline font-semibold">criar a sua conta</Link> e explorar?</p>
+               )}
                <p className="text-xs text-muted-foreground">Se o botão não funcionar, procure a opção "Adicionar ao ecrã principal" no menu do seu navegador.</p>
             </div>
         </CardContent>
