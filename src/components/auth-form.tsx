@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from './Logo';
@@ -27,13 +27,13 @@ import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { createUser, getUser, setUserOnlineStatus } from '@/services/user-service';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const phoneRegex = /^9\d{8}$/; // Aceita números de 9 dígitos que começam com 9
 
 const provinces = [
-    "Bengo", "Benguela", "Bié", "Cabinda", "Cuando Cubango", "Cuanza Norte",
+    "Bengo", "Benguela", "Bié", "Cabinda", "Quando Cubango", "Cuanza Norte",
     "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte",
     "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"
 ];
@@ -57,7 +57,15 @@ export function AuthForm() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentUser] = useAuthState(auth);
+
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'register') {
+      setAuthMode('register');
+    }
+  }, [searchParams]);
 
   const formSchema = authMode === 'login' ? loginSchema : registerSchema;
   

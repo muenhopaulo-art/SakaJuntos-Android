@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, CheckCircle, ArrowRight, Users, ShoppingBag, Truck, Loader2, Target } from 'lucide-react';
+import { Download, CheckCircle, Loader2, Users, ShoppingBag, Truck, Target } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
@@ -142,7 +142,7 @@ export default function DownloadPage() {
 
                <p className="text-xs text-muted-foreground">Instalar a aplicação adiciona um atalho ao seu ecrã inicial para um acesso mais rápido e notificações em tempo real.</p>
                {!deferredPrompt && !isInstalled && (
-                 <p className="text-xs text-muted-foreground">O botão de instalação ficará disponível em instantes. Enquanto isso, que tal <Link href="/login" className="underline font-semibold">criar a sua conta</Link> e explorar?</p>
+                 <p className="text-xs text-muted-foreground">O botão de instalação ficará disponível em instantes. Enquanto isso, que tal <Link href="/login?mode=register" className="underline font-semibold">criar a sua conta</Link> e explorar?</p>
                )}
                <p className="text-xs text-muted-foreground">Se o botão não funcionar, procure a opção "Adicionar ao ecrã principal" no menu do seu navegador.</p>
             </div>
