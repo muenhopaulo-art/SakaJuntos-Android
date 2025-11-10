@@ -27,6 +27,7 @@ export function CartSheetContent({ side = 'right', className, children, isSheet 
   if(children && isSheet) {
     return (
         <SheetContent side={side} className={className}>
+            <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
             {children}
         </SheetContent>
     )
