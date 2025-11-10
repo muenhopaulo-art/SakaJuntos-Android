@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -25,8 +26,7 @@ export default function DownloadPage() {
       // Previne que o Chrome mostre o prompt automaticamente
       e.preventDefault();
       // Guarda o evento para que possa ser acionado mais tarde
-      setDeferredPrompt(e as BeforeInstallaprocurar na web
-promptEvent);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
     };
 
