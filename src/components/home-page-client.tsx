@@ -80,9 +80,9 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
   useEffect(() => {
     if (user) {
       // My Groups: I am a member.
-      const userGroups = allPromotions.filter(p => p.members.some(m => m.uid === user.uid));
+      const userGroups = allPromotions.filter(p => p.members && p.members.some(m => m.uid === user.uid));
       // Explore Groups: I am NOT a member.
-      const otherGroups = allPromotions.filter(p => !p.members.some(m => m.uid === user.uid));
+      const otherGroups = allPromotions.filter(p => !p.members || !p.members.some(m => m.uid === user.uid));
       setMyGroups(userGroups);
       setExploreGroups(otherGroups);
     } else {
