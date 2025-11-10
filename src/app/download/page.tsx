@@ -63,9 +63,9 @@ export default function DownloadPage() {
       <Card className="w-full max-w-md text-center shadow-lg">
         <CardHeader>
            <Logo className="mx-auto h-20" />
-          <CardTitle className="text-3xl font-bold tracking-tight font-headline mt-4">Instale o SakaJuntos</CardTitle>
+          <CardTitle className="text-3xl font-bold tracking-tight font-headline mt-4">Tenha o SakaJuntos Sempre à Mão</CardTitle>
           <CardDescription>
-            Leve a nossa aplicação para o seu ecrã inicial e desfrute de uma experiência mais rápida e integrada.
+            Instale a nossa aplicação web para uma experiência mais rápida e conveniente, diretamente a partir do seu ecrã inicial.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -76,7 +76,7 @@ export default function DownloadPage() {
             </Button>
           ) : (
              <p className="text-sm text-muted-foreground">
-              A aplicação já está instalada ou o seu navegador não suporta a instalação. No iOS, use o menu "Partilhar" do Safari.
+              Para instalar, abra esta página no seu navegador. No iOS (iPhone), use o menu "Partilhar" e depois "Adicionar ao Ecrã Principal".
             </p>
           )}
         </CardContent>
