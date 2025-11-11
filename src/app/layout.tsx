@@ -31,6 +31,7 @@ export default function RootLayout({
     <html lang="en" className={`light ${ptSans.variable}`}>
       <head>
         <meta name="theme-color" content="#ADD8E6" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="font-body antialiased">
         <CartProvider>
