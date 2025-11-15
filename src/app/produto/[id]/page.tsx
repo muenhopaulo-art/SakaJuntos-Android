@@ -18,6 +18,7 @@ import { Timestamp } from 'firebase/firestore';
 import { ScheduleServiceDialog } from '@/components/schedule-service-dialog';
 import { getUser } from '@/services/user-service';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -127,7 +128,22 @@ export default function ProductDetailPage() {
                 <div className="grid gap-4">
                     <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
                         {hasImages ? (
-                            <Image src={product.imageUrls![0]} alt={product.name} fill className="object-contain" />
+                            <Carousel
+                                opts={{ align: "start", loop: true, watchDrag: true }}
+                                className="w-full h-full"
+                            >
+                                <CarouselContent>
+                                    {product.imageUrls!.map((url, index) => (
+                                        <CarouselItem key={index}>
+                                            <div className="relative w-full h-full aspect-square">
+                                                <Image src={url} alt={`${product.name} - Imagem ${index + 1}`} fill className="object-contain" />
+                                            </div>
+                                        </CarouselItem>
+                                    ))}
+                                </CarouselContent>
+                                <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10" />
+                                <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10" />
+                            </Carousel>
                         ) : (
                             <Package className="h-32 w-32 text-muted-foreground"/>
                         )}
