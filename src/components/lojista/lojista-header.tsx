@@ -5,27 +5,11 @@ import Link from 'next/link';
 import {
   Bell,
   CircleUser,
-  Home,
-  LineChart,
   Menu,
-  Package,
-  Package2,
-  ShoppingCart,
-  Users,
-  LogOut,
-  ChevronDown,
   ShoppingBag,
-  CalendarCheck
+  LogOut,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -49,7 +32,6 @@ export function LojistaHeader() {
 
   const handleLogout = async () => {
     if (user) {
-        // Set user status to offline
         const userRef = doc(db, "users", user.uid);
         await updateDoc(userRef, { online: false });
     }
@@ -62,7 +44,6 @@ export function LojistaHeader() {
     { href: '/lojista/pedidos', label: 'Pedidos' },
     { href: '/lojista/agendamentos', label: 'Agendamentos' },
     { href: '/lojista/entregadores', label: 'Entregadores' },
-    { href: '/lojista/ganhos', label: 'Ganhos' },
     { href: '/lojista/perfil', label: 'Perfil' },
   ];
 
@@ -82,48 +63,64 @@ export function LojistaHeader() {
             href={link.href}
             className={cn(
               'transition-colors hover:text-foreground',
-              pathname === link.href ? 'text-foreground' : 'text-muted-foreground'
+              pathname.startsWith(link.href) ? 'text-foreground' : 'text-muted-foreground'
             )}
           >
             {link.label}
           </Link>
         ))}
       </nav>
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className="shrink-0 md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle navigation menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left">
-          <nav className="grid gap-6 text-lg font-medium">
-            <Link
-              href="/lojista"
-              className="flex items-center gap-2 text-lg font-semibold"
+      
+      {/* Mobile Header */}
+      <div className="flex w-full items-center md:hidden">
+        <Sheet>
+            <SheetTrigger asChild>
+            <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0"
             >
-              <span className="font-bold text-green-600 font-headline tracking-tighter">SakaJuntos</span>
-              <span className="sr-only">SakaJuntos</span>
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle navigation menu</span>
+            </Button>
+            </SheetTrigger>
+            <SheetContent side="left">
+            <nav className="grid gap-6 text-lg font-medium">
+                <Link
+                href="/lojista"
+                className="flex items-center gap-2 text-lg font-semibold"
+                >
+                <span className="font-bold text-green-600 font-headline tracking-tighter">SakaJuntos</span>
+                <span className="sr-only">SakaJuntos</span>
+                </Link>
+                {navLinks.map((link) => (
+                <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                    'transition-colors hover:text-foreground',
+                    pathname.startsWith(link.href) ? 'text-foreground' : 'text-muted-foreground'
+                    )}
+                >
+                    {link.label}
+                </Link>
+                ))}
+            </nav>
+            </SheetContent>
+        </Sheet>
+
+        <div className="flex-1 text-center">
+            <Link
+                href="/lojista"
+                className="flex items-center justify-center gap-2 text-lg font-semibold"
+                >
+                <span className="font-bold text-green-600 font-headline tracking-tighter">SakaJuntos</span>
+                <span className="sr-only">SakaJuntos</span>
             </Link>
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'transition-colors hover:text-foreground',
-                  pathname === link.href ? 'text-foreground' : 'text-muted-foreground'
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </SheetContent>
-      </Sheet>
+        </div>
+        <div className="w-8 shrink-0"></div>
+      </div>
+      
       <div className="flex w-full items-center justify-end gap-4 md:ml-auto md:gap-2 lg:gap-4">
         <Button variant="ghost" size="icon" className="rounded-full">
           <Bell className="h-5 w-5" />
