@@ -3,7 +3,6 @@
 import { ProductCard } from '@/components/product-card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import type { Product } from '@/lib/types';
-import Autoplay from "embla-carousel-autoplay";
 
 interface ProductsCarouselProps {
     products: Product[];
@@ -13,13 +12,6 @@ export function ProductsCarousel({ products }: ProductsCarouselProps) {
     return (
         <Carousel
             opts={{ align: "start", loop: true, watchDrag: true }}
-            plugins={[
-                Autoplay({
-                  delay: 4000,
-                  stopOnInteraction: true,
-                  stopOnMouseEnter: true,
-                }),
-            ]}
             className="w-full"
             >
             <CarouselContent className="-ml-4">
