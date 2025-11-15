@@ -58,7 +58,6 @@ export function LojistaHeader() {
   };
 
   const navLinks = [
-    { href: '/lojista', label: 'Dashboard' },
     { href: '/lojista/produtos', label: 'Produtos' },
     { href: '/lojista/pedidos', label: 'Pedidos' },
     { href: '/lojista/agendamentos', label: 'Agendamentos' },
@@ -146,7 +145,9 @@ export function LojistaHeader() {
                     <span>Mudar para Cliente</span>
                 </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild><Link href="/lojista/perfil">Configurações</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/lojista/perfil">Configurações</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>Suporte</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

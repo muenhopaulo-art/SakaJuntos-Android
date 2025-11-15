@@ -297,7 +297,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         setOpen(isOpen);
     }}>
       <DialogTrigger asChild>
-        <Button>Adicionar Publicação</Button>
+        <Button>Adicionar Produto/Serviço</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
