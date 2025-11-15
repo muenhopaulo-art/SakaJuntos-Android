@@ -19,7 +19,11 @@ const ptSans = PT_Sans({
 export const metadata: Metadata = {
   title: 'SakaJuntos Web',
   description: 'Compras individuais e em grupo, mais perto de si.',
-  manifest: '/manifest.json'
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/icons/icon-192x192.png',
+  },
 };
 
 export default function RootLayout({
