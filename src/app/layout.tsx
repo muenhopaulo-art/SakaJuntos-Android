@@ -2,10 +2,7 @@ import type { Metadata } from 'next';
 import { PT_Sans } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { CartProvider } from '@/contexts/cart-context';
 import AuthGuard from '@/components/auth-guard';
-import { SiteHeader } from '@/components/site-header';
-import { SiteFooter } from '@/components/site-footer';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,12 +34,10 @@ export default function RootLayout({
         <meta name="theme-color" content="#ADD8E6" />
       </head>
       <body className="font-body antialiased">
-        <CartProvider>
-          <AuthGuard>
-            {children}
-          </AuthGuard>
-          <Toaster />
-        </CartProvider>
+        <AuthGuard>
+          {children}
+        </AuthGuard>
+        <Toaster />
       </body>
     </html>
   );

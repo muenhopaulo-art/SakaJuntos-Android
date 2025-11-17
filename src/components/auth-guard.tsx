@@ -12,11 +12,19 @@ import { SiteFooter } from './site-footer';
 import { Package } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const CartProvider = dynamic(
+  () => import('@/contexts/cart-provider-client'),
+  { 
+    ssr: false
+  }
+);
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed', '/download'];
 const adminPaths = ['/admin', '/admin/orders', '/admin/products', '/admin/users'];
-const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos', '/lojista/agendamentos', '/lojista/entregadores'];
+const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos', '/lojista/agendamentos', '/lojista/entregadores', '/lojista/perfil'];
 // Client-facing paths that are not dashboards
 const clientPaths = ['/', '/minishopping', '/grupos', '/cart', '/my-orders'];
 
@@ -106,28 +114,32 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathIsLayoutLess = publicPaths.includes(pathname) || adminPaths.some(p => pathname.startsWith(p)) || lojistaPaths.some(p => pathname.startsWith(p));
   const pathIsGroupDetails = /^\/grupos\/[^/]+$/.test(pathname);
 
+  // The CartProvider must wrap all children that might need access to the cart.
+  const content = <>{children}</>;
 
   // Render children without the main layout for public, admin and lojista pages
   if (pathIsLayoutLess) {
-    return <>{children}</>;
+    return <CartProvider>{content}</CartProvider>;
   }
 
   // Render children inside the main layout for all other authenticated pages
   return (
-     <div className="relative flex min-h-screen flex-col">
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
-        {user && !pathIsGroupDetails && (
-          <div className="fixed bottom-4 right-4 z-50">
-            <Button asChild variant="outline" size="icon" className="relative ml-2 rounded-full h-14 w-14 shadow-lg">
-                <Link href="/my-orders">
-                    <Package className="h-6 w-6" />
-                    <span className="sr-only">Meus Pedidos</span>
-                </Link>
-            </Button>
-          </div>
-        )}
-    </div>
+     <CartProvider>
+      <div className="relative flex min-h-screen flex-col">
+          <SiteHeader />
+          <main className="flex-1">{content}</main>
+          <SiteFooter />
+          {user && !pathIsGroupDetails && (
+            <div className="fixed bottom-4 right-4 z-50">
+              <Button asChild variant="outline" size="icon" className="relative ml-2 rounded-full h-14 w-14 shadow-lg">
+                  <Link href="/my-orders">
+                      <Package className="h-6 w-6" />
+                      <span className="sr-only">Meus Pedidos</span>
+                  </Link>
+              </Button>
+            </div>
+          )}
+      </div>
+     </CartProvider>
   );
 }
