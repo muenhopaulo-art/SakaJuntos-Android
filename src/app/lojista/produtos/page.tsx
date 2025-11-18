@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 
 const LojistaProductsList = dynamic(
   () => import('@/components/lojista/lojista-products-list').then(mod => mod.LojistaProductsList),
