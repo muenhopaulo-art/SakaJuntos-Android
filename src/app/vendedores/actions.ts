@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -51,10 +52,11 @@ export async function getLojistaProfile(id: string): Promise<{ lojista: User | n
         }
 
         const productsCol = collection(db, 'products');
-        const q = query(productsCol, where('lojistaId', '==', id), orderBy('createdAt', 'desc'));
+        // A consulta é simplificada para apenas filtrar; a ordenação é feita depois.
+        const q = query(productsCol, where('lojistaId', '==', id));
         const productsSnapshot = await getDocs(q);
         
-        const products = productsSnapshot.docs.map(doc => {
+        let products = productsSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -70,6 +72,9 @@ export async function getLojistaProfile(id: string): Promise<{ lojista: User | n
                 createdAt: (data.createdAt as Timestamp)?.toMillis(),
             } as Product;
         });
+        
+        // Ordena os produtos pela data de criação (mais recentes primeiro) no servidor.
+        products.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
         return { lojista, products };
     } catch (error) {
