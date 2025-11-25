@@ -4,7 +4,7 @@
 import type { GroupPromotion } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
-import { Users, UserPlus, Hourglass, Package } from 'lucide-react';
+import { Users, UserPlus, Hourglass, Package, Check, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
@@ -12,15 +12,56 @@ import Image from 'next/image';
 
 interface PromotionCardProps {
   promotion: GroupPromotion;
-  showJoinButton: boolean;
-  onJoin: (groupId: string) => void;
+  showJoinButton?: boolean;
+  onJoin?: (groupId: string) => void;
+  isJoining?: boolean;
+  isRequested?: boolean;
 }
 
-export function PromotionCard({ promotion, showJoinButton, onJoin }: PromotionCardProps) {
+export function PromotionCard({ 
+    promotion, 
+    showJoinButton = false, 
+    onJoin,
+    isJoining = false,
+    isRequested = false
+}: PromotionCardProps) {
   const progress = (promotion.participants / promotion.target) * 100;
   const isFinalized = promotion.status === 'finalized';
   const isDelivered = promotion.status === 'delivered';
   const imageUrl = promotion.imageUrls && promotion.imageUrls.length > 0 ? promotion.imageUrls[0] : undefined;
+
+  const handleJoinClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (onJoin) {
+      onJoin(promotion.id);
+    }
+  };
+
+  const renderJoinButton = () => {
+    if (isRequested) {
+      return (
+        <Button className='w-full' variant="outline" disabled>
+          <Check className='mr-2' />
+          Solicitação Enviada
+        </Button>
+      );
+    }
+    if (isJoining) {
+        return (
+             <Button className='w-full' variant="outline" disabled>
+                <Loader2 className='mr-2 animate-spin' />
+                A enviar...
+            </Button>
+        )
+    }
+    return (
+      <Button className='w-full' variant="outline" onClick={handleJoinClick} disabled={isFinalized || isDelivered}>
+        <UserPlus className='mr-2' />
+        Pedir para Aderir
+      </Button>
+    );
+  }
 
   const cardContent = (
     <Card className={cn("flex flex-col h-full overflow-hidden bg-card transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1", isFinalized && "bg-muted/50")}>
@@ -63,10 +104,7 @@ export function PromotionCard({ promotion, showJoinButton, onJoin }: PromotionCa
       </CardContent>
       {showJoinButton && (
         <CardFooter>
-            <Button className='w-full' variant="outline" onClick={(e) => { e.stopPropagation(); e.preventDefault(); onJoin(promotion.id); }} disabled={isFinalized || isDelivered}>
-                <UserPlus className='mr-2' />
-                Pedir para Aderir
-            </Button>
+            {renderJoinButton()}
         </CardFooter>
       )}
     </Card>

@@ -9,7 +9,7 @@ import type { GroupPromotion } from '@/lib/types';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CirclePlus, Users, Globe, Info } from 'lucide-react';
+import { CirclePlus, Users, Globe, Info, Loader2 } from 'lucide-react';
 import { CreateGroupForm } from '@/components/create-group-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { requestToJoinGroup } from '@/services/product-service';
@@ -74,20 +74,34 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
   const [myGroups, setMyGroups] = useState<GroupPromotion[]>([]);
   const [exploreGroups, setExploreGroups] = useState<GroupPromotion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [joiningGroupId, setJoiningGroupId] = useState<string | null>(null);
   const [user] = useAuthState(auth);
   const { toast } = useToast();
+  
+  // State to track which groups the user has requested to join in the current session
+  const [requestedGroupIds, setRequestedGroupIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
-      // My Groups: I am a member.
-      const userGroups = allPromotions.filter(p => p.members && p.members.some(m => m.uid === user.uid));
-      // Explore Groups: I am NOT a member.
-      const otherGroups = allPromotions.filter(p => !p.members || !p.members.some(m => m.uid === user.uid));
+      const userGroups = allPromotions.filter(p => p.members && p.members.some(m => m.id === user.uid));
+      const otherGroups = allPromotions.filter(p => !p.members || !p.members.some(m => m.id === user.uid));
+
       setMyGroups(userGroups);
       setExploreGroups(otherGroups);
+
+      // Initialize requested groups based on existing join requests in the data
+      const initialRequested = new Set<string>();
+      otherGroups.forEach(group => {
+          if (group.joinRequests?.some(req => req.id === user.uid)) {
+              initialRequested.add(group.id);
+          }
+      });
+      setRequestedGroupIds(initialRequested);
+
     } else {
       setMyGroups([]);
       setExploreGroups(allPromotions);
+      setRequestedGroupIds(new Set());
     }
     setLoading(false);
   }, [user, allPromotions]);
@@ -97,12 +111,16 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
         toast({ variant: 'destructive', title: 'Utilizador não autenticado.'});
         return;
     }
+    setJoiningGroupId(groupId);
     const result = await requestToJoinGroup(groupId, user.uid);
     if (result.success) {
         toast({ title: 'Pedido enviado!', description: 'O seu pedido para aderir ao grupo foi enviado.' });
+        // Add the group ID to the set of requested groups for instant UI feedback
+        setRequestedGroupIds(prev => new Set(prev).add(groupId));
     } else {
         toast({ variant: 'destructive', title: 'Erro ao enviar pedido.', description: result.message });
     }
+    setJoiningGroupId(null);
   }
   
   const displayedExploreGroups = exploreGroups.slice(0, MAX_GROUPS_HOME);
@@ -139,7 +157,7 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
             ) : myGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myGroups.map(promo => (
-                    <PromotionCard key={promo.id} promotion={promo} showJoinButton={false} onJoin={() => {}} />
+                    <PromotionCard key={promo.id} promotion={promo} />
                 ))}
             </div>
             ) : (
@@ -163,9 +181,22 @@ export function HomePageClient({ allPromotions, error }: HomePageClientProps) {
             ) : exploreGroups.length > 0 ? (
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {displayedExploreGroups.map(promo => (
-                            <PromotionCard key={promo.id} promotion={promo} showJoinButton={true} onJoin={handleJoinRequest} />
-                        ))}
+                        {displayedExploreGroups.map(promo => {
+                            const isRequested = requestedGroupIds.has(promo.id);
+                            const isJoining = joiningGroupId === promo.id;
+                            const isMember = user ? promo.members?.some(m => m.id === user.uid) : false;
+
+                            return (
+                                <PromotionCard 
+                                    key={promo.id} 
+                                    promotion={promo}
+                                    showJoinButton={!isMember}
+                                    onJoin={handleJoinRequest}
+                                    isJoining={isJoining}
+                                    isRequested={isRequested}
+                                />
+                            );
+                        })}
                     </div>
                     {exploreGroups.length > MAX_GROUPS_HOME && (
                          <div className="text-center">
