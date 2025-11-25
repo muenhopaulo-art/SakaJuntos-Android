@@ -4,7 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Search, User } from 'lucide-react';
 import type { User as Lojista } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 
@@ -61,6 +61,7 @@ export default async function VendedoresPage({
               <Card className="h-full transition-all hover:shadow-md hover:-translate-y-1">
                 <CardContent className="p-6 flex flex-col items-center text-center">
                   <Avatar className="h-20 w-20 mb-4">
+                    <AvatarImage src={lojista.photoURL} alt={lojista.name} />
                     <AvatarFallback className="text-2xl">{getInitials(lojista.name)}</AvatarFallback>
                   </Avatar>
                   <p className="font-semibold">{lojista.name}</p>

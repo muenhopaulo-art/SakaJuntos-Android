@@ -1,5 +1,4 @@
 
-
 export interface Product {
   id: string;
   name: string;
@@ -130,6 +129,7 @@ export interface User {
     createdAt: number;
     ownerLojistaId?: string; // ID of the lojista this courier works for
     online?: boolean;
+    photoURL?: string;
 }
 
 export type ServiceRequestStatus = 'pendente' | 'confirmado' | 'concluído' | 'cancelado';

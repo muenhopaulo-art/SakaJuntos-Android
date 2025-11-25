@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, MapPin, Phone, ShoppingBag, Briefcase, UserCircle, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
@@ -58,6 +58,7 @@ export default async function LojistaProfilePage({ params }: { params: { id: str
                 <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row items-center gap-6">
                         <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-primary">
+                            <AvatarImage src={lojista.photoURL} alt={lojista.name} />
                             <AvatarFallback className="text-4xl">{getInitials(lojista.name)}</AvatarFallback>
                         </Avatar>
                         <div className="text-center md:text-left">

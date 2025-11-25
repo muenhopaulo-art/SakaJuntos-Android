@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -12,23 +12,25 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from './Logo';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { createUser, getUser, setUserOnlineStatus } from '@/services/user-service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import Image from 'next/image';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+
 
 const phoneRegex = /^9\d{8}$/; // Aceita números de 9 dígitos que começam com 9
 
@@ -37,6 +39,9 @@ const provinces = [
     "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte",
     "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"
 ];
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const loginSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
@@ -49,12 +54,21 @@ const registerSchema = z.object({
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
   role: z.enum(['client', 'courier']).default('client'), // Default to 'client' for client/seller
+  photo: z.any()
+    .optional()
+    .refine((file) => !file || file.size <= MAX_FILE_SIZE, `O tamanho máximo do ficheiro é 5MB.`)
+    .refine(
+      (file) => !file || ACCEPTED_IMAGE_TYPES.includes(file?.type),
+      "Apenas os formatos .jpg, .jpeg, .png e .webp são suportados."
+    ),
 });
 
 
 export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,6 +87,18 @@ export function AuthForm() {
     resolver: zodResolver(formSchema),
     defaultValues: { name: '', phone: '', password: '', province: '', role: 'client' },
   });
+  
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      form.setValue('photo', file, { shouldValidate: true });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
      setIsLoading(true);
@@ -88,9 +114,17 @@ export function AuthForm() {
             // 1. Create user in Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(auth, email, registerValues.password);
             const user = userCredential.user;
+
+            let photoURL: string | undefined = undefined;
+            if (registerValues.photo) {
+                const storage = getStorage();
+                const filePath = `profile_pictures/${user.uid}`;
+                const fileRef = storageRef(storage, filePath);
+                await uploadBytes(fileRef, registerValues.photo);
+                photoURL = await getDownloadURL(fileRef);
+            }
             
             // 2. Create user profile in our database (Firestore)
-            // For Client/Seller, role is always 'client' initially.
             const roleToCreate = registerValues.role === 'courier' ? 'courier' : 'client';
 
             await createUser(user.uid, {
@@ -99,9 +133,9 @@ export function AuthForm() {
                 province: registerValues.province,
                 role: roleToCreate,
                 ownerLojistaId: ownerLojistaId,
+                photoURL: photoURL,
             });
 
-            // If a lojista is registering a courier, we don't sign them in as the courier
             if (!isCourierRegistrationByLojista) {
                 await setUserOnlineStatus(user.uid, true);
                 toast({
@@ -114,7 +148,7 @@ export function AuthForm() {
                     title: "Entregador Registado!",
                     description: `${registerValues.name} foi adicionado à sua equipa.`,
                 });
-                router.push('/lojista/entregadores'); // Redirect lojista back to couriers page
+                router.push('/lojista/entregadores');
             }
 
 
@@ -134,7 +168,7 @@ export function AuthForm() {
             if (appUser && appUser.role === 'admin') {
                 router.push('/admin');
             } else {
-                router.push('/'); // Unified dashboard logic handles lojista/client
+                router.push('/');
             }
         }
 
@@ -174,6 +208,7 @@ export function AuthForm() {
   const toggleMode = () => {
     setAuthMode(prev => (prev === 'login' ? 'register' : 'login'));
     form.reset();
+    setPreview(null);
   }
 
   return (
@@ -190,6 +225,36 @@ export function AuthForm() {
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               {authMode === 'register' && (
                   <>
+                     <FormField
+                        control={form.control}
+                        name="photo"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col items-center">
+                               <FormControl>
+                                    <>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            ref={fileInputRef}
+                                            onChange={handleFileChange}
+                                            accept="image/png, image/jpeg, image/webp"
+                                        />
+                                        <Avatar 
+                                            className="h-24 w-24 cursor-pointer"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <AvatarImage src={preview || undefined} alt="Pré-visualização" />
+                                            <AvatarFallback className="bg-muted">
+                                                <Camera className="h-8 w-8 text-muted-foreground"/>
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </>
+                                </FormControl>
+                                <p className="text-xs text-muted-foreground">Adicione o seu logo ou foto</p>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     <FormField
                         control={form.control}
                         name="name"

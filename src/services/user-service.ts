@@ -12,6 +12,7 @@ interface UserProfileData {
     province: string;
     role: UserRole;
     ownerLojistaId?: string;
+    photoURL?: string;
 }
 
 export async function createUser(uid: string, data: UserProfileData) {
@@ -27,6 +28,7 @@ export async function createUser(uid: string, data: UserProfileData) {
             createdAt: serverTimestamp(),
             ownerLojistaId: data.ownerLojistaId || null,
             online: false,
+            photoURL: data.photoURL || null,
         });
         return { success: true, uid };
     } catch (error) {
@@ -60,6 +62,7 @@ export async function getUser(uid: string): Promise<User | null> {
         createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
         ownerLojistaId: data.ownerLojistaId,
         online: data.online || false,
+        photoURL: data.photoURL,
     };
 }
 
