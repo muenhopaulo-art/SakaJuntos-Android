@@ -59,6 +59,7 @@ export function SiteHeader() {
     { href: '/', label: 'Início'},
     { href: '/minishopping', label: 'MiniShopping'},
     { href: '/grupos', label: 'Grupos'},
+    { href: '/vendedores', label: 'Vendedores'},
     { href: '/download', label: 'Download App'},
   ];
 
