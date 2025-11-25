@@ -9,7 +9,7 @@ import type { GroupPromotion } from '@/lib/types';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CirclePlus, Users, Globe, Info, Loader2 } from 'lucide-react';
+import { CirclePlus, Users, Globe, Info, Loader2, Check } from 'lucide-react';
 import { CreateGroupForm } from '@/components/create-group-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { requestToJoinGroup } from '@/services/product-service';
