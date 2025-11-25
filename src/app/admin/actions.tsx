@@ -24,6 +24,8 @@ const convertDocToContribution = (doc: any): Contribution => {
     userId: doc.id,
     userName: data.userName,
     amount: data.amount,
+    address: data.address,
+    location: data.location,
     createdAt: createdAtMillis,
   };
 }
@@ -139,9 +141,14 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
         const groupId = orderData.groupId;
         const ordersCol = collection(db, 'orders');
         
-        // Check for any other active orders for the same group
+        // Check for any other active orders for the same group, excluding the current one
         const activeStatuses: Order['status'][] = ['pendente', 'a aguardar lojista', 'pronto para recolha', 'a caminho', 'aguardando confirmação'];
-        const q = query(ordersCol, where('groupId', '==', groupId), where('status', 'in', activeStatuses));
+        const q = query(
+            ordersCol, 
+            where('groupId', '==', groupId), 
+            where('status', 'in', activeStatuses),
+            where('__name__', '!=', orderId) // Exclude the current order from the check
+        );
         
         const activeOrdersSnapshot = await getDocs(q);
 
