@@ -9,7 +9,8 @@ import { getUser } from '@/services/user-service';
 export async function getLojistas(searchTerm?: string): Promise<User[]> {
     try {
         const usersCol = collection(db, 'users');
-        let q = query(usersCol, where('role', '==', 'lojista'), orderBy('name'));
+        // A consulta foi simplificada para filtrar apenas por 'role'. A ordenação será feita no lado do servidor.
+        let q = query(usersCol, where('role', '==', 'lojista'));
 
         const lojistaSnapshot = await getDocs(q);
         
@@ -25,6 +26,9 @@ export async function getLojistas(searchTerm?: string): Promise<User[]> {
                 createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
             } as User;
         });
+        
+        // Ordenar os resultados aqui no servidor em vez de na consulta
+        lojistaList.sort((a, b) => a.name.localeCompare(b.name));
 
         if (searchTerm) {
             const lowercasedTerm = searchTerm.toLowerCase();
