@@ -6,6 +6,7 @@ import type { User as Lojista } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
 
 function getErrorMessage(error: any): string {
     return error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
@@ -42,11 +43,10 @@ export default async function VendedoresPage({
         </p>
       </div>
 
-      {/* TODO: Implementar um formulário de pesquisa que atualize a URL */}
-      {/* <form className="relative w-full max-w-lg mx-auto mb-8">
+      <form className="relative w-full max-w-lg mx-auto mb-8">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input type="search" name="q" placeholder="Pesquisar por vendedor..." className="pl-10 h-12 text-base" defaultValue={searchTerm} />
-      </form> */}
+      </form>
 
       {error ? (
         <Alert variant="destructive">
