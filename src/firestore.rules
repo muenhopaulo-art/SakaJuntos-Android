@@ -31,15 +31,13 @@ service cloud.firestore {
       // Users can read their own data. Admins can read any user data.
       allow read: if isOwner(userId) || isAdmin(request.auth.uid);
       
-      // New users can create their own profile.
-      allow create: if isOwner(userId);
+      // New users can create their own profile as a client or lojista.
+      allow create: if isOwner(userId) && 
+                      (request.resource.data.role == 'client' || request.resource.data.role == 'lojista');
 
-      // Users can update their own data, but cannot change their role or verification status.
-      // Admins can update any user data.
-      allow update: if (isOwner(userId) && 
-                       request.resource.data.role == resource.data.role &&
-                       request.resource.data.verificationStatus == resource.data.verificationStatus) ||
-                      isAdmin(request.auth.uid);
+      // Users can update their own data, but cannot change their role. Admins can update any user data.
+      // A client can be upgraded to a lojista by an admin.
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin(request.auth.uid);
                       
       // Only admins can delete users.
       allow delete: if isAdmin(request.auth.uid);

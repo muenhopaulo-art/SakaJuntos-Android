@@ -30,6 +30,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Checkbox } from './ui/checkbox';
+import { Label } from './ui/label';
 
 
 const phoneRegex = /^9\d{8}$/; // Aceita números de 9 dígitos que começam com 9
@@ -53,7 +55,8 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['client', 'courier']).default('client'), // Default to 'client' for client/seller
+  role: z.enum(['client', 'courier', 'lojista']).default('client'), // Default to 'client' for client/seller
+  isLojista: z.boolean().default(false),
   photo: z.any()
     .optional()
     .refine((file) => !file || file.size <= MAX_FILE_SIZE, `O tamanho máximo do ficheiro é 5MB.`)
@@ -85,7 +88,7 @@ export function AuthForm() {
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '', province: '', role: 'client' },
+    defaultValues: { name: '', phone: '', password: '', province: '', role: 'client', isLojista: false },
   });
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,7 +128,12 @@ export function AuthForm() {
             }
             
             // 2. Create user profile in our database (Firestore)
-            const roleToCreate = registerValues.role === 'courier' ? 'courier' : 'client';
+            let roleToCreate: 'client' | 'lojista' | 'courier' = 'client';
+            if (registerValues.role === 'courier') {
+              roleToCreate = 'courier';
+            } else if (registerValues.isLojista) {
+              roleToCreate = 'lojista';
+            }
 
             await createUser(user.uid, {
                 name: registerValues.name,
@@ -315,6 +323,29 @@ export function AuthForm() {
                   </FormItem>
                 )}
               />
+
+              {authMode === 'register' && (
+                <FormField
+                  control={form.control}
+                  name="isLojista"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <Label>Quero ser um vendedor</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Marque esta opção para vender os seus produtos na plataforma.
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
               
               <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

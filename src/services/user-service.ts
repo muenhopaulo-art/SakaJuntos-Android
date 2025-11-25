@@ -20,10 +20,7 @@ export async function createUser(uid: string, data: UserProfileData) {
         const userRef = doc(db, 'users', uid);
         
         await setDoc(userRef, {
-            name: data.name,
-            phone: data.phone,
-            province: data.province,
-            role: data.role,
+            ...data,
             email: `+244${data.phone}@sakajuntos.com`,
             createdAt: serverTimestamp(),
             ownerLojistaId: data.ownerLojistaId || null,
