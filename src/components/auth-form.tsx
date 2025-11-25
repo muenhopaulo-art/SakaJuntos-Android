@@ -231,7 +231,7 @@ export function AuthForm() {
                         render={({ field }) => (
                             <FormItem className="flex flex-col items-center">
                                <FormControl>
-                                    <>
+                                    <div>
                                         <input
                                             type="file"
                                             className="hidden"
@@ -248,7 +248,7 @@ export function AuthForm() {
                                                 <Camera className="h-8 w-8 text-muted-foreground"/>
                                             </AvatarFallback>
                                         </Avatar>
-                                    </>
+                                    </div>
                                 </FormControl>
                                 <p className="text-xs text-muted-foreground">Adicione o seu logo ou foto</p>
                                 <FormMessage />
