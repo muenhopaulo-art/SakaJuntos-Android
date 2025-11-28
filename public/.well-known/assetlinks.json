@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.paulospaf.sakajuntos",
+    "sha256_cert_fingerprints": [
+      "90:7E:88:C2:5E:21:40:59:74:6C:54:3B:5F:F1:C3:7E:B0:1E:0F:70:E9:9C:23:44:03:07:FF:FF:45:C2:27:0C"
+    ]
+  }
+}]
