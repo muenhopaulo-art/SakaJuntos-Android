@@ -4,7 +4,7 @@
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Logo } from './Logo';
 import { getUser, User } from '@/services/user-service';
 import { SiteHeader } from './site-header';
@@ -13,6 +13,8 @@ import { Package } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { useToast } from '@/hooks/use-toast';
+
 
 const CartProvider = dynamic(
   () => import('@/contexts/cart-provider-client'),
@@ -22,7 +24,7 @@ const CartProvider = dynamic(
 );
 
 // Allow access to the main page for the auth logic to handle roles
-const publicPaths = ['/login', '/seed', '/download'];
+const publicPaths = ['/login', '/seed'];
 const adminPaths = ['/admin', '/admin/orders', '/admin/products', '/admin/users'];
 const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos', '/lojista/agendamentos', '/lojista/entregadores', '/lojista/perfil'];
 // Client-facing paths that are not dashboards
@@ -35,6 +37,44 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [isAppUserLoading, setIsAppUserLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
+  const [lastBackPress, setLastBackPress] = useState(0);
+
+  // Back button exit logic
+  useEffect(() => {
+    const handleBackButton = (event: PopStateEvent) => {
+      // Only apply this logic for logged-in users
+      if (!user) return;
+
+      if (pathname === '/') {
+        event.preventDefault(); // Prevent default back navigation on home page
+        
+        const timeNow = new Date().getTime();
+        if (timeNow - lastBackPress < 2000) { // 2 seconds threshold
+          // Exit the app (for TWA/PWA)
+           window.close(); // This works in some PWA contexts
+           // A more robust way might be needed if window.close() fails, 
+           // but it's the standard for TWAs.
+        } else {
+          setLastBackPress(timeNow);
+          toast({
+            description: "Clique novamente para sair.",
+          });
+        }
+      } else {
+         // Default behavior for other pages
+        router.back();
+      }
+    };
+    
+    // The 'popstate' event is triggered by the browser's back button
+    window.addEventListener('popstate', handleBackButton);
+
+    return () => {
+      window.removeEventListener('popstate', handleBackButton);
+    };
+  }, [pathname, lastBackPress, toast, router, user]);
+
 
   useEffect(() => {
     const fetchAppUser = async () => {
@@ -62,8 +102,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const pathIsPublic = publicPaths.includes(pathname);
     const pathIsAdmin = adminPaths.some(p => pathname.startsWith(p));
     const pathIsLojista = lojistaPaths.some(p => pathname.startsWith(p));
-    const pathIsProductDetails = /^\/produto\/[^/]+$/.test(pathname);
-    const pathIsGroupDetails = /^\/grupos\/[^/]+$/.test(pathname);
 
     // If user is not logged in and not on a public path, redirect to login
     if (!user && !pathIsPublic) {
@@ -73,23 +111,24 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     
     if (user && appUser) {
         // Redirect logged-in users from public pages to their respective dashboards
-        if (pathIsPublic && pathname !== '/download') { // Allow logged-in users to see download page
-             if (appUser.role === 'admin') router.push('/admin');
-             else if (appUser.role === 'lojista') router.push('/lojista');
-             else if (appUser.role === 'client') router.push('/'); // Clients should go to homepage
-             else router.push('/'); // Fallback for couriers
+        if (pathIsPublic) { 
+             let destination = '/'; // Default for client/courier
+             if (appUser.role === 'admin') destination = '/admin';
+             else if (appUser.role === 'lojista') destination = '/lojista';
+             
+             router.replace(destination); // Use replace to prevent back navigation to login
              return;
         }
 
         // If an admin tries to access non-admin pages, redirect them to admin dashboard
         if (appUser.role === 'admin' && !pathIsAdmin) {
-            router.push('/admin');
+            router.replace('/admin');
             return;
         }
         
         // If a courier tries to access any protected dashboard, redirect them.
         if (appUser.role === 'courier' && (pathIsAdmin || pathIsLojista)) {
-            router.push('/');
+            router.replace('/');
             return;
         }
     }

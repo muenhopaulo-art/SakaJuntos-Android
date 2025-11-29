@@ -150,13 +150,13 @@ export function AuthForm() {
                     title: "Conta Criada!",
                     description: "O seu registo foi concluído com sucesso. A entrar...",
                 });
-                router.push('/');
+                router.replace('/'); // Use replace to clear history
             } else {
                  toast({
                     title: "Entregador Registado!",
                     description: `${registerValues.name} foi adicionado à sua equipa.`,
                 });
-                router.push('/lojista/entregadores');
+                router.replace('/lojista/entregadores'); // Use replace
             }
 
 
@@ -172,12 +172,12 @@ export function AuthForm() {
                 title: "Login bem-sucedido!",
                 description: `Bem-vindo de volta, ${appUser?.name}.`,
             });
-
+            
+            let destination = '/';
             if (appUser && appUser.role === 'admin') {
-                router.push('/admin');
-            } else {
-                router.push('/');
+                destination = '/admin';
             }
+            router.replace(destination); // Use replace to clear history
         }
 
      } catch (error: any) {
