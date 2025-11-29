@@ -56,7 +56,6 @@ export function SiteHeader() {
   }
 
   const navLinks = [
-    { href: '/', label: 'Início'},
     { href: '/minishopping', label: 'MiniShopping'},
     { href: '/grupos', label: 'Grupos'},
     { href: '/vendedores', label: 'Vendedores'},
