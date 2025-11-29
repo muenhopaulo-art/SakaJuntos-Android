@@ -15,6 +15,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 
 
@@ -44,26 +45,29 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Back button exit logic for Capacitor/Android
   useEffect(() => {
-    // This function will run only on the client side
-    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-      if (pathname === '/') {
-        const timeNow = new Date().getTime();
-        if (timeNow - lastBackPress < 2000) {
-          CapacitorApp.exitApp();
-        } else {
-          setLastBackPress(timeNow);
-          toast({
-            description: "Clique novamente para sair.",
-          });
-        }
-      } else {
-        router.back();
-      }
-    });
+    if (Capacitor.isNativePlatform()) {
+        CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+          if (pathname === '/') {
+            const timeNow = new Date().getTime();
+            if (timeNow - lastBackPress < 2000) {
+              CapacitorApp.exitApp();
+            } else {
+              setLastBackPress(timeNow);
+              toast({
+                description: "Clique novamente para sair.",
+              });
+            }
+          } else {
+            router.back();
+          }
+        });
+    }
 
     return () => {
       // Clean up the listener when the component unmounts
-      CapacitorApp.removeAllListeners();
+      if (Capacitor.isNativePlatform()) {
+        CapacitorApp.removeAllListeners();
+      }
     };
   }, [pathname, lastBackPress, toast, router]);
 
@@ -85,6 +89,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     };
 
     const registerForPushNotifications = async () => {
+        // Only run this logic on native platforms
+        if (!Capacitor.isNativePlatform()) {
+            return;
+        }
+
         try {
             let permStatus = await PushNotifications.checkPermissions();
 
