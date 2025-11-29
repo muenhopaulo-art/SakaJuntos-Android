@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ProductCard } from '@/components/product-card';
@@ -23,8 +24,8 @@ export function ProductsCarousel({ products }: ProductsCarouselProps) {
                 </CarouselItem>
                 ))}
             </CarouselContent>
-            <CarouselPrevious className="flex" />
-            <CarouselNext className="flex" />
+            <CarouselPrevious className="hidden md:flex opacity-50 hover:opacity-100" />
+            <CarouselNext className="hidden md:flex opacity-50 hover:opacity-100" />
         </Carousel>
     )
 }
