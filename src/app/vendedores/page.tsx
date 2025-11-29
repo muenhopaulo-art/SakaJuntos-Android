@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { getLojistas } from './actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Search, User, MapPin } from 'lucide-react';
@@ -58,18 +58,27 @@ function VendedorList({ allLojistas }: { allLojistas: Lojista[] }) {
 
     const handleProvinceChange = (province: string) => {
         setSelectedProvince(province);
+    };
+
+    useEffect(() => {
         const params = new URLSearchParams(searchParams.toString());
-        if (province === 'Todas as Províncias') {
-            params.delete('province');
+        if (debouncedSearch) {
+            params.set('q', debouncedSearch);
         } else {
-            params.set('province', province);
+            params.delete('q');
+        }
+        if (selectedProvince && selectedProvince !== 'Todas as Províncias') {
+            params.set('province', selectedProvince);
+        } else {
+            params.delete('province');
         }
         router.replace(`${pathname}?${params.toString()}`);
-    };
+    }, [debouncedSearch, selectedProvince, pathname, router, searchParams]);
+
 
      return (
         <>
-            <div className="flex flex-col md:flex-row gap-4 w-full max-w-lg mx-auto mb-8">
+            <div className="flex flex-col md:flex-row gap-4 w-full max-w-2xl mx-auto mb-8">
                 <div className="relative flex-grow">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
@@ -125,20 +134,24 @@ function VendedorList({ allLojistas }: { allLojistas: Lojista[] }) {
 }
 
 
-export default async function VendedoresPage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
-  let lojistas: Lojista[] = [];
-  let error: string | null = null;
+export default function VendedoresPageWrapper() {
+  const [lojistas, setLojistas] = useState<Lojista[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  try {
-    // We fetch all lojistas here, filtering will be done on the client
-    lojistas = await getLojistas();
-  } catch (e) {
-    error = getErrorMessage(e);
-  }
+  useEffect(() => {
+    async function fetchLojistas() {
+        try {
+            const data = await getLojistas();
+            setLojistas(data);
+        } catch (e) {
+            setError(getErrorMessage(e));
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchLojistas();
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -149,7 +162,9 @@ export default async function VendedoresPage({
         </p>
       </div>
 
-      {error ? (
+      {loading ? (
+        <p>A carregar vendedores...</p>
+      ) : error ? (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Erro ao Carregar Vendedores</AlertTitle>
