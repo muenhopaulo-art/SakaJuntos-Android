@@ -20,8 +20,6 @@ export function ProductsCarousel({ products }: ProductsCarouselProps) {
         <Carousel
             opts={{ align: "start", loop: true }}
             plugins={[plugin.current]}
-            onMouseEnter={plugin.current.stop}
-            onMouseLeave={plugin.current.reset}
             className="w-full"
             >
             <CarouselContent className="-ml-4">
