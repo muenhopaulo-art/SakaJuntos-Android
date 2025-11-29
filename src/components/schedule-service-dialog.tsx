@@ -37,7 +37,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import type { Product, Geolocation } from '@/lib/types';
-import type { Geolocation as CapacitorGeolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
+import type { Geolocation as CapacitorGeolocationPlugin } from '@capacitor/geolocation';
 
 const scheduleSchema = z.object({
   requestedDate: z.date({ required_error: 'A data do agendamento é obrigatória.' }),
@@ -51,23 +52,42 @@ interface ScheduleServiceDialogProps {
     children: React.ReactNode;
 }
 
-const requestLocationPermission = async (): Promise<CapacitorGeolocation> => {
-  const { Geolocation } = await import('@capacitor/geolocation');
-  let permStatus = await Geolocation.checkPermissions();
+const requestLocationPermission = async (): Promise<Geolocation> => {
+  if (Capacitor.isNativePlatform()) {
+    const { Geolocation } = await import('@capacitor/geolocation');
+    let permStatus = await Geolocation.checkPermissions();
 
-  if (permStatus.location === 'denied') {
-    throw new Error('Permissão de localização negada. Por favor, ative nas configurações da aplicação.');
-  }
+    if (permStatus.location === 'denied') {
+      throw new Error('Permissão de localização negada. Por favor, ative nas configurações da aplicação.');
+    }
 
-  if (permStatus.location === 'prompt') {
-    permStatus = await Geolocation.requestPermissions();
-  }
+    if (permStatus.location === 'prompt') {
+      permStatus = await Geolocation.requestPermissions();
+    }
 
-  if (permStatus.location !== 'granted') {
-     throw new Error('A permissão de localização é necessária para esta funcionalidade.');
+    if (permStatus.location !== 'granted') {
+       throw new Error('A permissão de localização é necessária para esta funcionalidade.');
+    }
+    
+    const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+    return { latitude: position.coords.latitude, longitude: position.coords.longitude };
+
+  } else {
+    // Web fallback
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            return reject(new Error("A geolocalização não é suportada pelo seu navegador."));
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            }),
+            (error) => reject(new Error(`Erro ao obter localização: ${error.message}`)),
+            { enableHighAccuracy: true }
+        );
+    });
   }
-  
-  return Geolocation;
 };
 
 export function ScheduleServiceDialog({ product, children }: ScheduleServiceDialogProps) {
@@ -93,13 +113,9 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
     setLocation(null);
     setValue('address', '');
     try {
-        const Geolocation = await requestLocationPermission();
-        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-
-        const { latitude, longitude } = position.coords;
-        const newLocation = { latitude, longitude };
+        const newLocation = await requestLocationPermission();
         setLocation(newLocation);
-        setValue('address', `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`, { shouldValidate: true });
+        setValue('address', `Lat: ${newLocation.latitude.toFixed(5)}, Lon: ${newLocation.longitude.toFixed(5)}`, { shouldValidate: true });
         toast({ title: 'Localização Obtida!', description: 'O seu endereço foi preenchido com as suas coordenadas.' });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Erro de Localização', description: error.message || 'Não foi possível obter a sua localização.' });
@@ -285,3 +301,5 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
     </Dialog>
   );
 }
+
+    

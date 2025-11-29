@@ -32,7 +32,8 @@ import { approveJoinRequest } from '@/services/product-service';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import type { Geolocation as CapacitorGeolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
+import type { Geolocation as CapacitorGeolocationPlugin } from '@capacitor/geolocation';
 
 const SHIPPING_COST_PER_MEMBER = 1000;
 const provinces = [ "Bengo", "Benguela", "Bié", "Cabinda", "Quando Cubango", "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"];
@@ -44,23 +45,42 @@ const formatTime = (seconds: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-const requestLocationPermission = async (): Promise<CapacitorGeolocation> => {
-  const { Geolocation } = await import('@capacitor/geolocation');
-  let permStatus = await Geolocation.checkPermissions();
+const requestLocationPermission = async (): Promise<Geolocation> => {
+  if (Capacitor.isNativePlatform()) {
+    const { Geolocation } = await import('@capacitor/geolocation');
+    let permStatus = await Geolocation.checkPermissions();
 
-  if (permStatus.location === 'denied') {
-    throw new Error('Permissão de localização negada. Por favor, ative nas configurações da aplicação.');
-  }
+    if (permStatus.location === 'denied') {
+      throw new Error('Permissão de localização negada. Por favor, ative nas configurações da aplicação.');
+    }
 
-  if (permStatus.location === 'prompt') {
-    permStatus = await Geolocation.requestPermissions();
-  }
+    if (permStatus.location === 'prompt') {
+      permStatus = await Geolocation.requestPermissions();
+    }
 
-  if (permStatus.location !== 'granted') {
-     throw new Error('A permissão de localização é necessária para esta funcionalidade.');
+    if (permStatus.location !== 'granted') {
+       throw new Error('A permissão de localização é necessária para esta funcionalidade.');
+    }
+    
+    const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+    return { latitude: position.coords.latitude, longitude: position.coords.longitude };
+
+  } else {
+    // Web fallback
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            return reject(new Error("A geolocalização não é suportada pelo seu navegador."));
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            }),
+            (error) => reject(new Error(`Erro ao obter localização: ${error.message}`)),
+            { enableHighAccuracy: true }
+        );
+    });
   }
-  
-  return Geolocation;
 };
 
 const AudioPlayer = ({ src, isSender }: { src: string, isSender: boolean }) => {
@@ -294,13 +314,9 @@ function ContributionDialog({ contributionPerMember, onConfirm, open, onOpenChan
         setLocation(null);
         setAddress('');
         try {
-            const Geolocation = await requestLocationPermission();
-            const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-    
-            const { latitude, longitude } = position.coords;
-            const newLocation = { latitude, longitude };
+            const newLocation = await requestLocationPermission();
             setLocation(newLocation);
-            setAddress(`Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`);
+            setAddress(`Lat: ${newLocation.latitude.toFixed(5)}, Lon: ${newLocation.longitude.toFixed(5)}`);
             toast({ title: 'Localização Obtida!', description: 'O seu endereço foi preenchido com as suas coordenadas.' });
         } catch (error: any) {
              toast({ variant: 'destructive', title: 'Erro de Localização', description: error.message || 'Não foi possível obter a sua localização.' });
@@ -1158,5 +1174,7 @@ export default function GroupDetailPage() {
         </div>
     );
 }
+
+    
 
     
