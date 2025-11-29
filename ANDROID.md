@@ -1,3 +1,4 @@
+
 # Como Gerar a Aplicação Android (APK)
 
 Este guia explica como compilar a sua aplicação web progressiva (PWA) num ficheiro de aplicação Android (`.apk`) que pode ser publicado na Google Play Store.

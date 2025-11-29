@@ -488,23 +488,14 @@ export default function GroupDetailPage() {
     // Fetch static products data and lojista data
     const fetchProductsAndLojistas = async () => {
         try {
-            const fetchedProducts = await getProducts();
+            const { products: fetchedProducts, lojistas: lojistaMapData } = await getProducts();
             setProducts(fetchedProducts);
-
-            const lojistaIds = [...new Set(fetchedProducts.map(p => p.lojistaId).filter(Boolean))];
-            
-            if (lojistaIds.length > 0) {
-                const lojistaPromises = lojistaIds.map(id => getUser(id!));
-                const lojistaResults = await Promise.all(lojistaPromises);
-                
-                const lojistaMap: {[key: string]: User} = {};
-                lojistaResults.forEach(lojista => {
-                    if (lojista) {
-                        lojistaMap[lojista.uid] = lojista;
-                    }
-                });
-                setLojistas(lojistaMap);
+            // Convert Map to object for state
+            const lojistaObj: {[key: string]: User} = {};
+            for (const [key, value] of lojistaMapData.entries()) {
+                lojistaObj[key] = value;
             }
+            setLojistas(lojistaObj);
         } catch (e) {
             console.error("Failed to fetch products or lojistas", e);
             toast({variant: 'destructive', title: "Erro ao carregar produtos"});
