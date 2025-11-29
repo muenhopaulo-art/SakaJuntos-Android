@@ -10,7 +10,7 @@ Para seguir estes passos, você precisa de ter o seguinte software instalado no 
 
 1.  **Node.js**: Se você está a correr este projeto, provavelmente já o tem.
 2.  **Java Development Kit (JDK)**: Versão 11 ou mais recente. Você pode descarregá-lo [aqui](https://www.oracle.com/java/technologies/downloads/).
-3.  **Android Studio (Recomendado)**: Embora não seja estritamente necessário para a compilação, você vai precisar dele para gerir o SDK do Android e criar a chave de assinatura da sua aplicação. Pode descarregá-lo [aqui](https://developer.android.com/studio).
+3.  **Android Studio**: Você vai precisar dele para gerir o SDK do Android, criar a chave de assinatura e configurar as notificações push. Pode descarregá-lo [aqui](https://developer.android.com/studio).
 
 ---
 
@@ -35,36 +35,30 @@ Após este passo, você terá uma nova pasta `android` no seu projeto.
 
 ---
 
-## Passo 2: Adicionar Permissões de Localização (IMPORTANTE)
+## Passo 2: Configurar Permissões e Notificações (IMPORTANTE)
 
-Para que a funcionalidade de geolocalização funcione corretamente na aplicação Android, você **precisa** de adicionar manualmente as permissões ao ficheiro de manifesto do Android.
+Para que a geolocalização e as notificações push funcionem, você precisa de fazer algumas configurações manuais no projeto Android.
 
-1.  Abra o seu projeto no **Android Studio** (abra a pasta `android` que foi gerada).
-2.  Navegue até ao ficheiro `app/src/main/AndroidManifest.xml`.
-3.  Adicione as seguintes duas linhas dentro da tag `<manifest>`, logo antes da tag `<application>`:
+1.  **Abra o seu projeto no Android Studio** (selecione a pasta `android` que foi gerada na raiz do seu projeto).
+2.  **Adicione as Permissões de Localização:**
+    *   Navegue até ao ficheiro `app/src/main/AndroidManifest.xml`.
+    *   Adicione as seguintes duas linhas dentro da tag `<manifest>`, logo antes da tag `<application>`:
 
-```xml
+    ```xml
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-```
+    ```
 
-O início do seu ficheiro `AndroidManifest.xml` deverá ficar parecido com isto:
+3.  **Configure o Firebase para Notificações Push:**
+    *   Vá à [Consola do Firebase](https://console.firebase.google.com/) e selecione o seu projeto.
+    *   Nas Definições do Projeto (`Project Settings`), na secção "Os seus projetos", clique no ícone do Android para adicionar uma aplicação Android.
+    *   **Nome do pacote Android:** Insira `app.web.firebasestudio_app.twa`.
+    *   Clique em "Registar aplicação".
+    *   **Descarregue o ficheiro de configuração:** Clique para descarregar o ficheiro `google-services.json`.
+    *   **Mova o `google-services.json`:** Coloque o ficheiro que descarregou dentro da pasta `android/app` do seu projeto.
+    *   Pode ignorar os passos seguintes na consola do Firebase (adicionar SDK, etc.), pois o Bubblewrap já trata disso.
 
-```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="app.web.firebasestudio_app.twa">
-
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-
-    <application
-        ... >
-        ...
-    </application>
-</manifest>
-```
-
-Salve o ficheiro após fazer a alteração.
+Após estes passos, a sua aplicação estará configurada para usar localização e receber notificações push.
 
 ---
 

@@ -15,6 +15,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { App as CapacitorApp } from '@capacitor/app';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 
 const CartProvider = dynamic(
@@ -73,6 +74,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         try {
           const profile = await getUser(user.uid);
           setAppUser(profile);
+          // Register for push notifications once we have the user
+          registerForPushNotifications();
         } catch (error) {
           console.error("Error fetching app user, signing out", error);
           auth.signOut();
@@ -81,10 +84,43 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       setIsAppUserLoading(false);
     };
 
+    const registerForPushNotifications = async () => {
+        try {
+            let permStatus = await PushNotifications.checkPermissions();
+
+            if (permStatus.receive === 'prompt') {
+                permStatus = await PushNotifications.requestPermissions();
+            }
+
+            if (permStatus.receive !== 'granted') {
+                throw new Error('User denied permissions!');
+            }
+
+            await PushNotifications.register();
+
+            // Example listeners for when notifications are received
+            PushNotifications.addListener('pushNotificationReceived', notification => {
+                console.log('Push notification received: ', notification);
+                // Optionally show a local notification or update UI
+            });
+
+            PushNotifications.addListener('pushNotificationActionPerformed', notification => {
+                console.log('Push notification action performed', notification.actionId, notification.inputValue);
+                const link = notification.notification.data.link;
+                if (link) {
+                    router.push(link);
+                }
+            });
+
+        } catch (e) {
+            console.error('Error with push notifications', e);
+        }
+    }
+
     if (!loading) {
       fetchAppUser();
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
 
   useEffect(() => {
