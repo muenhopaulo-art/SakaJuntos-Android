@@ -103,14 +103,33 @@ export async function convertDocToGroupPromotion(id: string, data: DocumentData)
     return promotion;
 }
 
-export async function getProducts(searchTerm?: string): Promise<Product[]> {
+export async function getProducts(searchTerm?: string): Promise<{ products: Product[], lojistas: Map<string, User> }> {
   const productsCollection = collection(db, 'products');
-  // We remove orderBy to avoid needing a composite index for client-side filtering.
-  // The sorting will be handled on the client (e.g., by promotion status).
   const q = query(productsCollection);
   const productSnapshot = await getDocs(q);
   let productList = productSnapshot.docs.map(convertDocToProduct);
   
+  // Step 1: Get all unique lojista IDs from the products
+  const lojistaIds = new Set<string>();
+  productList.forEach(product => {
+      if (product.lojistaId) {
+          lojistaIds.add(product.lojistaId);
+      }
+  });
+
+  // Step 2: Fetch all necessary lojista profiles in a single batch
+  const lojistaMap = new Map<string, User>();
+  if (lojistaIds.size > 0) {
+      const lojistaPromises = Array.from(lojistaIds).map(id => getUser(id));
+      const lojistaResults = await Promise.all(lojistaPromises);
+      lojistaResults.forEach(user => {
+          if (user) {
+              lojistaMap.set(user.uid, user);
+          }
+      });
+  }
+  
+  // Step 3: Optional search filtering
   if (searchTerm) {
     const lowercasedTerm = searchTerm.toLowerCase();
     productList = productList.filter(p => 
@@ -119,8 +138,9 @@ export async function getProducts(searchTerm?: string): Promise<Product[]> {
     );
   }
   
-  return productList;
+  return { products: productList, lojistas: lojistaMap };
 }
+
 
 export async function getGroupPromotions(searchTerm?: string): Promise<GroupPromotion[]> {
     let q = query(collection(db, 'groupPromotions'), orderBy("name"));

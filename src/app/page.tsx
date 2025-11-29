@@ -3,13 +3,13 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getProducts, getGroupPromotions } from '@/services/product-service';
 import { AlertTriangle, ShoppingBag, Search } from 'lucide-react';
-import type { Product, GroupPromotion } from '@/lib/types';
+import type { Product, GroupPromotion, User } from '@/lib/types';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { HomePageClient } from '@/components/home-page-client';
 import { ProductsCarousel } from '@/components/products-carousel';
 import { Separator } from '@/components/ui/separator';
-import { ProductList } from './minishopping/product-list';
+import { ProductList } from '@/app/minishopping/product-list';
 import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -29,14 +29,18 @@ function getErrorMessage(error: any): string {
 
 export default async function HomePage() {
   let allProducts: Product[] = [];
+  let lojistasMap: Map<string, User> = new Map();
   let groupPromotions: GroupPromotion[] = [];
   let error: string | null = null;
 
   try {
-    [allProducts, groupPromotions] = await Promise.all([
+    const [{ products, lojistas }, promotions] = await Promise.all([
         getProducts(),
         getGroupPromotions()
     ]);
+    allProducts = products;
+    lojistasMap = lojistas;
+    groupPromotions = promotions;
   } catch (e: any) {
     console.error(e);
     error = getErrorMessage(e);
@@ -45,15 +49,6 @@ export default async function HomePage() {
   const hasData = allProducts.length > 0 || groupPromotions.length > 0;
   const promotedProducts = allProducts.filter(p => p.isPromoted === 'active');
   
-  // Separate promoted and non-promoted products
-  const nonPromotedProducts = allProducts.filter(p => p.isPromoted !== 'active');
-  
-  // Shuffle non-promoted products
-  const shuffledNonPromoted = [...nonPromotedProducts].sort(() => 0.5 - Math.random());
-
-  // The final list for the feed will be handled by ProductList, but we can pass the shuffled version
-  const shuffledProductsForFeed = [...promotedProducts, ...shuffledNonPromoted];
-
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -110,7 +105,7 @@ export default async function HomePage() {
                         Encontre tudo o que precisa, à distância de um clique.
                     </p>
                 </div>
-                <ProductList allProducts={shuffledProductsForFeed} />
+                <ProductList allProducts={allProducts} lojistasMap={lojistasMap} />
             </section>
         </div>
       )}

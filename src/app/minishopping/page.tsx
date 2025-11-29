@@ -3,7 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getProducts } from '@/services/product-service';
 import { AlertTriangle, Search } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import type { Product, User } from '@/lib/types';
 import { ProductList } from './product-list';
 import { Input } from '@/components/ui/input';
 
@@ -28,10 +28,13 @@ export default async function MiniShoppingPage({
   const searchTerm = typeof searchParams?.q === 'string' ? searchParams.q : undefined;
   
   let allProducts: Product[] = [];
+  let lojistasMap: Map<string, User> = new Map();
   let error: string | null = null;
 
   try {
-    allProducts = await getProducts();
+    const { products, lojistas } = await getProducts();
+    allProducts = products;
+    lojistasMap = lojistas;
   } catch (e) {
     console.error(e);
     error = getErrorMessage(e);
@@ -55,7 +58,7 @@ export default async function MiniShoppingPage({
           </AlertDescription>
         </Alert>
       ) : (
-        <ProductList allProducts={allProducts} initialSearchTerm={searchTerm} />
+        <ProductList allProducts={allProducts} lojistasMap={lojistasMap} initialSearchTerm={searchTerm} />
       )}
     </div>
   );

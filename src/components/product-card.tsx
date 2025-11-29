@@ -54,6 +54,9 @@ export function ProductCard({ product, lojistasMap, onAddToCart }: ProductCardPr
              {isOwner && (
                 <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">Seu Produto</div>
             )}
+             {product.isPromoted === 'active' && !isOwner && (
+                <div className="absolute top-2 left-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-full">Promovido</div>
+             )}
         </div>
         <div className="flex-grow">
           <p className="text-xs text-muted-foreground capitalize">{product.category}</p>

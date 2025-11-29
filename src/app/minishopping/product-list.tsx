@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition, useCallback, useRef, useMemo } from 'react';
@@ -6,18 +7,34 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product-card';
 import { Search, Loader2 } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import type { Product, User } from '@/lib/types';
 import Link from 'next/link';
 import { useDebounce } from 'use-debounce';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { getUser } from '@/services/user-service';
 
 interface ProductListProps {
     allProducts: Product[];
+    lojistasMap: Map<string, User>;
     initialSearchTerm?: string;
 }
 
 const ITEMS_PER_PAGE = 8;
+const PROMOTED_INTERVAL = 5; // Insert a promoted product every 5 items
 
-export function ProductList({ allProducts, initialSearchTerm = '' }: ProductListProps) {
+// Helper function to shuffle an array
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+
+export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }: ProductListProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -25,36 +42,86 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
   
   const [searchTerm, setSearchTerm] = useState(q);
   const [isPending, startTransition] = useTransition();
-
-  // Debounce the search term that comes from the URL or initial prop
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
-  const filteredProducts = useMemo(() => {
-    // Separate promoted and non-promoted for prioritization
-    const promoted = allProducts.filter(p => p.isPromoted === 'active');
-    const notPromoted = allProducts.filter(p => p.isPromoted !== 'active');
+  const [user] = useAuthState(auth);
+  const [appUser, setAppUser] = useState<User | null>(null);
 
-    if (!debouncedSearchTerm) {
-      // If no search term, return promoted first, then the rest (already shuffled from server)
-      return [...promoted, ...notPromoted];
+  useEffect(() => {
+    if(user) {
+      getUser(user.uid).then(setAppUser);
+    }
+  }, [user]);
+
+  const filteredProducts = useMemo(() => {
+    // 1. Filter by search term first
+    let products = allProducts;
+    if (debouncedSearchTerm) {
+      const lowercasedTerm = debouncedSearchTerm.toLowerCase();
+      products = allProducts.filter(p => 
+        p.name.toLowerCase().includes(lowercasedTerm) ||
+        p.category.toLowerCase().includes(lowercasedTerm)
+      );
+    }
+
+    // 2. Separate into categories
+    const promoted = products.filter(p => p.isPromoted === 'active');
+    const nonPromoted = products.filter(p => p.isPromoted !== 'active');
+    
+    const userProvince = appUser?.province;
+    
+    // 3. Create location-based and other lists for non-promoted products
+    let localProducts: Product[] = [];
+    let otherProducts: Product[] = [];
+
+    if(userProvince) {
+      nonPromoted.forEach(p => {
+        const lojista = p.lojistaId ? lojistasMap.get(p.lojistaId) : null;
+        if(lojista && lojista.province === userProvince) {
+          localProducts.push(p);
+        } else {
+          otherProducts.push(p);
+        }
+      });
+    } else {
+      // If no user or no province, all non-promoted are "other"
+      otherProducts = nonPromoted;
+    }
+
+    // 4. Shuffle the different buckets
+    const shuffledPromoted = shuffleArray(promoted);
+    const shuffledLocal = shuffleArray(localProducts);
+    const shuffledOthers = shuffleArray(otherProducts);
+
+    // 5. Build the final feed
+    const baseFeed = [...shuffledLocal, ...shuffledOthers];
+    
+    if (shuffledPromoted.length === 0) {
+      return baseFeed;
+    }
+
+    // TikTok-like algorithm: Intersperse promoted products
+    const finalFeed: Product[] = [];
+    let promotedIndex = 0;
+    for (let i = 0; i < baseFeed.length; i++) {
+      finalFeed.push(baseFeed[i]);
+      // After every N items, insert a promoted item
+      if ((i + 1) % PROMOTED_INTERVAL === 0) {
+        finalFeed.push(shuffledPromoted[promotedIndex % shuffledPromoted.length]);
+        promotedIndex++;
+      }
     }
     
-    const lowercasedTerm = debouncedSearchTerm.toLowerCase();
-    
-    // Filter both lists
-    const filteredPromoted = promoted.filter(p => 
-      p.name.toLowerCase().includes(lowercasedTerm) ||
-      p.category.toLowerCase().includes(lowercasedTerm)
-    );
-    const filteredNotPromoted = notPromoted.filter(p => 
-      p.name.toLowerCase().includes(lowercasedTerm) ||
-      p.category.toLowerCase().includes(lowercasedTerm)
-    );
-    
-    // Return filtered promoted products first
-    return [...filteredPromoted, ...filteredNotPromoted];
+    // Add any remaining promoted products that weren't inserted
+    while(promotedIndex < shuffledPromoted.length) {
+       finalFeed.push(shuffledPromoted[promotedIndex]);
+       promotedIndex++;
+    }
 
-  }, [allProducts, debouncedSearchTerm]);
+
+    return finalFeed;
+
+  }, [allProducts, lojistasMap, debouncedSearchTerm, appUser]);
   
   const [displayedProducts, setDisplayedProducts] = useState(filteredProducts.slice(0, ITEMS_PER_PAGE));
   const [offset, setOffset] = useState(ITEMS_PER_PAGE);
@@ -173,7 +240,7 @@ export function ProductList({ allProducts, initialSearchTerm = '' }: ProductList
         <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4">
             {displayedProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} lojistasMap={lojistasMap} />
             ))}
             </div>
              {/* Loader ref for infinite scroll */}
