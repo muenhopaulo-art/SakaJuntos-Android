@@ -35,7 +35,40 @@ Após este passo, você terá uma nova pasta `android` no seu projeto.
 
 ---
 
-## Passo 2: Compilar (Build) a Aplicação
+## Passo 2: Adicionar Permissões de Localização (IMPORTANTE)
+
+Para que a funcionalidade de geolocalização funcione corretamente na aplicação Android, você **precisa** de adicionar manualmente as permissões ao ficheiro de manifesto do Android.
+
+1.  Abra o seu projeto no **Android Studio** (abra a pasta `android` que foi gerada).
+2.  Navegue até ao ficheiro `app/src/main/AndroidManifest.xml`.
+3.  Adicione as seguintes duas linhas dentro da tag `<manifest>`, logo antes da tag `<application>`:
+
+```xml
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+```
+
+O início do seu ficheiro `AndroidManifest.xml` deverá ficar parecido com isto:
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.web.firebasestudio_app.twa">
+
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application
+        ... >
+        ...
+    </application>
+</manifest>
+```
+
+Salve o ficheiro após fazer a alteração.
+
+---
+
+## Passo 3: Compilar (Build) a Aplicação
 
 Este é o passo que você irá repetir sempre que quiser gerar um novo `.apk` (por exemplo, após fazer atualizações importantes na sua PWA).
 
@@ -54,7 +87,7 @@ Ao final do processo, você encontrará os seguintes ficheiros importantes:
 
 ---
 
-## Passo 3: Publicar o `assetlinks.json`
+## Passo 4: Publicar o `assetlinks.json`
 
 Para que a sua aplicação TWA funcione corretamente (em tela cheia, sem a barra do browser), você precisa de alojar o ficheiro `assetlinks.json` no seu site.
 

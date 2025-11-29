@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import type { Product, Geolocation } from '@/lib/types';
+import type { Geolocation as CapacitorGeolocation } from '@capacitor/geolocation';
 
 const scheduleSchema = z.object({
   requestedDate: z.date({ required_error: 'A data do agendamento é obrigatória.' }),
@@ -49,6 +50,25 @@ interface ScheduleServiceDialogProps {
     product: Product;
     children: React.ReactNode;
 }
+
+const requestLocationPermission = async (): Promise<CapacitorGeolocation> => {
+  const { Geolocation } = await import('@capacitor/geolocation');
+  let permStatus = await Geolocation.checkPermissions();
+
+  if (permStatus.location === 'denied') {
+    throw new Error('Permissão de localização negada. Por favor, ative nas configurações da aplicação.');
+  }
+
+  if (permStatus.location === 'prompt') {
+    permStatus = await Geolocation.requestPermissions();
+  }
+
+  if (permStatus.location !== 'granted') {
+     throw new Error('A permissão de localização é necessária para esta funcionalidade.');
+  }
+  
+  return Geolocation;
+};
 
 export function ScheduleServiceDialog({ product, children }: ScheduleServiceDialogProps) {
   const [open, setOpen] = useState(false);
@@ -68,26 +88,24 @@ export function ScheduleServiceDialog({ product, children }: ScheduleServiceDial
 
   const { isSubmitting, setValue } = form;
 
-  const handleGetLocation = () => {
+  const handleGetLocation = async () => {
     setIsFetchingLocation(true);
     setLocation(null);
     setValue('address', '');
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const { latitude, longitude } = position.coords;
-            const newLocation = { latitude, longitude };
-            setLocation(newLocation);
-            setValue('address', `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`, { shouldValidate: true });
-            toast({ title: 'Localização Obtida!', description: 'O seu endereço foi preenchido com as suas coordenadas.' });
-            setIsFetchingLocation(false);
-        },
-        (error) => {
-            console.error("Geolocation error:", error);
-            toast({ variant: 'destructive', title: 'Erro de Localização', description: 'Não foi possível obter a sua localização. Verifique as permissões do navegador.' });
-            setIsFetchingLocation(false);
-        },
-        { enableHighAccuracy: true }
-    );
+    try {
+        const Geolocation = await requestLocationPermission();
+        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+
+        const { latitude, longitude } = position.coords;
+        const newLocation = { latitude, longitude };
+        setLocation(newLocation);
+        setValue('address', `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`, { shouldValidate: true });
+        toast({ title: 'Localização Obtida!', description: 'O seu endereço foi preenchido com as suas coordenadas.' });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Erro de Localização', description: error.message || 'Não foi possível obter a sua localização.' });
+    } finally {
+        setIsFetchingLocation(false);
+    }
   };
 
 
