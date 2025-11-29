@@ -1,18 +1,25 @@
 
 'use client';
 
+import * as React from 'react';
 import { ProductCard } from '@/components/product-card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import type { Product } from '@/lib/types';
+import Autoplay from 'embla-carousel-autoplay';
 
 interface ProductsCarouselProps {
     products: Product[];
 }
 
 export function ProductsCarousel({ products }: ProductsCarouselProps) {
+    const plugin = React.useRef(
+        Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
+    );
+    
     return (
         <Carousel
-            opts={{ align: "start", loop: true, watchDrag: true }}
+            opts={{ align: "start", loop: true }}
+            plugins={[plugin.current]}
             className="w-full"
             >
             <CarouselContent className="-ml-4">
