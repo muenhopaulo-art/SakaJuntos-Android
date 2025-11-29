@@ -58,7 +58,7 @@ export default async function VendedoresPage({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {lojistas.map((lojista) => (
             <Link key={lojista.uid} href={`/vendedores/${lojista.uid}`}>
-              <Card className="h-full transition-all hover:shadow-md hover:-translate-y-1">
+              <Card className="h-full hover:shadow-md hover:-translate-y-1">
                 <CardContent className="p-6 flex flex-col items-center text-center">
                   <Avatar className="h-20 w-20 mb-4">
                     <AvatarImage src={lojista.photoURL} alt={lojista.name} />
