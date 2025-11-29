@@ -14,6 +14,7 @@ import { Button } from './ui/button';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
+import { App as CapacitorApp } from '@capacitor/app';
 
 
 const CartProvider = dynamic(
@@ -40,21 +41,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const [lastBackPress, setLastBackPress] = useState(0);
 
-  // Back button exit logic
+  // Back button exit logic for Capacitor/Android
   useEffect(() => {
-    const handleBackButton = (event: PopStateEvent) => {
-      // Only apply this logic for logged-in users
-      if (!user) return;
-
+    // This function will run only on the client side
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
       if (pathname === '/') {
-        event.preventDefault(); // Prevent default back navigation on home page
-        
         const timeNow = new Date().getTime();
-        if (timeNow - lastBackPress < 2000) { // 2 seconds threshold
-          // Exit the app (for TWA/PWA)
-           window.close(); // This works in some PWA contexts
-           // A more robust way might be needed if window.close() fails, 
-           // but it's the standard for TWAs.
+        if (timeNow - lastBackPress < 2000) {
+          CapacitorApp.exitApp();
         } else {
           setLastBackPress(timeNow);
           toast({
@@ -62,18 +56,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           });
         }
       } else {
-         // Default behavior for other pages
         router.back();
       }
-    };
-    
-    // The 'popstate' event is triggered by the browser's back button
-    window.addEventListener('popstate', handleBackButton);
+    });
 
     return () => {
-      window.removeEventListener('popstate', handleBackButton);
+      // Clean up the listener when the component unmounts
+      CapacitorApp.removeAllListeners();
     };
-  }, [pathname, lastBackPress, toast, router, user]);
+  }, [pathname, lastBackPress, toast, router]);
 
 
   useEffect(() => {
