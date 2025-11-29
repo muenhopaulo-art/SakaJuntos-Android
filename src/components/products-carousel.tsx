@@ -13,7 +13,7 @@ interface ProductsCarouselProps {
 
 export function ProductsCarousel({ products }: ProductsCarouselProps) {
     const plugin = React.useRef(
-        Autoplay({ delay: 1000, stopOnInteraction: true, stopOnMouseEnter: true })
+        Autoplay({ delay: 2000, stopOnInteraction: true })
     );
     
     return (
