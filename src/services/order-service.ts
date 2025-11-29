@@ -4,6 +4,7 @@
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDocs } from 'firebase/firestore';
 import type { Order, Contribution, OrderItem, CartItem } from '@/lib/types';
+import { createNotification } from './notification-service';
 
 /**
  * Creates a final order in the 'orders' collection. This can be for individual or group purchases.
@@ -65,6 +66,17 @@ export async function createOrder(
 
     // 3. Commit the batch
     await batch.commit();
+    
+    // 4. Notify the lojista about the new order
+    if (lojistaId) {
+        await createNotification({
+            userId: lojistaId,
+            title: "Novo Pedido Recebido!",
+            message: `Recebeu um novo pedido de ${orderData.clientName}.`,
+            link: '/lojista/pedidos'
+        });
+    }
+
 
     return { success: true, id: orderRef.id };
   } catch (error) {
