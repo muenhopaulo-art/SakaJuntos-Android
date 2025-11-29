@@ -3,34 +3,36 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, orderBy, doc, collectionGroup } from 'firebase/firestore';
 import type { User, Product } from '@/lib/types';
 import { getUser } from '@/services/user-service';
 
 export async function getLojistas(searchTerm?: string): Promise<User[]> {
     try {
-        const usersCol = collection(db, 'users');
-        // A consulta foi simplificada para filtrar apenas por 'role'. A ordenação será feita no lado do servidor.
-        let q = query(usersCol, where('role', '==', 'lojista'));
-
-        const lojistaSnapshot = await getDocs(q);
+        // Step 1: Get all products to find unique seller IDs
+        const productsCol = collection(db, 'products');
+        const productsSnapshot = await getDocs(productsCol);
         
-        let lojistaList = lojistaSnapshot.docs.map(doc => {
+        const lojistaIds = new Set<string>();
+        productsSnapshot.forEach(doc => {
             const data = doc.data();
-            return {
-                uid: doc.id,
-                name: data.name,
-                phone: data.phone,
-                email: data.email,
-                province: data.province,
-                role: data.role,
-                createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
-            } as User;
+            if (data.lojistaId) {
+                lojistaIds.add(data.lojistaId);
+            }
         });
+
+        if (lojistaIds.size === 0) {
+            return [];
+        }
+
+        // Step 2: Fetch user profiles for these unique IDs
+        const lojistaPromises = Array.from(lojistaIds).map(id => getUser(id));
+        let lojistaList = (await Promise.all(lojistaPromises)).filter(user => user !== null) as User[];
         
-        // Ordenar os resultados aqui no servidor em vez de na consulta
+        // Sort the results alphabetically by name
         lojistaList.sort((a, b) => a.name.localeCompare(b.name));
 
+        // Step 3: If there's a search term, filter the results
         if (searchTerm) {
             const lowercasedTerm = searchTerm.toLowerCase();
             lojistaList = lojistaList.filter(l => l.name.toLowerCase().includes(lowercasedTerm));
@@ -47,7 +49,7 @@ export async function getLojistas(searchTerm?: string): Promise<User[]> {
 export async function getLojistaProfile(id: string): Promise<{ lojista: User | null; products: Product[] }> {
     try {
         const lojista = await getUser(id);
-        if (!lojista || lojista.role !== 'lojista') {
+        if (!lojista) { // We no longer check for role, just if the user exists
             throw new Error('Vendedor não encontrado.');
         }
 

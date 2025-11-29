@@ -55,8 +55,8 @@ const registerSchema = z.object({
   phone: z.string().regex(phoneRegex, 'Por favor, insira um número de telemóvel angolano válido (9 dígitos).'),
   province: z.string().min(1, { message: 'Por favor, selecione a sua província.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
-  role: z.enum(['client', 'courier', 'lojista']).default('client'), // Default to 'client' for client/seller
-  isLojista: z.boolean().default(false),
+  role: z.enum(['client', 'courier', 'lojista']).default('lojista'), // Default to 'lojista'
+  isLojista: z.boolean().default(true), // Always true now
   photo: z.any()
     .optional()
     .refine((file) => !file || file.size <= MAX_FILE_SIZE, `O tamanho máximo do ficheiro é 5MB.`)
@@ -88,7 +88,7 @@ export function AuthForm() {
   
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', password: '', province: '', role: 'client', isLojista: false },
+    defaultValues: { name: '', phone: '', password: '', province: '', role: 'lojista', isLojista: true },
   });
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,12 +128,8 @@ export function AuthForm() {
             }
             
             // 2. Create user profile in our database (Firestore)
-            let roleToCreate: 'client' | 'lojista' | 'courier' = 'client';
-            if (registerValues.role === 'courier') {
-              roleToCreate = 'courier';
-            } else if (registerValues.isLojista) {
-              roleToCreate = 'lojista';
-            }
+            // All new users are now 'lojista' by default
+            const roleToCreate = registerValues.role === 'courier' ? 'courier' : 'lojista';
 
             await createUser(user.uid, {
                 name: registerValues.name,
@@ -323,29 +319,6 @@ export function AuthForm() {
                   </FormItem>
                 )}
               />
-
-              {authMode === 'register' && (
-                <FormField
-                  control={form.control}
-                  name="isLojista"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <Label>Quero ser um vendedor</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Marque esta opção para vender os seus produtos na plataforma.
-                        </p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              )}
               
               <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
