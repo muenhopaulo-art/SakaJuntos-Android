@@ -2,7 +2,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.paulospaf.sakajuntos', // O ID do seu pacote
+  appId: 'com.sakajuntos.app', // O ID do seu pacote
   appName: 'SakaJuntos', // Baseado no nome do seu projeto
   webDir: 'out', // Baseado na pasta de destino do seu build web
   server: {

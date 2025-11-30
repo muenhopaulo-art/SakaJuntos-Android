@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, addMember, queryUserByPhone } from '@/services/product-service';
+import { getGroupPromotions, removeMember, requestToJoinGroup, deleteGroup, updateGroupCart, contributeToGroup, getProducts, addMember, queryUserByPhone } from '@/services/product-service';
 import { sendMessage } from '@/services/chat-service';
 import type { GroupPromotion, Product, CartItem, ChatMessage, Geolocation, Contribution, GroupMember, JoinRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -34,6 +34,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Capacitor } from '@capacitor/core';
 import type { Geolocation as CapacitorGeolocationPlugin } from '@capacitor/geolocation';
+
+export async function generateStaticParams() {
+  const promotions = await getGroupPromotions();
+ 
+  return promotions.map((promo) => ({
+    id: promo.id,
+  }));
+}
 
 const SHIPPING_COST_PER_MEMBER = 1000;
 const provinces = [ "Bengo", "Benguela", "Bié", "Cabinda", "Quando Cubango", "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"];
@@ -1178,3 +1186,4 @@ export default function GroupDetailPage() {
     
 
     
+

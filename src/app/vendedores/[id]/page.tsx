@@ -1,5 +1,6 @@
 
-import { getLojistaProfile } from '../actions';
+
+import { getLojistaProfile, getLojistas } from '../actions';
 import { notFound } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, MapPin, Phone, ShoppingBag, Briefcase, UserCircle, Star } from 'lucide-react';
@@ -9,6 +10,14 @@ import { Separator } from '@/components/ui/separator';
 import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+
+export async function generateStaticParams() {
+  const lojistas = await getLojistas();
+ 
+  return lojistas.map((lojista) => ({
+    id: lojista.uid,
+  }));
+}
 
 async function getProfile(id: string) {
     try {

@@ -19,6 +19,15 @@ import { ScheduleServiceDialog } from '@/components/schedule-service-dialog';
 import { getUser } from '@/services/user-service';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { getProducts } from '@/services/product-service';
+
+export async function generateStaticParams() {
+  const { products } = await getProducts();
+ 
+  return products.map((product) => ({
+    id: product.id,
+  }));
+}
 
 const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
