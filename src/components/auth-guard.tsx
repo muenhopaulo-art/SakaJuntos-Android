@@ -43,7 +43,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const [lastBackPress, setLastBackPress] = useState(0);
 
-  // Back button exit logic for Capacitor/Android
+  // Back button exit logic & Resume from background refresh logic for Capacitor/Android
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
         CapacitorApp.addListener('backButton', ({ canGoBack }) => {
@@ -61,10 +61,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             router.back();
           }
         });
+        
+        CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+                console.log('App is active, refreshing data...');
+                router.refresh();
+            }
+        });
     }
 
     return () => {
-      // Clean up the listener when the component unmounts
+      // Clean up the listeners when the component unmounts
       if (Capacitor.isNativePlatform()) {
         CapacitorApp.removeAllListeners();
       }
