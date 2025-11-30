@@ -5,11 +5,27 @@ import Link from 'next/link';
 import {
   Bell,
   CircleUser,
+  Home,
+  LineChart,
   Menu,
-  ShoppingBag,
+  Package,
+  Package2,
+  ShoppingCart,
+  Users,
+  Briefcase,
+  Bike,
+  User,
   LogOut,
+  ShoppingBag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +34,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { auth, db } from '@/lib/firebase';
@@ -41,11 +58,11 @@ export function LojistaHeader() {
   };
 
   const navLinks = [
-    { href: '/lojista/produtos', label: 'Produtos' },
-    { href: '/lojista/pedidos', label: 'Pedidos' },
-    { href: '/lojista/agendamentos', label: 'Agendamentos' },
-    { href: '/lojista/entregadores', label: 'Entregadores' },
-    { href: '/lojista/perfil', label: 'Perfil' },
+    { href: '/lojista/produtos', label: 'Produtos', icon: Package },
+    { href: '/lojista/pedidos', label: 'Pedidos', icon: ShoppingCart },
+    { href: '/lojista/agendamentos', label: 'Agendamentos', icon: Briefcase },
+    { href: '/lojista/entregadores', label: 'Entregadores', icon: Bike },
+    { href: '/lojista/perfil', label: 'Perfil', icon: User },
   ];
 
   return (
@@ -86,6 +103,9 @@ export function LojistaHeader() {
             </Button>
             </SheetTrigger>
             <SheetContent side="left">
+            <SheetHeader>
+                <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
+            </SheetHeader>
             <nav className="grid gap-6 text-lg font-medium">
                 <Link
                 href="/lojista"
