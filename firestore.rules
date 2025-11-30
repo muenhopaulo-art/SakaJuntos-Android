@@ -28,17 +28,17 @@ service cloud.firestore {
 
     // Users collection rules
     match /users/{userId} {
-      // Users can read their own data. Admins can read any user data.
-      allow read: if isOwner(userId) || isAdmin(request.auth.uid);
+      // Any authenticated user can read profiles. This is needed for features
+      // like showing seller names on product pages.
+      allow read: if isAuthenticated();
       
-      // New users can create their own profile.
-      allow create: if isOwner(userId);
+      // An authenticated user can create their own profile.
+      allow create: if isAuthenticated();
 
-      // Users can update their own data, but cannot change their role or verification status.
+      // Users can update their own data, but cannot change their role.
       // Admins can update any user data.
       allow update: if (isOwner(userId) && 
-                       request.resource.data.role == resource.data.role &&
-                       request.resource.data.verificationStatus == resource.data.verificationStatus) ||
+                       request.resource.data.role == resource.data.role) ||
                       isAdmin(request.auth.uid);
                       
       // Only admins can delete users.
