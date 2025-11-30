@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { auth, db } from '@/lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { doc, updateDoc } from 'firebase/firestore';
+import { NotificationsSheet } from '../notifications-sheet';
 
 export function LojistaHeader() {
   const pathname = usePathname();
@@ -122,10 +123,7 @@ export function LojistaHeader() {
       </div>
       
       <div className="flex w-full items-center justify-end gap-4 md:ml-auto md:gap-2 lg:gap-4">
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Toggle notifications</span>
-        </Button>
+        <NotificationsSheet />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="icon" className="rounded-full">
