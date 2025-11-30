@@ -11,12 +11,6 @@ const config: CapacitorConfig = {
     // ou se o proxy não for estritamente necessário para a API.
   },
   plugins: {
-    // 🔑 CORREÇÃO CRÍTICA PARA O LOGIN PERSISTENTE
-    // Isso garante que o cache e os tokens de sessão sejam salvos no disco
-    // e não sejam limpos a cada abertura do aplicativo.
-    CapacitorHttp: { 
-      androidStorageType: 'disk'
-    },
     // O plugin de geolocalização não precisa de configuração aqui, mas o
     // de Notificações, sim:
     PushNotifications: {

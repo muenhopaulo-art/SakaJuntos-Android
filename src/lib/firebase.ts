@@ -2,7 +2,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, initializeAuth, indexedDBLocalPersistence } from "firebase/auth";
+import { Capacitor } from '@capacitor/core';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCpcD80ckN8ce1IE-DakghSlnuygPU8wCg",
@@ -16,6 +17,15 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
-const auth = getAuth(app);
+
+// Initialize Auth with persistence
+let auth;
+if (Capacitor.isNativePlatform()) {
+  auth = initializeAuth(app, {
+    persistence: indexedDBLocalPersistence
+  });
+} else {
+  auth = getAuth(app);
+}
 
 export { app, db, auth };
