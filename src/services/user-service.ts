@@ -4,6 +4,7 @@
 import { db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp, collection, query, where, getDocs, limit, updateDoc } from 'firebase/firestore';
 import type { User, UserRole } from '@/lib/types';
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext } from './error-service';
 
 
 interface UserProfileData {
@@ -16,25 +17,41 @@ interface UserProfileData {
 }
 
 export async function createUser(uid: string, data: UserProfileData) {
-    try {
-        const userRef = doc(db, 'users', uid);
-        
-        await setDoc(userRef, {
-            ...data,
-            email: `+244${data.phone}@sakajuntos.com`,
-            createdAt: serverTimestamp(),
-            ownerLojistaId: data.ownerLojistaId || null,
-            online: false,
-            photoURL: data.photoURL || null,
-        });
+    const userRef = doc(db, 'users', uid);
+    
+    const userData = {
+        ...data,
+        email: `+244${data.phone}@sakajuntos.com`,
+        createdAt: serverTimestamp(),
+        ownerLojistaId: data.ownerLojistaId || null,
+        online: false,
+        photoURL: data.photoURL || null,
+    };
+
+    setDoc(userRef, userData)
+      .then(() => {
+        // Success
         return { success: true, uid };
-    } catch (error) {
-        console.error("Error creating user profile:", error);
-        if (error instanceof Error) {
-            return { success: false, message: `Ocorreu um erro: ${error.message}` };
-        }
-        return { success: false, message: 'Ocorreu um erro desconhecido ao criar o perfil.' };
-    }
+      })
+      .catch(async (serverError) => {
+        console.error("Error creating user profile in Firestore:", serverError);
+
+        const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'create',
+            requestResourceData: userData,
+        } satisfies SecurityRuleContext);
+
+        errorEmitter.emit('permission-error', permissionError);
+
+        // Retornar uma falha para a UI, se necessário, embora o erro principal seja tratado pelo listener.
+        // A lógica do lado do cliente provavelmente não receberá isto diretamente devido à natureza assíncrona
+        // e o facto de ser uma Server Action. O importante é o evento ser emitido.
+      });
+
+    // Como a operação agora é "fire-and-forget" com tratamento de erro, retornamos sucesso imediato
+    // para a chamada inicial, e o erro será tratado pelo listener de eventos global.
+    return { success: true, uid };
 }
 
 
