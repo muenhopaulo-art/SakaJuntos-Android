@@ -57,27 +57,32 @@ export async function createUser(uid: string, data: UserProfileData) {
 
 export async function getUser(uid: string): Promise<User | null> {
     const userRef = doc(db, 'users', uid);
-    const userSnap = await getDoc(userRef);
+    try {
+        const userSnap = await getDoc(userRef);
 
-    if (!userSnap.exists()) {
-        console.error(`User not found in Firestore for UID: ${uid}`);
+        if (!userSnap.exists()) {
+            console.warn(`User not found in Firestore for UID: ${uid}`);
+            return null;
+        }
+
+        const data = userSnap.data();
+
+        return {
+            uid: userSnap.id,
+            name: data.name,
+            phone: data.phone,
+            email: data.email,
+            province: data.province,
+            role: data.role || 'client',
+            createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
+            ownerLojistaId: data.ownerLojistaId,
+            online: data.online || false,
+            photoURL: data.photoURL,
+        };
+    } catch(error) {
+        console.error("Error getting user from firestore", error)
         return null;
     }
-
-    const data = userSnap.data();
-
-    return {
-        uid: userSnap.id,
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        province: data.province,
-        role: data.role || 'client',
-        createdAt: (data.createdAt as Timestamp)?.toMillis() || Date.now(),
-        ownerLojistaId: data.ownerLojistaId,
-        online: data.online || false,
-        photoURL: data.photoURL,
-    };
 }
 
 export async function queryUserByPhone(phone: string): Promise<{user?: User, error?: string}> {
