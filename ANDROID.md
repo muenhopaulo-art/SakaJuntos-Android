@@ -52,14 +52,64 @@ As notificações push no Android requerem o Firebase Cloud Messaging (FCM).
         └── google-services.json  <-- O ficheiro deve estar aqui
     ```
 
-## Passo 2: Sincronizar e Compilar
+## Passo 2: Corrigir Carregamento de Ativos (WebViewAssetLoader)
 
-Depois de adicionar o ficheiro `google-services.json`:
+Para garantir que todas as imagens e recursos da sua aplicação web carregam corretamente no Android sem erros de CORS, é essencial configurar o `WebViewAssetLoader`.
+
+1.  **Abra o ficheiro `MainActivity.java`:**
+    *   No Android Studio, com a vista "Android" selecionada na barra lateral, navegue para:
+        `app` > `java` > `com.sakajuntos.app` > `MainActivity`
+
+2.  **Substitua o conteúdo:**
+    *   Apague todo o conteúdo do ficheiro `MainActivity.java` e substitua-o pelo código abaixo. Este código configura um gestor de ativos que serve os recursos da sua aplicação web de forma segura.
+
+    ```java
+    package com.sakajuntos.app;
+
+    import android.os.Bundle;
+    import android.webkit.WebView;
+    import androidx.webkit.WebViewAssetLoader;
+    import com.getcapacitor.BridgeActivity;
+    import com.getcapacitor.community.database.sqlite.CapacitorSQLite;
+
+    public class MainActivity extends BridgeActivity {
+        @Override
+        public void onCreate(Bundle savedInstanceState) {
+            registerPlugin(CapacitorSQLite.class);
+            super.onCreate(savedInstanceState);
+        }
+
+        @Override
+        public void onStart() {
+            super.onStart();
+            final WebView webView = getBridge().getWebView();
+
+            // Ativar o modo misto para permitir o carregamento de conteúdo HTTP e HTTPS.
+            // Isto é útil durante o desenvolvimento. Para produção, considere políticas mais restritivas.
+            webView.getSettings().setMixedContentMode(0);
+
+            final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
+                .setDomain(this.getServerUrl().substring(this.getServerUrl().indexOf("://") + 3)) // Remove o esquema (ex: https://)
+                .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
+            webView.setWebViewClient(new com.getcapacitor.BridgeWebViewClient(this.bridge) {
+                @Override
+                public android.webkit.WebResourceResponse shouldInterceptRequest(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
+                    // Interceta os pedidos e serve-os através do AssetLoader.
+                    return assetLoader.shouldInterceptRequest(request.getUrl());
+                }
+            });
+        }
+    }
+    ```
+
+## Passo 3: Sincronizar e Compilar
+
+Depois de adicionar o ficheiro `google-services.json` e atualizar o `MainActivity.java`:
 
 1.  **Sincronize o projeto:** No Android Studio, deve aparecer uma barra no topo a dizer "Gradle files have changed...". Clique em **"Sync Now"**.
 2.  **Compile a Aplicação:** Vá ao menu "Build" > "Make Project".
 3.  **Execute a Aplicação:** Execute a aplicação no seu emulador ou dispositivo físico.
 
-A partir deste momento, as notificações push deverão funcionar corretamente na sua aplicação Android.
-
-    
+A partir deste momento, as notificações push e o carregamento de imagens deverão funcionar corretamente na sua aplicação Android.
