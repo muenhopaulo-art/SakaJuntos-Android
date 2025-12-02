@@ -26,3 +26,4 @@ export async function createNotification(data: NotificationData) {
         return { success: false };
     }
 }
+
