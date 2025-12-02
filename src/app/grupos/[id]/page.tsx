@@ -34,14 +34,6 @@ import { Label } from '@/components/ui/label';
 import { Capacitor } from '@capacitor/core';
 
 
-export async function generateStaticParams() {
-  const promotions = await getGroupPromotions();
- 
-  return promotions.map((promo) => ({
-    id: promo.id,
-  }));
-}
-
 const SHIPPING_COST_PER_MEMBER = 1000;
 const provinces = [ "Bengo", "Benguela", "Bié", "Cabinda", "Quando Cubango", "Cuanza Norte", "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"];
 
@@ -1181,5 +1173,3 @@ export default function GroupDetailPage() {
         </div>
     );
 }
-
-    
