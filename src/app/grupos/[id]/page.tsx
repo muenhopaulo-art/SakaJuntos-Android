@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -33,7 +32,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuIte
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Capacitor } from '@capacitor/core';
-import type { Geolocation as CapacitorGeolocationPlugin } from '@capacitor/geolocation';
+
 
 export async function generateStaticParams() {
   const promotions = await getGroupPromotions();
@@ -1184,6 +1183,3 @@ export default function GroupDetailPage() {
 }
 
     
-
-    
-

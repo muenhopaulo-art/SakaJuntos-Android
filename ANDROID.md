@@ -1,3 +1,4 @@
+
 # Guia de Configuração Nativa Android (Capacitor)
 
 Este guia contém os passos manuais e **obrigatórios** que você precisa de seguir no Android Studio e na consola Firebase para que todas as funcionalidades nativas da sua aplicação funcionem corretamente.
@@ -60,3 +61,5 @@ Depois de adicionar o ficheiro `google-services.json`:
 3.  **Execute a Aplicação:** Execute a aplicação no seu emulador ou dispositivo físico.
 
 A partir deste momento, as notificações push deverão funcionar corretamente na sua aplicação Android.
+
+    

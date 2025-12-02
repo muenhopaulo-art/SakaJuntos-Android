@@ -19,9 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Capacitor } from '@capacitor/core';
-import type { Geolocation as CapacitorGeolocationPlugin } from '@capacitor/geolocation';
 import type { Geolocation } from '@/lib/types';
-import { cn } from '@/lib/utils';
 
 
 const SHIPPING_COST = 1000;

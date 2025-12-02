@@ -38,7 +38,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import type { Product, Geolocation } from '@/lib/types';
 import { Capacitor } from '@capacitor/core';
-import type { Geolocation as CapacitorGeolocationPlugin } from '@capacitor/geolocation';
+
 
 const scheduleSchema = z.object({
   requestedDate: z.date({ required_error: 'A data do agendamento é obrigatória.' }),
