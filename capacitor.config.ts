@@ -11,9 +11,9 @@ const config: CapacitorConfig = {
     // ou se o proxy não for estritamente necessário para a API.
   },
   plugins: {
-    // Configuração para manter o login do Firebase ativo
-    // A persistência agora é tratada diretamente no código do firebase.ts
-    // usando o @capacitor/preferences, então a configuração aqui não é mais necessária.
+    // A persistência do Firebase agora é tratada diretamente no código do firebase.ts
+    // com `indexedDBLocalPersistence`, que o Capacitor suporta nativamente.
+    // Nenhuma configuração extra é necessária aqui para o login.
     
     // O plugin de geolocalização não precisa de configuração aqui, mas o
     // de Notificações, sim:
