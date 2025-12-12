@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -69,7 +68,7 @@ export function LojistaHeader() {
     <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-50">
       <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
         <Link
-          href="/lojista"
+          href="/lojista/produtos"
           className="flex items-center gap-2 text-lg font-semibold md:text-base"
         >
           <span className="font-bold text-green-600 font-headline tracking-tighter">SakaJuntos</span>
@@ -108,7 +107,7 @@ export function LojistaHeader() {
             </SheetHeader>
             <nav className="grid gap-6 text-lg font-medium">
                 <Link
-                href="/lojista"
+                href="/lojista/produtos"
                 className="flex items-center gap-2 text-lg font-semibold"
                 >
                 <span className="font-bold text-green-600 font-headline tracking-tighter">SakaJuntos</span>
@@ -132,7 +131,7 @@ export function LojistaHeader() {
 
         <div className="flex-1 text-center">
             <Link
-                href="/lojista"
+                href="/lojista/produtos"
                 className="flex items-center justify-center gap-2 text-lg font-semibold"
                 >
                 <span className="font-bold text-green-600 font-headline tracking-tighter">SakaJuntos</span>

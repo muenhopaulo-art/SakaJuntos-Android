@@ -34,6 +34,7 @@ export async function addProduct(
         const productRef = await addDoc(collection(db, 'products'), {
             ...productData,
             name_lowercase,
+            productType: productData.productType, // Ensure productType is included
             createdAt: serverTimestamp()
         });
 
@@ -96,3 +97,4 @@ export async function deleteProduct(productId: string) {
         return { success: false, message: 'Failed to delete product.' };
     }
 }
+
