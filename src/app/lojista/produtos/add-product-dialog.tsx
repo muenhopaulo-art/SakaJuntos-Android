@@ -173,9 +173,9 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             category: values.category,
             productType: values.productType,
             stock: values.productType === 'service' ? Infinity : values.stock,
-            lojistaId: lojistaId,
+            lojistaId: lojistaId, // Pass the lojistaId from props
             imageUrls: imageUrls,
-            isPromoted: 'inactive' as 'active' | 'inactive', // Start as inactive
+            isPromoted: 'inactive' as 'active' | 'inactive',
         };
         
         const tier = values.isPromoted && values.promotionTier ? values.promotionTier : undefined;
