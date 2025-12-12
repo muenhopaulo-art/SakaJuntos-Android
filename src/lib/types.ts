@@ -18,13 +18,13 @@ export interface Product {
 }
 
 export interface GroupMember {
-    uid: string;
+    id: string;
     name: string;
     joinedAt: number;
 }
 
 export interface JoinRequest {
-    uid: string;
+    id: string;
     name:string;
     requestedAt: number;
 }
@@ -63,7 +63,7 @@ export interface Geolocation {
 }
 
 export interface Contribution {
-    userId: string;
+    id: string;
     userName: string;
     amount: number;
     address: string;

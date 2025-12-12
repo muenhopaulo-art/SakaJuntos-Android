@@ -21,7 +21,6 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { getProducts } from '@/services/product-service';
 
-
 const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
         <div className="grid gap-4">
@@ -94,7 +93,7 @@ export default function ProductDetailPage() {
         fetchProductAndLojista();
     }, [id]);
 
-    const isOwner = user && product?.lojistaId === user.uid;
+    const isOwner = !!(user && product?.lojistaId === user.uid);
 
     const handleAddToCart = () => {
         if (product && !isOwner) {

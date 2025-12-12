@@ -2,7 +2,7 @@
 'use client';
 
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { Logo } from './Logo';
@@ -14,7 +14,6 @@ import { Button } from './ui/button';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
-import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 
@@ -28,7 +27,7 @@ const CartProvider = dynamic(
 
 // Allow access to the main page for the auth logic to handle roles
 const publicPaths = ['/login', '/seed'];
-const adminPaths = ['/admin', '/admin/orders', '/admin/products', '/admin/users'];
+const adminPaths = ['/admin', '/admin/orders', '/admin/products', '/admin/users', '/admin/promotions'];
 const lojistaPaths = ['/lojista', '/lojista/produtos', '/lojista/pedidos', '/lojista/agendamentos', '/lojista/entregadores', '/lojista/perfil'];
 // Client-facing paths that are not dashboards
 const clientPaths = ['/', '/minishopping', '/grupos', '/cart', '/my-orders'];
@@ -46,6 +45,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // Back button exit logic & Resume from background refresh logic for Capacitor/Android
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
+      import('@capacitor/app').then(({ App: CapacitorApp }) => {
         CapacitorApp.addListener('backButton', ({ canGoBack }) => {
           if (pathname === '/') {
             const timeNow = new Date().getTime();
@@ -68,14 +68,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                 router.refresh();
             }
         });
-    }
 
-    return () => {
-      // Clean up the listeners when the component unmounts
-      if (Capacitor.isNativePlatform()) {
-        CapacitorApp.removeAllListeners();
-      }
-    };
+        // Clean up listeners on component unmount
+        return () => {
+          CapacitorApp.removeAllListeners();
+        };
+      });
+    }
   }, [pathname, lastBackPress, toast, router]);
 
 
@@ -157,7 +156,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         if (pathIsPublic) { 
              let destination = '/'; // Default for client/courier
              if (appUser.role === 'admin') destination = '/admin';
-             else if (appUser.role === 'lojista') destination = '/lojista';
+             else if (appUser.role === 'lojista') destination = '/lojista/produtos';
              
              router.replace(destination); // Use replace to prevent back navigation to login
              return;
@@ -225,5 +224,3 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
      </CartProvider>
   );
 }
-
-    

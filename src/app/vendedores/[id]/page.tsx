@@ -11,14 +11,6 @@ import { ProductCard } from '@/components/product-card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-export async function generateStaticParams() {
-  const lojistas = await getLojistas();
- 
-  return lojistas.map((lojista) => ({
-    id: lojista.uid,
-  }));
-}
-
 async function getProfile(id: string) {
     try {
         const profile = await getLojistaProfile(id);

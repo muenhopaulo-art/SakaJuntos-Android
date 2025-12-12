@@ -1,26 +1,26 @@
-
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.sakajuntos.app', // O ID do seu pacote
-  appName: 'SakaJuntos', // Baseado no nome do seu projeto
-  webDir: 'out', // Baseado na pasta de destino do seu build web
+  appId: 'com.sakajuntos.app',
+  appName: 'SakaJuntos',
+  webDir: 'out',
   server: {
-    androidScheme: 'https',
-    // Não é necessário declarar o domínio aqui se o seu app está a ser carregado via file:// 
-    // ou se o proxy não for estritamente necessário para a API.
+    url: 'https://studio--sakajuntos-webbtext-6802-b1659.us-central1.hosted.app/', 
+    cleartext: false 
   },
   plugins: {
-    // A persistência do Firebase agora é tratada diretamente no código do firebase.ts
-    // com `indexedDBLocalPersistence`, que o Capacitor suporta nativamente.
-    // Nenhuma configuração extra é necessária aqui para o login.
-    
-    // O plugin de geolocalização não precisa de configuração aqui, mas o
-    // de Notificações, sim:
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
+    },
+    // >> CONFIGURAÇÃO DO SPLASH SCREEN ADICIONADA AQUI <<
+    SplashScreen: {
+      launchShowDuration: 3000,         // Exibe o splash por 3 segundos
+      launchAutoHide: true,             // Oculta automaticamente
+      backgroundColor: "#ffffffff",     // Cor de fundo (Branco)
+      androidScaleType: "CENTER_CROP",  // Como a imagem se ajusta
+      splashResourceName: "splash",     // Assume que a imagem se chama 'splash.png'
+      showSpinner: true,                // Exibe o spinner de carregamento
     }
-    // Outros plugins, como o SplashScreen, ficariam aqui se precisassem de ajustes.
   }
 };
 
