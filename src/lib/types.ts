@@ -8,7 +8,7 @@ export interface Product {
   category: string;
   productType: 'product' | 'service';
   stock: number;
-  isPromoted: 'active' | 'inactive';
+  isPromoted: 'active' | 'inactive' | 'pending';
   imageUrls?: string[];
   createdAt?: number;
   lojistaId?: string;
@@ -151,16 +151,6 @@ export interface ServiceRequest {
     createdAt: number;
 }
 
-
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  link: string;
-  isRead: boolean;
-  createdAt: number;
-}
 
 export type PromotionPaymentStatus = 'pendente' | 'aprovado' | 'rejeitado';
 

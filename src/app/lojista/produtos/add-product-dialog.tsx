@@ -37,7 +37,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { PromotionPayment } from '@/lib/types';
+import type { PromotionPayment, PromotionPaymentStatus } from '@/lib/types';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
@@ -175,7 +175,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             stock: values.productType === 'service' ? Infinity : values.stock,
             lojistaId: lojistaId, // Pass the lojistaId from props
             imageUrls: imageUrls,
-            isPromoted: 'inactive' as 'active' | 'inactive',
+            isPromoted: 'inactive' as 'active' | 'inactive' | 'pending',
         };
         
         const tier = values.isPromoted && values.promotionTier ? values.promotionTier : undefined;
@@ -184,7 +184,22 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         
         if (result.success && result.paymentData) {
           const appUser = await getUser(user.uid);
-          setPaymentData({ ...result.paymentData, userName: appUser?.name || 'N/A' });
+          // Correctly construct the PromotionPayment object
+          const fullPaymentData: PromotionPayment = {
+            id: result.paymentData.id,
+            lojistaId: result.paymentData.lojistaId,
+            productId: result.paymentData.productId,
+            amount: result.paymentData.amount,
+            referenceCode: result.paymentData.referenceCode,
+            paymentPhoneNumber: result.paymentData.paymentPhoneNumber,
+            userName: appUser?.name || 'N/A',
+            productName: values.name,
+            lojistaName: appUser?.name || 'N/A', // Assuming lojista is the current user
+            tier: tier!,
+            status: 'pendente' as PromotionPaymentStatus,
+            createdAt: Date.now(),
+          };
+          setPaymentData(fullPaymentData);
           setIsPaymentDialogOpen(true);
         } else if (result.success) {
           toast({ title: 'Publicação Adicionada!', description: 'O seu produto/serviço foi adicionado com sucesso.' });
