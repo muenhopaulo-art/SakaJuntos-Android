@@ -24,7 +24,7 @@ export async function createOrder(
 
     // Determine the lojistaId from the first item in the cart.
     // This assumes all items in an order come from the same lojista.
-    const lojistaId = orderData.items[0]?.lojistaId || null;
+    const lojistaId = orderData.items[0]?.lojistaId || undefined;
     if (!lojistaId) {
         console.warn("Order being created without a lojistaId. Items:", orderData.items);
     }
@@ -59,7 +59,7 @@ export async function createOrder(
     if (contributions && contributions.length > 0) {
         const contributionsColRef = collection(orderRef, 'contributions');
         contributions.forEach(contribution => {
-            const contributionRef = doc(contributionsColRef, contribution.userId);
+            const contributionRef = doc(contributionsColRef, contribution.id);
             batch.set(contributionRef, contribution);
         });
     }
