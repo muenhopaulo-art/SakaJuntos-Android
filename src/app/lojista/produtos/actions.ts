@@ -26,7 +26,7 @@ function generateReferenceCode(length: number): string {
 export async function addProduct(
     productData: Omit<Product, 'id' | 'createdAt'>, 
     promotionTier?: string
-): Promise<{ success: boolean; message?: string; paymentData?: Omit<PromotionPayment, 'userName'> }> {
+): Promise<{ success: boolean; message?: string; paymentData?: Omit<PromotionPayment, 'userName' | 'lojistaName' | 'productName' | 'tier' | 'status' | 'createdAt' > }> {
     try {
         const name_lowercase = productData.name.toLowerCase();
         
@@ -35,7 +35,8 @@ export async function addProduct(
             ...productData,
             name_lowercase,
             productType: productData.productType, // Ensure productType is included
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            isPromoted: 'inactive', // Default value
         });
 
         // If a promotion tier is selected, create a payment request
@@ -56,6 +57,12 @@ export async function addProduct(
                 createdAt: serverTimestamp()
             });
 
+            // **CORREÇÃO**: Atualizar o produto com o ID do pagamento e o estado pendente.
+            await updateDoc(productRef, {
+                isPromoted: 'pending',
+                promotionPaymentId: paymentRef.id,
+            });
+
             // Revalidate paths for admin to see the new request
             revalidatePath('/admin/promotions');
             
@@ -63,6 +70,8 @@ export async function addProduct(
                 success: true, 
                 paymentData: {
                     id: paymentRef.id,
+                    productId: productRef.id,
+                    lojistaId: productData.lojistaId,
                     amount: amount,
                     referenceCode: referenceCode,
                     paymentPhoneNumber: "939282065" // Hardcoded as per image
@@ -97,4 +106,5 @@ export async function deleteProduct(productId: string) {
         return { success: false, message: 'Failed to delete product.' };
     }
 }
+
 
