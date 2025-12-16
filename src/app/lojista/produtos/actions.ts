@@ -1,95 +1,79 @@
 
-
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, updateDoc, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
-import type { Product, PromotionPayment } from '@/lib/types';
+import { nanoid } from 'nanoid';
+import type { Payment, Product } from '@/lib/types';
+import { PROMOTION_COST } from '@/lib/config';
 import { getUser } from '@/services/user-service';
 
-const promotionTiers: { [key: string]: number } = {
-    tier1: 1000,
-    tier2: 1500,
-    tier3: 2500,
-};
-
-function generateReferenceCode(length: number): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
 export async function addProduct(
-    productData: Omit<Product, 'id' | 'createdAt'>, 
-    promotionTier?: string
-): Promise<{ success: boolean; message?: string; paymentData?: Omit<PromotionPayment, 'userName' | 'lojistaName' | 'productName' | 'tier' | 'status' | 'createdAt' > }> {
-    try {
-        const name_lowercase = productData.name.toLowerCase();
-        
-        // Add the product first
-        const productRef = await addDoc(collection(db, 'products'), {
-            ...productData,
-            name_lowercase,
-            productType: productData.productType, // Ensure productType is included
-            createdAt: serverTimestamp(),
-            isPromoted: 'inactive', // Default value
-        });
+  productData: Omit<Product, 'id' | 'createdAt'> & { promote?: boolean }, 
+  userId: string
+): Promise<{ success: boolean; message?: string; payment?: Payment }> {
+  try {
+    const { promote, ...productDataWithoutPromote } = productData;
+    
+    const docRef = await addDoc(collection(db, 'products'), {
+      ...productDataWithoutPromote,
+      name_lowercase: productData.name.toLowerCase(),
+      createdAt: serverTimestamp(),
+      isPromoted: promote ? 'pending' : 'inactive',
+    });
 
-        // If a promotion tier is selected, create a payment request
-        if (promotionTier && productData.lojistaId) {
-            const amount = promotionTiers[promotionTier];
-            if (!amount) throw new Error("Plano de promoção inválido.");
+    let paymentDetails: Payment | undefined;
 
-            const referenceCode = generateReferenceCode(8);
-            
-            const paymentRef = await addDoc(collection(db, 'promotionPayments'), {
-                lojistaId: productData.lojistaId,
-                productId: productRef.id,
-                productName: productData.name,
-                tier: promotionTier,
-                amount: amount,
-                referenceCode: referenceCode,
-                status: 'pendente',
-                createdAt: serverTimestamp()
-            });
+    if (promote) {
+      const user = await getUser(userId);
+      if (!user) throw new Error("Utilizador não encontrado");
+      
+      const paymentRef = await addDoc(collection(db, 'promotionPayments'), {
+        lojistaId: userId,
+        productId: docRef.id,
+        productName: productData.name,
+        tier: 'tier1',
+        amount: PROMOTION_COST,
+        referenceCode: nanoid(8).toUpperCase(),
+        paymentPhoneNumber: "939282065",
+        status: 'pendente',
+        createdAt: serverTimestamp()
+      });
 
-            // **CORREÇÃO**: Atualizar o produto com o ID do pagamento e o estado pendente.
-            await updateDoc(productRef, {
-                isPromoted: 'pending',
-                promotionPaymentId: paymentRef.id,
-            });
+      await updateDoc(docRef, {
+        promotionPaymentId: paymentRef.id,
+      });
+      
+      const paymentSnap = await getDoc(paymentRef);
+      const paymentData = paymentSnap.data();
 
-            // Revalidate paths for admin to see the new request
-            revalidatePath('/admin/promotions');
-            
-            return { 
-                success: true, 
-                paymentData: {
-                    id: paymentRef.id,
-                    productId: productRef.id,
-                    lojistaId: productData.lojistaId,
-                    amount: amount,
-                    referenceCode: referenceCode,
-                    paymentPhoneNumber: "939282065" // Hardcoded as per image
-                }
-            };
-        }
-        
-        // Revalidate public paths if no promotion was added
-        revalidatePath('/lojista/produtos');
-        revalidatePath('/minishopping');
-        revalidatePath('/');
-        
-        return { success: true };
-
-    } catch (error) {
-        console.error("Error adding product:", error);
-        return { success: false, message: 'Failed to add product.' };
+      paymentDetails = {
+        id: paymentRef.id,
+        lojistaId: userId,
+        productId: docRef.id,
+        amount: PROMOTION_COST,
+        referenceCode: paymentData?.referenceCode,
+        paymentPhoneNumber: "939282065"
+      };
     }
+
+    revalidatePath('/lojista/produtos');
+    revalidatePath('/minishopping');
+    revalidatePath('/');
+    
+    return { 
+      success: true, 
+      payment: paymentDetails 
+    };
+
+  } catch (error) {
+    console.error("Erro ao adicionar produto:", error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Falha ao adicionar produto.' 
+    };
+  }
 }
 
 export async function deleteProduct(productId: string) {
@@ -99,12 +83,10 @@ export async function deleteProduct(productId: string) {
         revalidatePath('/lojista/produtos');
         revalidatePath('/minishopping');
         revalidatePath('/');
-        revalidatePath(`/produto/${productId}`); // Revalidate detail page
+        revalidatePath(`/produto/${productId}`);
         return { success: true };
     } catch (error) {
         console.error("Error deleting product:", error);
         return { success: false, message: 'Failed to delete product.' };
     }
 }
-
-
