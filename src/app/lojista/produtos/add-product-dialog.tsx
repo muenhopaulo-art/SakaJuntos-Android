@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -74,15 +73,6 @@ const productSchema = z.object({
         });
     }
 });
-
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-  });
-};
 
 
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
@@ -167,11 +157,10 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     try {
         if (values.imageFile) {
             try {
-                const base64String = await fileToBase64(values.imageFile);
                 const tempProductId = crypto.randomUUID();
                 imageUrl = await uploadImageAndGetURL(
                     `product-images/${lojistaId}`,
-                    base64String,
+                    values.imageFile,
                     `${tempProductId}-${values.imageFile.name}`
                 );
             } catch(imageError: any) {

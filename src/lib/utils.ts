@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Timestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { app } from './firebase'; 
 
 
@@ -68,31 +68,33 @@ export function firestoreDocToPlainObject(data: any): any {
 
 
 /**
- * Faz o upload de uma imagem (string Base64) para o Firebase Storage e retorna o URL de download.
- * Inclui timeouts e tratamento de erro específico do Firebase.
- * @param path - O caminho no Storage onde o ficheiro será guardado.
- * @param base64String - O ficheiro a ser carregado como uma string data URI Base64.
- * @param fileName - O nome do ficheiro a ser criado no Storage.
- * @returns O URL público da imagem carregada.
+ * Faz o upload de um ficheiro binário para o Firebase Storage.
+ * @param path - O caminho no Storage.
+ * @param file - O objeto File direto do input (NÃO Base64).
+ * @param fileName - O nome do ficheiro.
  */
 export async function uploadImageAndGetURL(
   path: string,
-  base64String: string,
+  file: File | Blob, // ACEITA FILE OU BLOB
   fileName: string
 ): Promise<string> {
   const storage = getStorage(app);
-  const storageRef = ref(storage, `${path}/${fileName}`);
+  storage.maxOperationRetryTime = 20000; // Aumenta o tempo de retry para redes lentas
   
+  const storageRef = ref(storage, `${path}/${fileName}`);
+    
   try {
-    console.log(`📤 Iniciando upload para: ${path}/${fileName}`);
-    
-    await uploadString(storageRef, base64String, 'data_url');
-    
+    console.log(`📤 Iniciando upload binário para: ${path}/${fileName}`);
+        
+    // USA uploadBytes, que é mais rápido e estável
+    const snapshot = await uploadBytes(storageRef, file);
+    console.log('Bytes transferidos:', snapshot.bytesTransferred);
+
     const downloadURL = await getDownloadURL(storageRef);
-    
+        
     console.log(`✅ Upload concluído: ${downloadURL}`);
-    return downloadURL as string;
-    
+    return downloadURL;
+      
   } catch (error: any) {
     console.error("❌ Erro no upload da imagem:", error);
     
@@ -103,6 +105,9 @@ export async function uploadImageAndGetURL(
         case 'storage/unauthorized':
           errorMessage = "Não tem permissão para publicar fotos. Verifique as regras do Firebase Storage.";
           break;
+        case 'storage/unauthenticated':
+          errorMessage = "Utilizador não autenticado. Faça login novamente.";
+          break;
         case 'storage/canceled':
           errorMessage = "Upload cancelado.";
           break;
@@ -112,17 +117,11 @@ export async function uploadImageAndGetURL(
         case 'storage/quota-exceeded':
           errorMessage = "Quota de armazenamento excedida.";
           break;
-        case 'storage/unauthenticated':
-          errorMessage = "Utilizador não autenticado. Faça login novamente.";
-          break;
         default:
           errorMessage = `Erro do Firebase: ${error.code}`;
       }
-    } else if (error?.message) {
-      errorMessage = error.message;
     }
     
-    console.error(`🔒 Erro específico: ${errorMessage}`);
     throw new Error(errorMessage);
   }
 }
