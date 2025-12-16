@@ -381,7 +381,7 @@ function ContributionDialog({ contributionPerMember, onConfirm, open, onOpenChan
                             </span>
                         </div>
                     </div>
-                    <Button variant="outline" onClick={handleGetLocation} disabled={isFetchingLocation || isContributing}>
+                    <Button type="button" variant="outline" onClick={handleGetLocation} disabled={isFetchingLocation || isContributing}>
                         {isFetchingLocation ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
@@ -781,258 +781,57 @@ export default function GroupDetailPage() {
     return (
         <div className="container mx-auto px-4 py-8">
             <Button variant="ghost" onClick={() => router.back()} className="mb-4"><ArrowLeft/> Voltar </Button>
-            <div className="grid md:grid-cols-3 gap-8">
-                <div className="md:col-span-2 space-y-8">
-                    <Card>
-                         {isGroupClosed && (
-                            <div className="p-4 bg-yellow-100 border-b border-yellow-200 text-yellow-800 rounded-t-lg">
-                                <div className="flex items-center gap-3">
-                                    <Hourglass />
-                                    <div>
-                                        <h4 className="font-bold">Este grupo está {group.status === 'finalized' ? 'finalizado' : 'entregue'}.</h4>
-                                        <p className="text-sm">O pedido está a ser processado. Não é possível fazer mais alterações.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        <CardHeader>
-                            <CardTitle className="text-3xl font-headline">{group.name}</CardTitle>
-                            <CardDescription>{group.description}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
-                             <div className="flex items-center gap-1">
-                                <Users className="h-4 w-4" /> {group.participants} / {group.target} membros
-                            </div>
-                            <span>Criado por: {creatorName}</span>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                         <CardHeader>
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            
+            <div className="space-y-8">
+                {/* Group Header */}
+                <Card>
+                    {isGroupClosed && (
+                        <div className="p-4 bg-yellow-100 border-b border-yellow-200 text-yellow-800 rounded-t-lg">
+                            <div className="flex items-center gap-3">
+                                <Hourglass />
                                 <div>
-                                    <CardTitle>Produtos para o Grupo</CardTitle>
-                                    <CardDescription>{isGroupClosed ? 'Estes foram os produtos selecionados.' : 'Adicionem produtos para a compra em grupo.'}</CardDescription>
-                                </div>
-                                <Sheet>
-                                    <SheetTrigger asChild>
-                                        <Button variant="outline" className="relative w-full sm:w-auto">
-                                            <ShoppingCart className="mr-2 h-4 w-4" />
-                                            Ver Carrinho ({groupCart.reduce((acc, item) => acc + item.quantity, 0)})
-                                        </Button>
-                                    </SheetTrigger>
-                                    <SheetContent className="flex flex-col sm:max-w-md">
-                                        <SheetHeader>
-                                            <SheetTitle>Carrinho do Grupo</SheetTitle>
-                                        </SheetHeader>
-                                        <div className="flex-1 flex flex-col">
-                                            {allMembersContributed && !isGroupClosed && (
-                                                <div className="p-4 mb-4 rounded-md bg-yellow-100 text-yellow-800 text-sm flex items-center gap-2">
-                                                    <Lock className="h-4 w-4"/>
-                                                    <span>O carrinho está bloqueado pois todos os membros contribuíram.</span>
-                                                </div>
-                                            )}
-                                            {groupCart.length > 0 ? (
-                                            <>
-                                                <ScrollArea className="flex-1 my-4">
-                                                    <div className="space-y-4 pr-6">
-                                                        {groupCart.map(item => (
-                                                            <div key={item.product.id} className="flex gap-4">
-                                                                <div className="relative h-16 w-16 flex-shrink-0 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                                                    <Package className="h-8 w-8 text-muted-foreground" />
-                                                                </div>
-                                                                <div className="flex flex-1 flex-col justify-between">
-                                                                    <div className="flex justify-between items-start">
-                                                                        <h3 className="font-medium text-sm pr-2">{item.product.name}</h3>
-                                                                        {(isMember && !isGroupClosed) && (
-                                                                            <Button variant="ghost" size="icon" className="-mr-2 -mt-2 h-8 w-8 flex-shrink-0" onClick={() => handleUpdateGroupCart(item.product, 'remove')} disabled={allMembersContributed}>
-                                                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                                                            </Button>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center mt-1">
-                                                                        <p className="text-sm font-semibold text-muted-foreground">
-                                                                            {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}
-                                                                        </p>
-                                                                        {(isMember && !isGroupClosed) ? (
-                                                                            <div className="flex items-center gap-1">
-                                                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)} disabled={allMembersContributed}>
-                                                                                    <Minus className="h-4 w-4" />
-                                                                                </Button>
-                                                                                <span className="w-5 text-center text-sm font-medium">{item.quantity}</span>
-                                                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)} disabled={allMembersContributed}>
-                                                                                    <Plus className="h-4 w-4" />
-                                                                                </Button>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <p className="text-sm font-medium">x{item.quantity}</p>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </ScrollArea>
-                                                <div className="border-t pt-4 mt-auto space-y-4">
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between font-semibold">
-                                                            <span>Total dos Produtos:</span>
-                                                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-muted-foreground">
-                                                            <span>Valor por membro (c/ entrega):</span>
-                                                            <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
-                                                        </div>
-                                                    </div>
-                                                    {isCreator && !isGroupClosed && (
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button className="w-full" disabled={isFinalizing || groupCart.length === 0 || !allMembersContributed}>
-                                                                    {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : null}
-                                                                    Finalizar Compra
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Confirmar Finalização?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        Esta ação irá dividir e enviar os pedidos aos respectivos vendedores, e limpará o carrinho do grupo. Deseja continuar?
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={handleFinalizeOrder}>Confirmar</AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    )}
-                                                     {isGroupClosed && (
-                                                        <Button className="w-full" disabled>Compra Finalizada</Button>
-                                                    )}
-                                                </div>
-                                            </>
-                                            ) : (
-                                                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-                                                    <ShoppingCart className="w-12 h-12 mb-4" />
-                                                    <p>O carrinho do grupo está vazio.</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </SheetContent>
-                                </Sheet>
-                            </div>
-                           {!isGroupClosed && isMember && (
-                             <div className="mt-4 space-y-2">
-                                <Input 
-                                    placeholder="Pesquisar produtos..."
-                                    value={productSearch}
-                                    onChange={(e) => setProductSearch(e.target.value)}
-                                    className="h-12"
-                                />
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                     <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" className="w-full justify-start">
-                                                <ListFilter className="mr-2 h-4 w-4"/> Filtrar por categoria
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="w-56">
-                                            <DropdownMenuLabel>Categorias</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            <ScrollArea className="h-48">
-                                                {productCategories.map(category => (
-                                                    <DropdownMenuItem key={category} onSelect={(e) => e.preventDefault()}>
-                                                        <Checkbox 
-                                                            id={`cat-${category}`}
-                                                            checked={selectedCategories.includes(category)}
-                                                            onCheckedChange={() => handleCategoryChange(category)}
-                                                            className="mr-2"
-                                                        />
-                                                        <label htmlFor={`cat-${category}`} className="w-full cursor-pointer">{category}</label>
-                                                    </DropdownMenuItem>
-                                                ))}
-                                            </ScrollArea>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" className="w-full justify-start">
-                                                <MapIcon className="mr-2 h-4 w-4"/> Ver produtos por província
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                         <DropdownMenuContent className="w-56">
-                                            <DropdownMenuLabel>Províncias</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            <ScrollArea className="h-48">
-                                                {provinces.map(province => (
-                                                    <DropdownMenuItem key={province} onSelect={(e) => e.preventDefault()}>
-                                                        <Checkbox 
-                                                            id={`prov-${province}`}
-                                                            checked={selectedProvinces.includes(province)}
-                                                            onCheckedChange={() => handleProvinceChange(province)}
-                                                            className="mr-2"
-                                                        />
-                                                         <label htmlFor={`prov-${province}`} className="w-full cursor-pointer">{province}</label>
-                                                    </DropdownMenuItem>
-                                                ))}
-                                            </ScrollArea>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    <h4 className="font-bold">Este grupo está {group.status === 'finalized' ? 'finalizado' : 'entregue'}.</h4>
+                                    <p className="text-sm">O pedido está a ser processado. Não é possível fazer mais alterações.</p>
                                 </div>
                             </div>
-                           )}
-                        </CardHeader>
-                        <CardContent>
-                             {isGroupClosed ? (
-                                <div className="h-96 flex flex-col items-center justify-center text-center text-muted-foreground bg-muted/50 rounded-md">
-                                    <Package className="w-16 h-16 mb-4" />
-                                    <h3 className="text-lg font-semibold">Pedido em Processamento</h3>
-                                    <p>Pode acompanhar o estado da sua encomenda no painel principal.</p>
-                                </div>
-                            ) : (
-                                <ScrollArea className="h-96">
-                                {filteredProducts.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
-                                        {filteredProducts.map(product => (
-                                            <ProductCard 
-                                                key={product.id} 
-                                                product={product} 
-                                                onAddToCart={(p) => handleUpdateGroupCart(p, 'add')}
-                                            />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-center text-muted-foreground pt-10">Nenhum produto encontrado.</p>
-                                )}
-                                </ScrollArea>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                    )}
+                    <CardHeader>
+                        <CardTitle className="text-3xl font-headline">{group.name}</CardTitle>
+                        <CardDescription>{group.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" /> {group.participants} / {group.target} membros
+                        </div>
+                        <span>Criado por: {creatorName}</span>
+                    </CardContent>
+                </Card>
 
-                <div className="md:col-span-1 space-y-6">
+                {/* Grid for Contributions and Member Management */}
+                <div className="grid md:grid-cols-2 gap-8">
                     <Card>
                         <CardHeader>
                             <CardTitle>Contribuições</CardTitle>
                             <CardDescription>Acompanhe o progresso dos pagamentos.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                             <div>
+                            <div>
                                 <div className='flex justify-between items-baseline mb-2'>
-                                     <h4 className="font-semibold text-sm">Progresso ({contributions.length}/{totalMembers})</h4>
-                                     <span className="font-bold text-lg">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)} / membro</span>
+                                    <h4 className="font-semibold text-sm">Progresso ({contributions.length}/{totalMembers})</h4>
+                                    <span className="font-bold text-lg">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)} / membro</span>
                                 </div>
                                 <Progress value={(contributions.length / totalMembers) * 100} />
                                 <div className="mt-4 space-y-2 text-sm max-h-40 overflow-y-auto">
-                                     {members.map(member => {
-                                        const hasPaid = contributions.some(c => c.id === member.id);
-                                        return (
-                                            <div key={member.id} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
-                                                <span className={cn(hasPaid && "line-through text-muted-foreground")}>{member.name}</span>
-                                                {hasPaid ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-muted-foreground/50"/>}
-                                            </div>
-                                        )
-                                    })}
+                                    {members.map(member => {
+                                    const hasPaid = contributions.some(c => c.id === member.id);
+                                    return (
+                                        <div key={member.id} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
+                                            <span className={cn(hasPaid && "line-through text-muted-foreground")}>{member.name}</span>
+                                            {hasPaid ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-muted-foreground/50"/>}
+                                        </div>
+                                    )
+                                })}
                                 </div>
                             </div>
                         </CardContent>
@@ -1044,58 +843,50 @@ export default function GroupDetailPage() {
                             </CardFooter>
                         )}
                     </Card>
-                    
-                    <ContributionDialog 
-                        open={isContributionDialogOpen}
-                        onOpenChange={setIsContributionDialogOpen}
-                        contributionPerMember={contributionPerMember}
-                        onConfirm={handleContribution}
-                    />
-
 
                     {isCreator && (
-                         <Card>
+                        <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle>Gestão de Membros</CardTitle>
-                                 <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
-                                      <DialogTrigger asChild>
-                                        <Button size="sm" variant="outline" onClick={handleOpenAddMemberDialog} disabled={isGroupClosed}>
-                                            <UserPlus className="mr-2"/>Adicionar
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="sm:max-w-md">
-                                          <DialogHeader>
-                                              <DialogTitle>Adicionar Membro</DialogTitle>
-                                              <DialogDescription>
-                                                  Procure por um utilizador pelo número de telefone para adicioná-lo ao grupo.
-                                              </DialogDescription>
-                                          </DialogHeader>
-                                          <div className="py-4 space-y-4">
-                                              <div className="flex items-center space-x-2">
-                                                  <Input 
-                                                      id="phone-search" 
-                                                      placeholder="9xx xxx xxx" 
-                                                      value={searchPhone} 
-                                                      onChange={(e) => setSearchPhone(e.target.value)}
-                                                      disabled={isSearchingUser || isAddingMember}
-                                                  />
-                                                  <Button type="button" onClick={handleSearchUser} disabled={isSearchingUser || isAddingMember}>
-                                                      {isSearchingUser ? <Loader2 className="animate-spin"/> : <Search/>}
-                                                  </Button>
-                                              </div>
-                                              {searchError && <p className="text-sm text-destructive">{searchError}</p>}
-                                              {foundUser && (
-                                                  <div className="p-4 border rounded-md bg-muted/50 space-y-3">
-                                                      <p><strong>Nome:</strong> {foundUser.name}</p>
-                                                      <p><strong>Telefone:</strong> {foundUser.phone}</p>
-                                                      <Button className="w-full" onClick={handleAddMember} disabled={isAddingMember}>
-                                                          {isAddingMember ? <Loader2 className="animate-spin"/> : 'Adicionar ao Grupo'}
-                                                      </Button>
-                                                  </div>
-                                              )}
-                                          </div>
-                                      </DialogContent>
-                                  </Dialog>
+                                <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
+                                    <DialogTrigger asChild>
+                                    <Button size="sm" variant="outline" onClick={handleOpenAddMemberDialog} disabled={isGroupClosed}>
+                                        <UserPlus className="mr-2"/>Adicionar
+                                    </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle>Adicionar Membro</DialogTitle>
+                                            <DialogDescription>
+                                                Procure por um utilizador pelo número de telefone para adicioná-lo ao grupo.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-4">
+                                            <div className="flex items-center space-x-2">
+                                                <Input 
+                                                    id="phone-search" 
+                                                    placeholder="9xx xxx xxx" 
+                                                    value={searchPhone} 
+                                                    onChange={(e) => setSearchPhone(e.target.value)}
+                                                    disabled={isSearchingUser || isAddingMember}
+                                                />
+                                                <Button type="button" onClick={handleSearchUser} disabled={isSearchingUser || isAddingMember}>
+                                                    {isSearchingUser ? <Loader2 className="animate-spin"/> : <Search/>}
+                                                </Button>
+                                            </div>
+                                            {searchError && <p className="text-sm text-destructive">{searchError}</p>}
+                                            {foundUser && (
+                                                <div className="p-4 border rounded-md bg-muted/50 space-y-3">
+                                                    <p><strong>Nome:</strong> {foundUser.name}</p>
+                                                    <p><strong>Telefone:</strong> {foundUser.phone}</p>
+                                                    <Button className="w-full" onClick={handleAddMember} disabled={isAddingMember}>
+                                                        {isAddingMember ? <Loader2 className="animate-spin"/> : 'Adicionar ao Grupo'}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </CardHeader>
                             <CardContent>
                                 {joinRequests.length > 0 && (
@@ -1118,7 +909,7 @@ export default function GroupDetailPage() {
                                 {joinRequests.length > 0 && members.length > 0 && <Separator className="my-4"/>}
 
                                 {members.length > 0 && (
-                                     <div className="space-y-2">
+                                    <div className="space-y-2">
                                         <h4 className="font-semibold text-sm">Membros Atuais ({members.length})</h4>
                                         {members.map(mem => (
                                             <div key={mem.id} className="flex justify-between items-center">
@@ -1139,7 +930,7 @@ export default function GroupDetailPage() {
                                             Eliminar Grupo
                                         </Button>
                                     </AlertDialogTrigger>
-                                     <AlertDialogContent>
+                                    <AlertDialogContent>
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
                                         <AlertDialogDescription>
@@ -1156,6 +947,216 @@ export default function GroupDetailPage() {
                         </Card>
                     )}
                 </div>
+
+                <ContributionDialog 
+                    open={isContributionDialogOpen}
+                    onOpenChange={setIsContributionDialogOpen}
+                    contributionPerMember={contributionPerMember}
+                    onConfirm={handleContribution}
+                />
+
+                {/* Products Section */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <CardTitle>Produtos para o Grupo</CardTitle>
+                                <CardDescription>{isGroupClosed ? 'Estes foram os produtos selecionados.' : 'Adicionem produtos para a compra em grupo.'}</CardDescription>
+                            </div>
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <Button variant="outline" className="relative w-full sm:w-auto">
+                                        <ShoppingCart className="mr-2 h-4 w-4" />
+                                        Ver Carrinho ({groupCart.reduce((acc, item) => acc + item.quantity, 0)})
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent className="flex flex-col sm:max-w-md">
+                                    <SheetHeader>
+                                        <SheetTitle>Carrinho do Grupo</SheetTitle>
+                                    </SheetHeader>
+                                    <div className="flex-1 flex flex-col">
+                                        {allMembersContributed && !isGroupClosed && (
+                                            <div className="p-4 mb-4 rounded-md bg-yellow-100 text-yellow-800 text-sm flex items-center gap-2">
+                                                <Lock className="h-4 w-4"/>
+                                                <span>O carrinho está bloqueado pois todos os membros contribuíram.</span>
+                                            </div>
+                                        )}
+                                        {groupCart.length > 0 ? (
+                                        <>
+                                            <ScrollArea className="flex-1 my-4">
+                                                <div className="space-y-4 pr-6">
+                                                    {groupCart.map(item => (
+                                                        <div key={item.product.id} className="flex gap-4">
+                                                            <div className="relative h-16 w-16 flex-shrink-0 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                                                                <Package className="h-8 w-8 text-muted-foreground" />
+                                                            </div>
+                                                            <div className="flex flex-1 flex-col justify-between">
+                                                                <div className="flex justify-between items-start">
+                                                                    <h3 className="font-medium text-sm pr-2">{item.product.name}</h3>
+                                                                    {(isMember && !isGroupClosed) && (
+                                                                        <Button variant="ghost" size="icon" className="-mr-2 -mt-2 h-8 w-8 flex-shrink-0" onClick={() => handleUpdateGroupCart(item.product, 'remove')} disabled={allMembersContributed}>
+                                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex justify-between items-center mt-1">
+                                                                    <p className="text-sm font-semibold text-muted-foreground">
+                                                                        {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(item.product.price)}
+                                                                    </p>
+                                                                    {(isMember && !isGroupClosed) ? (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity - 1)} disabled={allMembersContributed}>
+                                                                                <Minus className="h-4 w-4" />
+                                                                            </Button>
+                                                                            <span className="w-5 text-center text-sm font-medium">{item.quantity}</span>
+                                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleUpdateGroupCart(item.product, 'update', item.quantity + 1)} disabled={allMembersContributed}>
+                                                                                <Plus className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p className="text-sm font-medium">x{item.quantity}</p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                            <div className="border-t pt-4 mt-auto space-y-4">
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between font-semibold">
+                                                        <span>Total dos Produtos:</span>
+                                                        <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(groupCartTotal)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-muted-foreground">
+                                                        <span>Valor por membro (c/ entrega):</span>
+                                                        <span>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(contributionPerMember)}</span>
+                                                    </div>
+                                                </div>
+                                                {isCreator && !isGroupClosed && (
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button className="w-full" disabled={isFinalizing || groupCart.length === 0 || !allMembersContributed}>
+                                                                {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : null}
+                                                                Finalizar Compra
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Confirmar Finalização?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Esta ação irá dividir e enviar os pedidos aos respectivos vendedores, e limpará o carrinho do grupo. Deseja continuar?
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={handleFinalizeOrder}>Confirmar</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                )}
+                                                    {isGroupClosed && (
+                                                    <Button className="w-full" disabled>Compra Finalizada</Button>
+                                                )}
+                                            </div>
+                                        </>
+                                        ) : (
+                                            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                                                <ShoppingCart className="w-12 h-12 mb-4" />
+                                                <p>O carrinho do grupo está vazio.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
+                        </div>
+                        {!isGroupClosed && isMember && (
+                            <div className="mt-4 space-y-2">
+                            <Input 
+                                placeholder="Pesquisar produtos..."
+                                value={productSearch}
+                                onChange={(e) => setProductSearch(e.target.value)}
+                                className="h-12"
+                            />
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                    <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-start">
+                                            <ListFilter className="mr-2 h-4 w-4"/> Filtrar por categoria
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56">
+                                        <DropdownMenuLabel>Categorias</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <ScrollArea className="h-48">
+                                            {productCategories.map(category => (
+                                                <DropdownMenuItem key={category} onSelect={(e) => e.preventDefault()}>
+                                                    <Checkbox 
+                                                        id={`cat-${category}`}
+                                                        checked={selectedCategories.includes(category)}
+                                                        onCheckedChange={() => handleCategoryChange(category)}
+                                                        className="mr-2"
+                                                    />
+                                                    <label htmlFor={`cat-${category}`} className="w-full cursor-pointer">{category}</label>
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </ScrollArea>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="w-full justify-start">
+                                            <MapIcon className="mr-2 h-4 w-4"/> Ver produtos por província
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="w-56">
+                                        <DropdownMenuLabel>Províncias</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <ScrollArea className="h-48">
+                                            {provinces.map(province => (
+                                                <DropdownMenuItem key={province} onSelect={(e) => e.preventDefault()}>
+                                                    <Checkbox 
+                                                        id={`prov-${province}`}
+                                                        checked={selectedProvinces.includes(province)}
+                                                        onCheckedChange={() => handleProvinceChange(province)}
+                                                        className="mr-2"
+                                                    />
+                                                        <label htmlFor={`prov-${province}`} className="w-full cursor-pointer">{province}</label>
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </ScrollArea>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                            {isGroupClosed ? (
+                            <div className="h-96 flex flex-col items-center justify-center text-center text-muted-foreground bg-muted/50 rounded-md">
+                                <Package className="w-16 h-16 mb-4" />
+                                <h3 className="text-lg font-semibold">Pedido em Processamento</h3>
+                                <p>Pode acompanhar o estado da sua encomenda no painel principal.</p>
+                            </div>
+                        ) : (
+                            <ScrollArea className="h-96">
+                            {filteredProducts.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
+                                    {filteredProducts.map(product => (
+                                        <ProductCard 
+                                            key={product.id} 
+                                            product={product} 
+                                            onAddToCart={(p) => handleUpdateGroupCart(p, 'add')}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-center text-muted-foreground pt-10">Nenhum produto encontrado.</p>
+                            )}
+                            </ScrollArea>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             {isMember && (
