@@ -33,7 +33,6 @@ import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB (before compression)
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const createGroupSchema = z.object({
@@ -42,7 +41,6 @@ const createGroupSchema = z.object({
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   image: z.any()
     .refine((file) => !!file, "A imagem é obrigatória.")
-    .refine((file) => file?.size <= MAX_FILE_SIZE, `O tamanho máximo do ficheiro é 5MB.`)
     .refine(
       (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
       "Apenas os formatos .jpg, .jpeg, .png e .webp são suportados."
@@ -103,10 +101,6 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > MAX_FILE_SIZE) {
-        form.setError("image", { message: "O ficheiro é demasiado grande (máx 5MB)." });
-        return;
-      }
       if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
         form.setError("image", { message: "Formato de ficheiro inválido (apenas JPG, PNG, WEBP)." });
         return;
@@ -266,3 +260,4 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
     </Dialog>
   );
 }
+

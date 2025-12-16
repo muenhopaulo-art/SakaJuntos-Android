@@ -42,7 +42,6 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB (limite antes da compressão)
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const phoneRegex = /^9\d{8}$/;
 
@@ -143,10 +142,6 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-        if (file.size > MAX_FILE_SIZE) {
-            form.setError("imageFile", { message: "O ficheiro é demasiado grande (máx 5MB)." });
-            return;
-        }
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
             form.setError("imageFile", { message: "Formato de ficheiro inválido (apenas JPG, PNG, WEBP)." });
             return;
@@ -215,7 +210,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                   userName: appUser?.name || 'N/A',
                   productName: values.name,
                   lojistaName: appUser?.name || 'N/A',
-                  tier: values.promotionTier || 'tier1',
+                  tier: 'tier1',
                   status: 'pendente',
                   createdAt: Date.now(),
               }
