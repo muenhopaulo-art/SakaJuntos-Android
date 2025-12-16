@@ -32,9 +32,8 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB (before compression)
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const createGroupSchema = z.object({
@@ -52,13 +51,16 @@ const createGroupSchema = z.object({
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
 
-const resizeImage = (file: File, maxWidth: number): Promise<File> => {
+const resizeAndCompressImage = (file: File, maxWidth: number, quality: number): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
+      if (!event.target?.result) {
+        return reject(new Error("Falha ao ler o ficheiro de imagem."));
+      }
       const img = document.createElement("img");
-      img.src = event.target?.result as string;
+      img.src = event.target.result as string;
       img.onload = () => {
         const canvas = document.createElement("canvas");
         const scaleFactor = maxWidth / img.width;
@@ -69,17 +71,8 @@ const resizeImage = (file: File, maxWidth: number): Promise<File> => {
           return reject(new Error("Não foi possível obter o contexto do canvas."));
         }
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        ctx.canvas.toBlob((blob) => {
-          if (blob) {
-            const resizedFile = new File([blob], file.name, {
-              type: file.type,
-              lastModified: Date.now(),
-            });
-            resolve(resizedFile);
-          } else {
-            reject(new Error("Falha ao criar o blob da imagem redimensionada."));
-          }
-        }, file.type, 0.8); // 80% quality
+        const dataUrl = ctx.canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
       };
       img.onerror = (error) => reject(error);
     };
@@ -110,22 +103,23 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // First, set preview immediately for better UX
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      
+      if (file.size > MAX_FILE_SIZE) {
+        form.setError("image", { message: "O ficheiro é demasiado grande (máx 5MB)." });
+        return;
+      }
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        form.setError("image", { message: "Formato de ficheiro inválido (apenas JPG, PNG, WEBP)." });
+        return;
+      }
+
       try {
-        // Resize the image
-        const resizedFile = await resizeImage(file, 1024); // Resize to max-width 1024px
-        form.setValue('image', resizedFile, { shouldValidate: true });
+        const compressedBase64 = await resizeAndCompressImage(file, 1024, 0.7);
+        form.setValue('image', compressedBase64, { shouldValidate: true });
+        setPreview(compressedBase64);
+        form.clearErrors("image");
       } catch (error) {
-        console.error("Image resize error:", error);
-        toast({ variant: "destructive", title: "Erro ao redimensionar imagem", description: "Tente um ficheiro diferente."});
-        // Fallback to original file if resizing fails, but still validate it
-        form.setValue('image', file, { shouldValidate: true });
+        console.error("Image processing error:", error);
+        toast({variant: "destructive", title: "Erro ao Processar Imagem", description: "Não foi possível otimizar a imagem selecionada."})
       }
     }
   };
@@ -148,20 +142,12 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
-        // 1. Upload image to Firebase Storage from the client-side
-        const storage = getStorage();
-        const filePath = `group_images/${user.uid}/${Date.now()}_${data.image.name}`;
-        const storageRef = ref(storage, filePath);
-        const snapshot = await uploadBytes(storageRef, data.image);
-        const imageUrl = await getDownloadURL(snapshot.ref);
-
-        // 2. Create group with the returned image URL via server action
         const result = await createGroupPromotion({
             name: data.name,
             target: data.members,
             creatorId: user.uid,
             description: data.description,
-            imageUrl: imageUrl,
+            imageUrl: data.image as string, // The image is now a Base64 string
         });
 
         if (result.success) {

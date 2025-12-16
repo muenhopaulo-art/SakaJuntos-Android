@@ -161,7 +161,7 @@ interface CreateGroupData {
     target: number;
     creatorId: string;
     description: string;
-    imageUrl: string; // Changed from imageUrls
+    imageUrl: string; 
 }
 
 
@@ -183,7 +183,7 @@ export async function createGroupPromotion(
             participants: 1, 
             status: 'active' as const,
             price: 0,
-            imageUrls: [groupData.imageUrl], // Save it as an array
+            imageUrls: [groupData.imageUrl], // Save the Base64 string in an array
             createdAt: serverTimestamp(),
         };
 
