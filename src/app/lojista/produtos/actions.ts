@@ -4,14 +4,14 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { nanoid } from 'nanoid';
-import type { Payment, Product } from '@/lib/types';
+import type { Product, PromotionPayment } from '@/lib/types';
 import { PROMOTION_COST } from '@/lib/config';
 import { getUser } from '@/services/user-service';
 
 export async function addProduct(
   productData: Omit<Product, 'id' | 'createdAt'> & { promote?: boolean }, 
   userId: string
-): Promise<{ success: boolean; message?: string; payment?: Payment }> {
+): Promise<{ success: boolean; message?: string; payment?: PromotionPayment }> {
   try {
     const { promote, ...productDataWithoutPromote } = productData;
     
@@ -22,7 +22,7 @@ export async function addProduct(
       isPromoted: promote ? 'pending' : 'inactive',
     });
 
-    let paymentDetails: Payment | undefined;
+    let paymentDetails: PromotionPayment | undefined;
 
     if (promote) {
       const user = await getUser(userId);
@@ -47,14 +47,22 @@ export async function addProduct(
       const paymentSnap = await getDoc(paymentRef);
       const paymentData = paymentSnap.data();
 
-      paymentDetails = {
-        id: paymentRef.id,
-        lojistaId: userId,
-        productId: docRef.id,
-        amount: PROMOTION_COST,
-        referenceCode: paymentData?.referenceCode,
-        paymentPhoneNumber: "939282065"
-      };
+      if (paymentData) {
+        paymentDetails = {
+            id: paymentRef.id,
+            lojistaId: userId,
+            lojistaName: user.name,
+            productId: docRef.id,
+            productName: productData.name,
+            tier: paymentData.tier,
+            amount: paymentData.amount,
+            referenceCode: paymentData.referenceCode,
+            status: paymentData.status,
+            createdAt: paymentData.createdAt?.toMillis() || Date.now(),
+            paymentPhoneNumber: paymentData.paymentPhoneNumber,
+            userName: user.name,
+        };
+      }
     }
 
     revalidatePath('/lojista/produtos');

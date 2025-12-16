@@ -36,13 +36,12 @@ import { PaymentInstructionsDialog } from './PaymentInstructionsDialog';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { uploadImageAndGetURL } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
 
-const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
+const MAX_FILE_SIZE = 1 * 1024 * 1024 * 0.9; // 900KB para dar margem de segurança no limite de 1MB do Firestore
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const phoneRegex = /^9\d{8}$/;
 
@@ -73,6 +72,15 @@ const productSchema = z.object({
         });
     }
 });
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
@@ -119,7 +127,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     const file = e.target.files?.[0];
     if (file) {
         if (file.size > MAX_FILE_SIZE) {
-            form.setError("imageFile", { message: "O ficheiro é demasiado grande (máx 4.5MB)." });
+            form.setError("imageFile", { message: "Ficheiro muito grande. Máximo: 900KB." });
             return;
         }
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
@@ -152,33 +160,23 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     if (isProcessing || !user) return;
     
     setIsProcessing(true);
-    let imageUrl: string | undefined;
+    let imageBase64: string | undefined;
     
     try {
         if (values.imageFile) {
             try {
-                const tempProductId = crypto.randomUUID();
-                imageUrl = await uploadImageAndGetURL(
-                    `product-images/${lojistaId}`,
-                    values.imageFile,
-                    `${tempProductId}-${values.imageFile.name}`
-                );
+                imageBase64 = await fileToBase64(values.imageFile);
             } catch(imageError: any) {
-                 console.error('❌ Falha no upload da imagem:', imageError);
-                 if (imageError.message.includes('permissão') || imageError.message.includes('unauthorized') || imageError.message.includes('unauthenticated')) {
-                    toast({ variant: 'destructive', title: 'Erro de Permissão', description: imageError.message });
-                    setIsProcessing(false);
-                    return;
-                 } else {
-                     toast({ variant: 'default', title: 'Aviso de Upload', description: 'O item será criado sem imagem: ' + imageError.message });
-                 }
+                 toast({ variant: 'destructive', title: 'Erro ao ler imagem', description: 'Não foi possível processar o ficheiro da imagem.' });
+                 setIsProcessing(false);
+                 return;
             }
         }
 
         const dataToSend = { 
             ...values, 
             lojistaId,
-            imageUrls: imageUrl ? [imageUrl] : [],
+            imageUrls: imageBase64 ? [imageBase64] : [],
         };
         
         delete (dataToSend as any).imageFile;
