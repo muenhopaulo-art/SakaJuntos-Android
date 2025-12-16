@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -41,7 +42,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
 
-const MAX_FILE_SIZE = 1 * 1024 * 1024 * 0.9; // 900KB para dar margem de segurança no limite de 1MB do Firestore
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB (limite antes da compressão)
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const phoneRegex = /^9\d{8}$/;
 
@@ -51,11 +52,10 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   stock: z.coerce.number().optional(),
   category: z.string({ required_error: "Por favor, selecione uma categoria." }),
-  imageFile: z.any().optional(),
+  imageFile: z.any().optional(), // Agora representa a string Base64 otimizada
   promote: z.boolean().default(false),
   productType: z.enum(['product', 'service']).default('product'),
   serviceContactPhone: z.string().optional(),
-  promotionTier: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.productType === 'product' && (data.stock === undefined || data.stock < 0)) {
         ctx.addIssue({
@@ -73,11 +73,28 @@ const productSchema = z.object({
     }
 });
 
-const fileToBase64 = (file: File): Promise<string> => {
+const resizeAndCompressImage = (file: File, maxWidth: number, quality: number): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = (event) => {
+      const img = document.createElement("img");
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scaleFactor = maxWidth / img.width;
+        canvas.width = maxWidth;
+        canvas.height = img.height * scaleFactor;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return reject(new Error("Não foi possível obter o contexto do canvas."));
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = ctx.canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = (error) => reject(error);
+    };
     reader.onerror = (error) => reject(error);
   });
 };
@@ -123,24 +140,31 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     setImagePreview(null);
   }, [form]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
         if (file.size > MAX_FILE_SIZE) {
-            form.setError("imageFile", { message: "Ficheiro muito grande. Máximo: 900KB." });
+            form.setError("imageFile", { message: "O ficheiro é demasiado grande (máx 5MB)." });
             return;
         }
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
             form.setError("imageFile", { message: "Formato de ficheiro inválido (apenas JPG, PNG, WEBP)." });
             return;
         }
-        form.setValue('imageFile', file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-        form.clearErrors("imageFile");
+        
+        try {
+            // Comprime e redimensiona a imagem
+            const compressedBase64 = await resizeAndCompressImage(file, 1024, 0.7);
+            
+            // Define o valor do formulário e a pré-visualização com a imagem otimizada
+            form.setValue('imageFile', compressedBase64, { shouldValidate: true });
+            setImagePreview(compressedBase64);
+            form.clearErrors("imageFile");
+
+        } catch (error) {
+            console.error("Image processing error:", error);
+            toast({variant: "destructive", title: "Erro ao Processar Imagem", description: "Não foi possível otimizar a imagem selecionada."})
+        }
     }
   };
   
@@ -160,26 +184,15 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     if (isProcessing || !user) return;
     
     setIsProcessing(true);
-    let imageBase64: string | undefined;
     
     try {
-        if (values.imageFile) {
-            try {
-                imageBase64 = await fileToBase64(values.imageFile);
-            } catch(imageError: any) {
-                 toast({ variant: 'destructive', title: 'Erro ao ler imagem', description: 'Não foi possível processar o ficheiro da imagem.' });
-                 setIsProcessing(false);
-                 return;
-            }
-        }
-
         const dataToSend = { 
             ...values, 
             lojistaId,
-            imageUrls: imageBase64 ? [imageBase64] : [],
+            imageUrls: values.imageFile ? [values.imageFile] : [], // Usa a string base64 do formulário
         };
         
-        delete (dataToSend as any).imageFile;
+        delete (dataToSend as any).imageFile; // Remove o campo original
         if (dataToSend.productType === 'product') {
             delete (dataToSend as any).serviceContactPhone;
         }
@@ -456,9 +469,10 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       <PaymentInstructionsDialog 
         open={isPaymentDialogOpen}
         onOpenChange={setIsPaymentDialogOpen}
-        payment={paymentDetails}
+        paymentData={paymentDetails}
         onClose={handlePaymentDialogClose}
       />
     </>
   );
 }
+
