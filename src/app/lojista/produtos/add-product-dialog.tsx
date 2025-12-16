@@ -33,7 +33,7 @@ import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { productCategories } from '@/lib/categories';
 import type { PromotionPayment } from '@/lib/types';
-import { PaymentInstructionsDialog } from '@/components/payment-instructions-dialog';
+import { PaymentInstructionsDialog } from './PaymentInstructionsDialog';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -57,6 +57,7 @@ const productSchema = z.object({
   promote: z.boolean().default(false),
   productType: z.enum(['product', 'service']).default('product'),
   serviceContactPhone: z.string().optional(),
+  promotionTier: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.productType === 'product' && (data.stock === undefined || data.stock < 0)) {
         ctx.addIssue({
@@ -188,7 +189,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         const dataToSend = { 
             ...values, 
             lojistaId,
-            imageUrl: imageUrl,
+            imageUrls: imageUrl ? [imageUrl] : [],
         };
         
         delete (dataToSend as any).imageFile;
