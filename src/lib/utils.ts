@@ -86,19 +86,9 @@ export async function uploadImageAndGetURL(
   try {
     console.log(`📤 Iniciando upload para: ${path}/${fileName}`);
     
-    const uploadPromise = uploadString(storageRef, base64String, 'data_url');
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('TIMEOUT_UPLOAD')), 15000)
-    );
+    await uploadString(storageRef, base64String, 'data_url');
     
-    await Promise.race([uploadPromise, timeoutPromise]);
-    
-    const downloadURLPromise = getDownloadURL(storageRef);
-    const downloadTimeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT_DOWNLOAD_URL')), 10000)
-    );
-    
-    const downloadURL = await Promise.race([downloadURLPromise, downloadTimeoutPromise]);
+    const downloadURL = await getDownloadURL(storageRef);
     
     console.log(`✅ Upload concluído: ${downloadURL}`);
     return downloadURL as string;
@@ -129,13 +119,7 @@ export async function uploadImageAndGetURL(
           errorMessage = `Erro do Firebase: ${error.code}`;
       }
     } else if (error?.message) {
-      if (error.message === 'TIMEOUT_UPLOAD') {
-        errorMessage = "Timeout no upload da imagem. A sua ligação pode estar lenta ou a imagem é muito grande.";
-      } else if (error.message === 'TIMEOUT_DOWNLOAD_URL') {
-        errorMessage = "Timeout ao obter URL da imagem após o upload.";
-      } else {
-        errorMessage = error.message;
-      }
+      errorMessage = error.message;
     }
     
     console.error(`🔒 Erro específico: ${errorMessage}`);
