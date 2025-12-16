@@ -33,18 +33,12 @@ import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-
 const createGroupSchema = z.object({
   name: z.string().min(3, { message: 'O nome do grupo deve ter pelo menos 3 caracteres.' }),
   members: z.coerce.number().min(2, { message: 'O grupo deve ter pelo menos 2 membros.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   image: z.any()
-    .refine((file) => !!file, "A imagem é obrigatória.")
-    .refine(
-      (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
-      "Apenas os formatos .jpg, .jpeg, .png e .webp são suportados."
-    ),
+    .refine((file) => !!file, "A imagem é obrigatória."),
 });
 
 type CreateGroupFormValues = z.infer<typeof createGroupSchema>;
@@ -101,11 +95,6 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        form.setError("image", { message: "Formato de ficheiro inválido (apenas JPG, PNG, WEBP)." });
-        return;
-      }
-
       try {
         const compressedBase64 = await resizeAndCompressImage(file, 1024, 0.7);
         form.setValue('image', compressedBase64, { shouldValidate: true });
@@ -218,7 +207,7 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
                         className="hidden" 
                         ref={fileInputRef} 
                         onChange={handleFileChange}
-                        accept="image/png, image/jpeg, image/webp"
+                        accept="image/*"
                       />
                       <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
                         <Upload className="mr-2 h-4 w-4" />
@@ -260,4 +249,3 @@ export function CreateGroupForm({ children }: { children: React.ReactNode }) {
     </Dialog>
   );
 }
-

@@ -42,7 +42,6 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
 
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const phoneRegex = /^9\d{8}$/;
 
 const productSchema = z.object({
@@ -142,11 +141,6 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-            form.setError("imageFile", { message: "Formato de ficheiro inválido (apenas JPG, PNG, WEBP)." });
-            return;
-        }
-        
         try {
             // Comprime e redimensiona a imagem
             const compressedBase64 = await resizeAndCompressImage(file, 1024, 0.7);
@@ -465,9 +459,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         open={isPaymentDialogOpen}
         onOpenChange={setIsPaymentDialogOpen}
         paymentData={paymentDetails}
-        onClose={handlePaymentDialogClose}
       />
     </>
   );
 }
-
