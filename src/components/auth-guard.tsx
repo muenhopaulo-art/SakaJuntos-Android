@@ -9,7 +9,7 @@ import { Logo } from './Logo';
 import { getUser, User } from '@/services/user-service';
 import { SiteHeader } from './site-header';
 import { SiteFooter } from './site-footer';
-import { Package, WifiOff } from 'lucide-react';
+import { Package, WifiOff, Wifi } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -43,11 +43,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   
   const [isOnline, setIsOnline] = useState(true);
+  const [showOnlineNotification, setShowOnlineNotification] = useState(false);
 
   // Check network status
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowOnlineNotification(true);
+      setTimeout(() => setShowOnlineNotification(false), 4000); // Hide after 4 seconds
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setShowOnlineNotification(false);
+    };
 
     // Set initial state
     if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
@@ -233,19 +241,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     <>
       {children}
       {!isOnline && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground p-4 flex items-center justify-center gap-4">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground p-3 flex items-center justify-center gap-3">
           <WifiOff className="h-5 w-5"/>
-          <div className="text-center">
-            <p className="font-semibold">Sem ligação à internet</p>
-            <p className="text-sm opacity-90">Verifique a sua ligação e tente novamente.</p>
+          <div>
+            <p className="font-semibold text-center">Sem ligação à internet</p>
           </div>
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={() => window.location.reload()}
-          >
-            Tentar Novamente
-          </Button>
+        </div>
+      )}
+       {showOnlineNotification && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-green-600 text-white p-3 flex items-center justify-center gap-3 animate-in fade-in-0 slide-in-from-bottom-5">
+          <Wifi className="h-5 w-5"/>
+          <div>
+            <p className="font-semibold text-center">Ligação reestabelecida</p>
+          </div>
         </div>
       )}
     </>
