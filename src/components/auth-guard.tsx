@@ -47,7 +47,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (Capacitor.isNativePlatform()) {
       import('@capacitor/app').then(({ App: CapacitorApp }) => {
         CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-          if (pathname === '/') {
+          if (canGoBack) {
+            router.back();
+          } else {
             const timeNow = new Date().getTime();
             if (timeNow - lastBackPress < 2000) {
               CapacitorApp.exitApp();
@@ -57,8 +59,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
                 description: "Clique novamente para sair.",
               });
             }
-          } else {
-            router.back();
           }
         });
         
