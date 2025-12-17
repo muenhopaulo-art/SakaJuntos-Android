@@ -9,13 +9,14 @@ import { Logo } from './Logo';
 import { getUser, User } from '@/services/user-service';
 import { SiteHeader } from './site-header';
 import { SiteFooter } from './site-footer';
-import { Package } from 'lucide-react';
+import { Package, WifiOff } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { cn } from '@/lib/utils';
 
 
 const CartProvider = dynamic(
@@ -40,7 +41,28 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
-  const [lastBackPress, setLastBackPress] = useState(0);
+  
+  const [isOnline, setIsOnline] = useState(true);
+
+  // Check network status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    // Set initial state
+    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
+        setIsOnline(window.navigator.onLine);
+    }
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
 
   // Back button exit logic & Resume from background refresh logic for Capacitor/Android
   useEffect(() => {
@@ -50,15 +72,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           if (canGoBack) {
             router.back();
           } else {
-            const timeNow = new Date().getTime();
-            if (timeNow - lastBackPress < 2000) {
-              CapacitorApp.exitApp();
-            } else {
-              setLastBackPress(timeNow);
-              toast({
-                description: "Clique novamente para sair.",
-              });
-            }
+            CapacitorApp.exitApp();
           }
         });
         
@@ -75,7 +89,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         };
       });
     }
-  }, [pathname, lastBackPress, toast, router]);
+  }, [router]);
 
   // Web: Add listener for tab visibility changes to refresh data
   useEffect(() => {
@@ -215,7 +229,27 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathIsGroupDetails = /^\/grupos\/[^/]+$/.test(pathname);
 
   // The CartProvider must wrap all children that might need access to the cart.
-  const content = <>{children}</>;
+  const content = (
+    <>
+      {children}
+      {!isOnline && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground p-4 flex items-center justify-center gap-4">
+          <WifiOff className="h-5 w-5"/>
+          <div className="text-center">
+            <p className="font-semibold">Sem ligação à internet</p>
+            <p className="text-sm opacity-90">Verifique a sua ligação e tente novamente.</p>
+          </div>
+          <Button 
+            variant="secondary" 
+            size="sm"
+            onClick={() => window.location.reload()}
+          >
+            Tentar Novamente
+          </Button>
+        </div>
+      )}
+    </>
+  );
 
   // Render children without the main layout for public, admin and lojista pages
   if (pathIsLayoutLess) {
@@ -230,7 +264,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           <main className="flex-1">{content}</main>
           <SiteFooter />
           {user && !pathIsGroupDetails && (
-            <div className="fixed bottom-4 right-4 z-50">
+            <div className="fixed bottom-4 right-4 z-40">
               <Button asChild variant="outline" size="icon" className="relative ml-2 rounded-full h-14 w-14 shadow-lg">
                   <Link href="/my-orders">
                       <Package className="h-6 w-6" />
