@@ -77,6 +77,25 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, lastBackPress, toast, router]);
 
+  // Web: Add listener for tab visibility changes to refresh data
+  useEffect(() => {
+    // This should only run on the web, not on native platforms
+    if (Capacitor.isNativePlatform()) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab is visible, refreshing data...');
+        router.refresh();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [router]);
+
 
   useEffect(() => {
     const fetchAppUser = async () => {
