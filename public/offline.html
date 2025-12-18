@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sem Conexão</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f5;
+            color: #333;
+            text-align: center;
+        }
+        h1 { margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; }
+        button {
+            background-color: #22c55e;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div style="font-size: 50px; margin-bottom: 20px;">📡</div>
+    <h1>Sem Internet</h1>
+    <p>Verifique a sua conexão e tente novamente.</p>
+    <button onclick="window.location.reload()">Tentar Novamente</button>
+    <script>
+        // Tenta recarregar sozinho quando a net voltar
+        window.addEventListener('online', () => window.location.reload());
+    </script>
+</body>
+</html>

@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
 import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { App as CapacitorApp } from '@capacitor/app';
 import { cn } from '@/lib/utils';
 
 
@@ -75,27 +76,27 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // Back button exit logic & Resume from background refresh logic for Capacitor/Android
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      import('@capacitor/app').then(({ App: CapacitorApp }) => {
-        CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-          if (canGoBack) {
-            router.back();
-          } else {
-            CapacitorApp.exitApp();
-          }
-        });
-        
-        CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-            if (isActive) {
-                console.log('App is active, refreshing data...');
-                router.refresh();
-            }
-        });
-
-        // Clean up listeners on component unmount
-        return () => {
-          CapacitorApp.removeAllListeners();
-        };
+      // Handle back button
+      CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) {
+          router.back();
+        } else {
+          CapacitorApp.exitApp();
+        }
       });
+      
+      // Handle app resume
+      CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+              console.log('App is active, refreshing data by reloading...');
+              window.location.reload();
+          }
+      });
+
+      // Clean up listeners on component unmount
+      return () => {
+        CapacitorApp.removeAllListeners();
+      };
     }
   }, [router]);
 

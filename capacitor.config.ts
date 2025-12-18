@@ -5,14 +5,16 @@ const config: CapacitorConfig = {
   appName: 'SakaJuntos',
   webDir: 'out',
   server: {
-    url: 'https://studio--sakajuntos-webbtext-6802-b1659.us-central1.hosted.app/', 
-    cleartext: false 
+    url: 'https://studio--sakajuntos-2-55995544-7207a.us-central1.hosted.app/',
+    cleartext: false,
+    // >> NOVA LINHA: Redireciona para a página local quando sem internet <<
+    errorPath: 'offline.html'
   },
   plugins: {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
     },
-    // >> CONFIGURAÇÃO DO SPLASH SCREEN ADICIONADA AQUI <<
+    // >> CONFIGURAÇÃO DO SPLASH SCREEN (Mantida) <<
     SplashScreen: {
       launchShowDuration: 3000,         // Exibe o splash por 3 segundos
       launchAutoHide: true,             // Oculta automaticamente
