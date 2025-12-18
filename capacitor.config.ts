@@ -7,21 +7,21 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://studio--sakajuntos-2-55995544-7207a.us-central1.hosted.app/',
     cleartext: false,
-    // >> NOVA LINHA: Redireciona para a página local quando sem internet <<
-    errorPath: 'offline.html'
+    errorPath: 'offline.html',
+    // Adicione esta linha para permitir o carregamento do offline.html local
+    androidScheme: 'https' 
   },
   plugins: {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
     },
-    // >> CONFIGURAÇÃO DO SPLASH SCREEN (Mantida) <<
     SplashScreen: {
-      launchShowDuration: 3000,         // Exibe o splash por 3 segundos
-      launchAutoHide: true,             // Oculta automaticamente
-      backgroundColor: "#ffffffff",     // Cor de fundo (Branco)
-      androidScaleType: "CENTER_CROP",  // Como a imagem se ajusta
-      splashResourceName: "splash",     // Assume que a imagem se chama 'splash.png'
-      showSpinner: true,                // Exibe o spinner de carregamento
+      launchShowDuration: 3000,
+      launchAutoHide: true,
+      backgroundColor: "#ffffffff",
+      androidScaleType: "CENTER_CROP",
+      splashResourceName: "splash",
+      showSpinner: false,
     }
   }
 };
