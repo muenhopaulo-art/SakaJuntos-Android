@@ -73,10 +73,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
 
-  // Back button exit logic & Resume from background refresh logic for Capacitor/Android
+  // Back button exit logic for Capacitor/Android
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      // Handle back button
       CapacitorApp.addListener('backButton', ({ canGoBack }) => {
         if (canGoBack) {
           router.back();
@@ -84,18 +83,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           CapacitorApp.exitApp();
         }
       });
-      
-      // Handle app resume
-      CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-          if (isActive) {
-              console.log('App is active, refreshing data by reloading...');
-              window.location.reload();
-          }
-      });
 
-      // Clean up listeners on component unmount
+      // Clean up listener on component unmount
       return () => {
-        CapacitorApp.removeAllListeners();
+        CapacitorApp.removeAllListeners('backButton');
       };
     }
   }, [router]);
