@@ -27,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Star } from 'lucide-react';
+import { Loader2, Upload, Star, Trophy } from 'lucide-react';
 import { addProduct } from './actions';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,6 +42,8 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PROMOTION_COST, PROMOTION_PLANS } from '@/lib/config';
 
 const phoneRegex = /^9\d{8}$/;
 
@@ -51,10 +53,11 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   stock: z.coerce.number().optional(),
   category: z.string({ required_error: "Por favor, selecione uma categoria." }),
-  imageFile: z.any().optional(), // Agora representa a string Base64 otimizada
+  imageFile: z.any().optional(),
   promote: z.boolean().default(false),
   productType: z.enum(['product', 'service']).default('product'),
   serviceContactPhone: z.string().optional(),
+  promotionTier: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.productType === 'product' && (data.stock === undefined || data.stock < 0)) {
         ctx.addIssue({
@@ -68,6 +71,13 @@ const productSchema = z.object({
             code: z.ZodIssueCode.custom,
             path: ['serviceContactPhone'],
             message: 'Por favor, insira um número de telemóvel válido (9 dígitos).',
+        });
+    }
+    if (data.promote && !data.promotionTier) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['promotionTier'],
+            message: 'Por favor, escolha um plano de destaque.',
         });
     }
 });
@@ -119,10 +129,12 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       promote: false,
       productType: 'product',
       serviceContactPhone: '',
+      promotionTier: 'tier1',
     },
   });
 
   const productType = form.watch('productType');
+  const promote = form.watch('promote');
 
   const resetForm = useCallback(() => {
     form.reset({
@@ -135,6 +147,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       promote: false,
       productType: 'product',
       serviceContactPhone: '',
+      promotionTier: 'tier1',
     });
     setImagePreview(null);
   }, [form]);
@@ -143,10 +156,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     const file = e.target.files?.[0];
     if (file) {
         try {
-            // Comprime e redimensiona a imagem
             const compressedBase64 = await resizeAndCompressImage(file, 1024, 0.7);
-            
-            // Define o valor do formulário e a pré-visualização com a imagem otimizada
             form.setValue('imageFile', compressedBase64, { shouldValidate: true });
             setImagePreview(compressedBase64);
             form.clearErrors("imageFile");
@@ -176,13 +186,16 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     setIsProcessing(true);
     
     try {
+        const promotionPlan = values.promote ? PROMOTION_PLANS.find(p => p.id === values.promotionTier) : undefined;
+        
         const dataToSend = { 
             ...values, 
             lojistaId,
-            imageUrls: values.imageFile ? [values.imageFile] : [], // Usa a string base64 do formulário
+            imageUrls: values.imageFile ? [values.imageFile] : [],
+            promotionTier: promotionPlan?.id
         };
         
-        delete (dataToSend as any).imageFile; // Remove o campo original
+        delete (dataToSend as any).imageFile;
         if (dataToSend.productType === 'product') {
             delete (dataToSend as any).serviceContactPhone;
         }
@@ -205,7 +218,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                   userName: appUser?.name || 'N/A',
                   productName: values.name,
                   lojistaName: appUser?.name || 'N/A',
-                  tier: 'tier1',
+                  tier: promotionPlan?.id || 'tier1',
                   status: 'pendente',
                   createdAt: Date.now(),
               }
@@ -419,29 +432,70 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                       </div>
                   )}
                   <Separator />
-                  <FormField
-                    control={form.control}
-                    name="promote"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base flex items-center gap-2">
-                              <Star className="text-yellow-500"/>
-                              Promover Item
-                          </FormLabel>
-                          <FormDescription>
-                            Destaque o seu produto/serviço na página inicial e alcance milhares de potenciais clientes! Mais visibilidade, mais vendas.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                        control={form.control}
+                        name="promote"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                            <FormControl>
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                            <FormLabel className='flex items-center gap-2'><Trophy className="text-yellow-500"/> Promover Publicação?</FormLabel>
+                            <FormDescription>
+                                Destaque o seu produto/serviço na página inicial e alcance milhares de potenciais clientes! Mais visibilidade, mais vendas.
+                            </FormDescription>
+                            </div>
+                        </FormItem>
+                        )}
+                    />
+                    <AnimatePresence>
+                        {promote && (
+                             <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="overflow-hidden"
+                            >
+                                <FormField
+                                    control={form.control}
+                                    name="promotionTier"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-3 pt-4">
+                                            <FormLabel className="font-semibold">Escolha o seu plano de destaque:</FormLabel>
+                                            <FormControl>
+                                                <RadioGroup
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                className="flex flex-col space-y-2"
+                                                >
+                                                    {PROMOTION_PLANS.map(plan => (
+                                                         <FormItem key={plan.id} className="flex flex-col space-y-0 rounded-md border p-4 hover:bg-muted/50 transition-colors">
+                                                            <div className='flex items-center gap-4'>
+                                                                <FormControl>
+                                                                    <RadioGroupItem value={plan.id} />
+                                                                </FormControl>
+                                                                <div className="space-y-1 leading-none">
+                                                                    <FormLabel className="font-semibold">{plan.name}</FormLabel>
+                                                                    <FormDescription>{plan.description}</FormDescription>
+                                                                    <p className="font-bold text-foreground text-lg">{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(plan.cost)}</p>
+                                                                </div>
+                                                            </div>
+                                                        </FormItem>
+                                                    ))}
+                                                </RadioGroup>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
               </ScrollArea>
 

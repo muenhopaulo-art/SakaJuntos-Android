@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -5,7 +6,7 @@ import { collection, addDoc, serverTimestamp, updateDoc, doc, getDoc, deleteDoc 
 import { revalidatePath } from 'next/cache';
 import { nanoid } from 'nanoid';
 import type { Product, PromotionPayment } from '@/lib/types';
-import { PROMOTION_COST } from '@/lib/config';
+import { PROMOTION_PLANS } from '@/lib/config';
 import { getUser } from '@/services/user-service';
 
 export async function addProduct(
@@ -13,7 +14,7 @@ export async function addProduct(
   userId: string
 ): Promise<{ success: boolean; message?: string; payment?: PromotionPayment }> {
   try {
-    const { promote, ...productDataWithoutPromote } = productData;
+    const { promote, promotionTier, ...productDataWithoutPromote } = productData;
     
     const docRef = await addDoc(collection(db, 'products'), {
       ...productDataWithoutPromote,
@@ -24,18 +25,21 @@ export async function addProduct(
 
     let paymentDetails: PromotionPayment | undefined;
 
-    if (promote) {
+    if (promote && promotionTier) {
       const user = await getUser(userId);
       if (!user) throw new Error("Utilizador não encontrado");
       
+      const plan = PROMOTION_PLANS.find(p => p.id === promotionTier);
+      if (!plan) throw new Error("Plano de promoção inválido.");
+
       const paymentRef = await addDoc(collection(db, 'promotionPayments'), {
         lojistaId: userId,
         productId: docRef.id,
         productName: productData.name,
-        tier: 'tier1',
-        amount: PROMOTION_COST,
+        tier: plan.id,
+        amount: plan.cost,
         referenceCode: nanoid(8).toUpperCase(),
-        paymentPhoneNumber: "939282065",
+        paymentPhoneNumber: "939282065", // Hardcoded for now
         status: 'pendente',
         createdAt: serverTimestamp()
       });
