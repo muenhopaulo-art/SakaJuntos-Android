@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import type { Product, User } from '@/lib/types';
 import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
-import { ShoppingCart, Package, Calendar } from 'lucide-react';
+import { Card, CardContent, CardHeader } from './ui/card';
+import { ShoppingCart, Package, Calendar, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/contexts/cart-context';
@@ -13,7 +12,15 @@ import { ScheduleServiceDialog } from './schedule-service-dialog';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
+
+const getInitials = (name: string) => {
+    if (!name) return '?';
+    const names = name.split(' ');
+    const initials = names.map(n => n[0]).join('');
+    return initials.substring(0, 2).toUpperCase();
+};
 
 interface ProductCardProps {
   product: Product;
@@ -44,7 +51,21 @@ export function ProductCard({ product, lojistasMap, onAddToCart }: ProductCardPr
 
   const cardContent = (
     <Card className={cn("flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-xl group-hover:-translate-y-1 bg-card", isOwner && "bg-muted/30")}>
-    <CardContent className="p-4 flex-grow flex flex-col">
+    <CardHeader className="flex-row items-center gap-3 p-4">
+        {lojista && (
+            <>
+                <Avatar className="h-10 w-10 border">
+                    <AvatarImage src={lojista.photoURL} alt={lojista.name} />
+                    <AvatarFallback>{getInitials(lojista.name)}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{lojista.name}</p>
+                    {lojista.province && <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{lojista.province}</p>}
+                </div>
+            </>
+        )}
+    </CardHeader>
+    <CardContent className="p-4 pt-0 flex-grow flex flex-col">
         <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4 bg-muted flex items-center justify-center">
             {imageUrl ? (
                 <Image src={imageUrl} alt={product.name} fill className="object-cover" />
@@ -52,18 +73,12 @@ export function ProductCard({ product, lojistasMap, onAddToCart }: ProductCardPr
                 <Package className="w-16 h-16 text-muted-foreground"/>
             )}
              {isOwner && (
-                <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">Seu Produto</div>
+                <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">Seu Item</div>
             )}
-             {product.isPromoted === 'active' && !isOwner && (
-                <div className="absolute top-2 left-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-full">Promovido</div>
-             )}
         </div>
         <div className="flex-grow">
           <p className="text-xs text-muted-foreground capitalize">{product.category}</p>
           <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>
-           {lojista && (
-                <p className="text-xs text-muted-foreground">Vendido por: {lojista.name}</p>
-           )}
         </div>
         <p className="text-lg font-bold text-foreground mb-4">
         {product.price > 0 
