@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import { getDoc, doc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import type { Product, User } from '@/lib/types';
-import { Loader2, ShoppingCart, Phone, Package, AlertTriangle, Calendar } from 'lucide-react';
+import { Loader2, ShoppingCart, Phone, Package, AlertTriangle, Calendar, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ import { getUser } from '@/services/user-service';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { getProducts } from '@/services/product-service';
+import Link from 'next/link';
 
 const ProductSkeleton = () => (
     <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -73,6 +74,7 @@ export default function ProductDetailPage() {
                         imageUrls: data.imageUrls,
                         createdAt: (data.createdAt as Timestamp)?.toMillis(),
                         lojistaId: data.lojistaId,
+                        serviceContactPhone: data.serviceContactPhone
                     };
                     setProduct(productData);
 
@@ -122,6 +124,7 @@ export default function ProductDetailPage() {
 
     const hasImages = product.imageUrls && product.imageUrls.length > 0;
     const isService = product.productType === 'service';
+    const contactPhone = product.serviceContactPhone || lojista?.phone;
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -177,20 +180,24 @@ export default function ProductDetailPage() {
                                 </div>
                              )}
                               {lojista && (
-                                <div className="text-sm text-muted-foreground">
-                                    Vendido por: <span className="font-medium text-foreground">{lojista.name}</span>
+                                <div className="text-sm">
+                                    <span className="text-muted-foreground">Vendido por: </span>
+                                    <Link href={`/vendedores/${lojista.uid}`} className="font-medium text-foreground hover:underline">{lojista.name}</Link>
+                                    {lojista.province && <span className="text-muted-foreground"> de {lojista.province}</span>}
                                 </div>
                              )}
                         </CardContent>
                         <CardFooter className="mt-auto">
                             {isService ? (
                                 <div className="w-full flex flex-col sm:flex-row gap-2">
-                                     <Button size="lg" className="w-full" asChild disabled={isOwner}>
-                                        <a href={`tel:${lojista?.phone}`}>
-                                            <Phone className="mr-2" />
-                                            Ligar
-                                        </a>
-                                    </Button>
+                                     {contactPhone && (
+                                        <Button size="lg" className="w-full" asChild disabled={isOwner}>
+                                            <a href={`tel:${contactPhone}`}>
+                                                <Phone className="mr-2" />
+                                                Ligar
+                                            </a>
+                                        </Button>
+                                     )}
                                     <ScheduleServiceDialog product={product}>
                                         <Button size="lg" className="w-full" variant="outline" disabled={isOwner}>
                                             <Calendar className="mr-2" />

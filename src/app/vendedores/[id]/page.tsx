@@ -48,9 +48,13 @@ export default async function LojistaProfilePage({ params }: { params: { id: str
     if (!lojista) {
         notFound();
     }
+    
+    // Create a Map for lojistas to pass to ProductCard
+    const lojistasMap = new Map<string, User>();
+    lojistasMap.set(lojista.uid, lojista);
 
     const services = products.filter(p => p.productType === 'service');
-    const normalProducts = products.filter(p => p.productType === 'product');
+    const normalProducts = products.filter(p => p.productType !== 'service');
 
     return (
         <div className="container mx-auto px-4 py-8 space-y-8">
@@ -93,7 +97,7 @@ export default async function LojistaProfilePage({ params }: { params: { id: str
                 {normalProducts.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {normalProducts.map(product => (
-                            <ProductCard key={product.id} product={product} />
+                            <ProductCard key={product.id} product={product} lojistasMap={lojistasMap} />
                         ))}
                     </div>
                 ) : (
@@ -109,7 +113,7 @@ export default async function LojistaProfilePage({ params }: { params: { id: str
                 {services.length > 0 ? (
                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {services.map(service => (
-                           <ProductCard key={service.id} product={service} />
+                           <ProductCard key={service.id} product={service} lojistasMap={lojistasMap} />
                         ))}
                     </div>
                 ) : (
