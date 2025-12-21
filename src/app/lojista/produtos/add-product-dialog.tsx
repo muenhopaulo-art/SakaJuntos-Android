@@ -245,7 +245,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         }
       }}>
         <DialogTrigger asChild>
-          <Button onClick={() => setOpen(true)}>Adicionar Produto/Serviço</Button>
+          <Button onClick={() => setOpen(true)}>Adicionar produto ou serviço</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -430,7 +430,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                               Promover Item
                           </FormLabel>
                           <FormDescription>
-                            Aumente a sua visibilidade! Promova este item por 1 mês.
+                            Destaque o seu produto/serviço na página inicial e alcance milhares de potenciais clientes! Mais visibilidade, mais vendas.
                           </FormDescription>
                         </div>
                         <FormControl>
