@@ -21,9 +21,10 @@ const convertDocToContribution = (doc: any): Contribution => {
     : Date.now();
     
   return {
-    userId: doc.id,
+    id: doc.id,
     userName: data.userName,
     amount: data.amount,
+    address: data.address,
     location: data.location,
     createdAt: createdAtMillis,
   };
@@ -51,6 +52,7 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
     contributions, // Add contributions here
     courierId: data.courierId,
     courierName: data.courierName,
+    courierPhone: data.courierPhone,
     lojistaId: data.lojistaId,
     address: data.address,
     deliveryLocation: data.deliveryLocation,
@@ -95,7 +97,8 @@ export async function assignDriverToOrder(orderId: string, driver: User): Promis
         await updateDoc(orderRef, { 
             status: 'a caminho', // lowercase status
             courierId: driver.uid,
-            courierName: driver.name
+            courierName: driver.name,
+            courierPhone: driver.phone
         });
 
         await createNotification({

@@ -111,6 +111,7 @@ export interface Order {
   lojistaId?: string;
   courierId?: string;
   courierName?: string;
+  courierPhone?: string;
   address?: string;
   deliveryLocation?: Geolocation;
   pickupLocation?: Geolocation;

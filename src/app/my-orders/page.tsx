@@ -8,7 +8,7 @@ import { auth, db } from '@/lib/firebase';
 import type { Order, OrderStatus, ServiceRequest, ServiceRequestStatus } from '@/lib/types';
 import { collection, query, where, onSnapshot, getDocs, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Loader2, Package, Truck, ListOrdered, User as UserIcon, Users, Calendar, Hand, Check, MapPin } from 'lucide-react';
+import { Loader2, Package, Truck, ListOrdered, User as UserIcon, Users, Calendar, Hand, Check, MapPin, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -134,6 +134,7 @@ export default function MyOrdersPage() {
                     contributions,
                     courierId: data.courierId,
                     courierName: data.courierName,
+                    courierPhone: data.courierPhone,
                     deliveryLocation: data.deliveryLocation,
                     address: data.address, // Make sure address is fetched
                 };
@@ -294,7 +295,14 @@ export default function MyOrdersPage() {
                                                                                 <span className="text-muted-foreground">Entregador:</span>
                                                                                 <span> {order.courierName}</span>
                                                                             </div>
-                                                                            {order.deliveryLocation && (
+                                                                            {order.courierPhone ? (
+                                                                                <Button variant="outline" size="sm" asChild>
+                                                                                    <a href={`tel:${order.courierPhone}`}>
+                                                                                        <Phone className="mr-2 h-4 w-4" />
+                                                                                        Ligar
+                                                                                    </a>
+                                                                                </Button>
+                                                                            ) : order.deliveryLocation && (
                                                                                 <Button variant="outline" size="sm" asChild>
                                                                                     <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation.latitude},${order.deliveryLocation.longitude}`} target="_blank">
                                                                                         <MapPin className="mr-2 h-4 w-4" />

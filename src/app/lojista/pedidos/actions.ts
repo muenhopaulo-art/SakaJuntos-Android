@@ -28,6 +28,7 @@ const convertDocToOrder = async (doc: any): Promise<Order> => {
     lojistaId: data.lojistaId,
     courierId: data.courierId,
     courierName: data.courierName,
+    courierPhone: data.courierPhone,
     contributions: [], // Not loading contributions for lojista view by default
     address: data.address,
     deliveryLocation: data.deliveryLocation,
@@ -63,13 +64,14 @@ export async function updateLojistaOrderStatus(orderId: string, status: OrderSta
       }
       const orderData = orderSnap.data();
 
-      const updates: { status: OrderStatus; courierId?: string; courierName?: string } = { status };
+      const updates: { status: OrderStatus; courierId?: string; courierName?: string, courierPhone?: string } = { status };
       
       // If lojista is delivering, set them as the courier
       if (status === 'a caminho') {
           const lojista = await getUser(lojistaId);
           updates.courierId = lojistaId;
           updates.courierName = lojista?.name || 'Vendedor';
+          updates.courierPhone = lojista?.phone;
       }
 
       await updateDoc(orderRef, updates);
