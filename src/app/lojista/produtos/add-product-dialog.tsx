@@ -41,6 +41,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const phoneRegex = /^9\d{8}$/;
 
@@ -254,197 +255,201 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="max-h-[65vh] overflow-y-auto pr-4 space-y-4 py-4">
-                <FormField
-                  control={form.control}
-                  name="productType"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>O que está a adicionar?</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex space-x-4"
-                        >
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="product" />
-                            </FormControl>
-                            <FormLabel className="font-normal">Produto Físico</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="service" />
-                            </FormControl>
-                            <FormLabel className="font-normal">Serviço</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do {productType === 'service' ? 'Serviço' : 'Produto'}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={productType === 'service' ? "Ex: Instalação de CCTV" : "Ex: Saco de Arroz 25kg"} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder={`Descreva o ${productType === 'service' ? 'serviço' : 'produto'}...`} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col max-h-[80vh]">
+              <ScrollArea className="flex-1 pr-6">
+                <div className="space-y-4 py-4">
                   <FormField
                     control={form.control}
-                    name="price"
+                    name="productType"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preço (AOA)</FormLabel>
+                      <FormItem className="space-y-3">
+                        <FormLabel>O que está a adicionar?</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex space-x-4"
+                          >
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="product" />
+                              </FormControl>
+                              <FormLabel className="font-normal">Produto Físico</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="service" />
+                              </FormControl>
+                              <FormLabel className="font-normal">Serviço</FormLabel>
+                            </FormItem>
+                          </RadioGroup>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  {productType === 'product' && (
-                    <FormField
-                        control={form.control}
-                        name="stock"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Produtos em Stock</FormLabel>
-                            <FormControl>
-                              <Input type="number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                  )}
-                </div>
-                {productType === 'service' && (
-                    <FormField
-                        control={form.control}
-                        name="serviceContactPhone"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Nº de Telefone para Contacto</FormLabel>
-                            <FormControl>
-                              <Input type="tel" placeholder="9xx xxx xxx" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                O cliente usará este número para o contactar. Se deixar em branco, será usado o número principal da sua conta.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                  )}
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Categoria</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome do {productType === 'service' ? 'Serviço' : 'Produto'}</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione uma categoria" />
-                          </SelectTrigger>
+                          <Input placeholder={productType === 'service' ? "Ex: Instalação de CCTV" : "Ex: Saco de Arroz 25kg"} {...field} />
                         </FormControl>
-                        <SelectContent>
-                          {productCategories.map(category => (
-                            <SelectItem key={category} value={category}>{category}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="imageFile"
-                  render={() => (
-                    <FormItem>
-                      <FormLabel>Imagem</FormLabel>
-                      <FormControl>
-                        <div>
-                          <Input
-                            type="file"
-                            id="image-upload-lojista"
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                          />
-                          <label
-                            htmlFor="image-upload-lojista"
-                            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Carregar Imagem
-                          </label>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {imagePreview && (
-                    <div className="flex justify-center p-2 border rounded-md">
-                        <Image src={imagePreview} alt="Pré-visualização da imagem" width={100} height={100} className="rounded-md object-contain" />
-                    </div>
-                )}
-                <Separator />
-                <FormField
-                  control={form.control}
-                  name="promote"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base flex items-center gap-2">
-                            <Star className="text-yellow-500"/>
-                            Promover Item
-                        </FormLabel>
-                        <FormDescription>
-                          Aumente a sua visibilidade! Promova este item por 1 mês. Custo: 500,00 AOA.
-                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder={`Descreva o ${productType === 'service' ? 'serviço' : 'produto'}...`} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preço (AOA)</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {productType === 'product' && (
+                      <FormField
+                          control={form.control}
+                          name="stock"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Produtos em Stock</FormLabel>
+                              <FormControl>
+                                <Input type="number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                    )}
+                  </div>
+                  {productType === 'service' && (
+                      <FormField
+                          control={form.control}
+                          name="serviceContactPhone"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Nº de Telefone para Contacto</FormLabel>
+                              <FormControl>
+                                <Input type="tel" placeholder="9xx xxx xxx" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                  O cliente usará este número para o contactar. Se deixar em branco, será usado o número principal da sua conta.
+                              </FormDescription>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                    )}
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categoria</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma categoria" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {productCategories.map(category => (
+                              <SelectItem key={category} value={category}>{category}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="imageFile"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Imagem</FormLabel>
+                        <FormControl>
+                          <div>
+                            <Input
+                              type="file"
+                              id="image-upload-lojista"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleImageChange}
+                            />
+                            <label
+                              htmlFor="image-upload-lojista"
+                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
+                            >
+                              <Upload className="mr-2 h-4 w-4" />
+                              Carregar Imagem
+                            </label>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {imagePreview && (
+                      <div className="flex justify-center p-2 border rounded-md">
+                          <Image src={imagePreview} alt="Pré-visualização da imagem" width={100} height={100} className="rounded-md object-contain" />
                       </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
                   )}
-                />
-              </div>
-              <DialogFooter className="pt-4 sticky bottom-0 bg-background z-10">
+                  <Separator />
+                  <FormField
+                    control={form.control}
+                    name="promote"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base flex items-center gap-2">
+                              <Star className="text-yellow-500"/>
+                              Promover Item
+                          </FormLabel>
+                          <FormDescription>
+                            Aumente a sua visibilidade! Promova este item por 1 mês. Custo: 500,00 AOA.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </ScrollArea>
+
+              <DialogFooter className="pt-4 border-t">
                 <Button 
                   type="submit" 
                   disabled={isProcessing}
+                  className="w-full"
                 >
                   {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isProcessing ? "A criar..." : `Adicionar ${productType === 'service' ? 'Serviço' : 'Produto'}`}
@@ -463,3 +468,4 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     </>
   );
 }
+
