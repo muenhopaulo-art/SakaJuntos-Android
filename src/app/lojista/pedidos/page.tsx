@@ -10,7 +10,7 @@ import type { Order } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, User as UserIcon, Users, DollarSign, Calendar, List, MoreVertical, MapPin, Package, XCircle } from 'lucide-react';
+import { AlertTriangle, Loader2, User as UserIcon, Users, DollarSign, Calendar, List, MoreVertical, MapPin, Package, XCircle, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { LojistaOrderStatusButton } from './lojista-order-status-button';
@@ -35,6 +35,7 @@ const convertDocToOrder = (doc: any): Order => {
     id: doc.id,
     clientId: data.clientId,
     clientName: data.clientName,
+    clientPhone: data.clientPhone,
     items: data.items,
     totalAmount: data.totalAmount,
     status: data.status,
@@ -187,6 +188,22 @@ export default function LojistaOrdersPage() {
                                                 ))}
                                             </ul>
                                             <Separator className="my-4" />
+                                            <div className="space-y-2 text-sm">
+                                                <h4 className="font-semibold">Informações de Entrega</h4>
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground flex items-center gap-1.5"><UserIcon /> Cliente:</span>
+                                                    <span>{order.clientName}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground flex items-center gap-1.5"><Phone /> Telefone:</span>
+                                                    <span>{order.clientPhone || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex justify-between items-start">
+                                                    <span className="text-muted-foreground flex items-center gap-1.5"><MapPin /> Endereço:</span>
+                                                    <span className="text-right max-w-[60%]">{order.address}</span>
+                                                </div>
+                                            </div>
+                                            <Separator className="my-4" />
                                             <div className="flex justify-between items-center">
                                                 <div className="flex items-center gap-2">
                                                     {user && <CancelOrderButton order={order} lojistaId={user.uid} />}
@@ -195,7 +212,7 @@ export default function LojistaOrdersPage() {
                                                     <Button variant="outline" size="sm" asChild>
                                                         <Link href={`https://www.google.com/maps/search/?api=1&query=${order.deliveryLocation?.latitude},${order.deliveryLocation?.longitude}`} target="_blank">
                                                             <MapPin className="mr-2 h-4 w-4"/>
-                                                            Ver Mapa
+                                                            Ver no Mapa
                                                         </Link>
                                                     </Button>
                                                 )}

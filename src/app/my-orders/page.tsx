@@ -125,8 +125,6 @@ export default function MyOrdersPage() {
                 return {
                     id: doc.id,
                     clientId: data.clientId,
-                    groupId: data.groupId,
-                    groupName: data.groupName,
                     clientName: data.clientName,
                     items: data.items,
                     totalAmount: data.totalAmount,
@@ -137,6 +135,7 @@ export default function MyOrdersPage() {
                     courierId: data.courierId,
                     courierName: data.courierName,
                     deliveryLocation: data.deliveryLocation,
+                    address: data.address, // Make sure address is fetched
                 };
             }));
             
@@ -306,6 +305,12 @@ export default function MyOrdersPage() {
                                                                         </div>
                                                                     </div>
                                                                 )}
+                                                                 {order.address && !order.deliveryLocation && (
+                                                                    <div className="mt-2 pt-2 border-t text-sm">
+                                                                        <span className="text-muted-foreground">Endereço de Entrega: </span>
+                                                                        <span>{order.address}</span>
+                                                                    </div>
+                                                                 )}
                                                                 {order.status === 'aguardando confirmação' && (
                                                                     <div className="mt-2 pt-2 border-t">
                                                                         <OrderConfirmationAction order={order} className="w-full sm:w-auto" />

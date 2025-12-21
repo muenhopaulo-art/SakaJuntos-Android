@@ -82,6 +82,7 @@ export async function finalizeGroupOrder(groupId: string, creatorId: string) {
                 groupName: groupData.name,
                 clientId: creatorId,
                 clientName: creator.name,
+                clientPhone: creator.phone,
                 items: orderItems,
                 totalAmount: totalAmount, // This is just the sub-total for this lojista
             }, contributions);

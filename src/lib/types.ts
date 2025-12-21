@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -96,6 +97,7 @@ export interface Order {
   id: string;
   clientId: string;
   clientName: string;
+  clientPhone?: string; // Client's phone number
   items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;

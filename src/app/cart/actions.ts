@@ -34,6 +34,7 @@ export async function createIndividualOrder(
         const orderResult = await createOrder({
             clientId: userId,
             clientName: user.name,
+            clientPhone: user.phone,
             items: orderItems,
             totalAmount: totalAmount,
             orderType: 'individual',
