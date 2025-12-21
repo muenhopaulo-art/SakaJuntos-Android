@@ -430,7 +430,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                               Promover Item
                           </FormLabel>
                           <FormDescription>
-                            Aumente a sua visibilidade! Promova este item por 1 mês. Custo: 500,00 AOA.
+                            Aumente a sua visibilidade! Promova este item por 1 mês.
                           </FormDescription>
                         </div>
                         <FormControl>
