@@ -61,6 +61,8 @@ export function SiteHeader() {
     { href: '/vendedores', label: 'Vendedores'},
   ];
 
+  const dashboardLink = appUser?.role === 'admin' ? '/admin' : '/lojista/pedidos';
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
@@ -121,7 +123,7 @@ export function SiteHeader() {
                                 <>
                                  {appUser.role !== 'courier' && (
                                     <SheetClose asChild>
-                                    <Link href={appUser.role === 'admin' ? '/admin' : '/lojista'} className="transition-colors hover:text-foreground/80 text-foreground/60">
+                                    <Link href={dashboardLink} className="transition-colors hover:text-foreground/80 text-foreground/60">
                                         Mudar para Vendedor
                                     </Link>
                                     </SheetClose>
@@ -177,7 +179,7 @@ export function SiteHeader() {
                     <DropdownMenuSeparator />
                       {appUser.role !== 'courier' && (
                         <DropdownMenuItem asChild>
-                          <Link href={appUser.role === 'admin' ? '/admin' : '/lojista'}>
+                          <Link href={dashboardLink}>
                               <LayoutDashboard className="mr-2 h-4 w-4" />
                               <span>Mudar para Vendedor</span>
                           </Link>

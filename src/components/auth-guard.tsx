@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
@@ -189,7 +188,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         if (pathIsPublic) { 
              let destination = '/'; // Default for client/courier
              if (appUser.role === 'admin') destination = '/admin';
-             else if (appUser.role === 'lojista') destination = '/lojista/produtos';
+             else if (appUser.role === 'lojista') destination = '/lojista/pedidos';
              
              router.replace(destination); // Use replace to prevent back navigation to login
              return;
