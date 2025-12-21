@@ -249,7 +249,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar Novo Item</DialogTitle>
+            <DialogTitle>Adicionar produto ou serviço</DialogTitle>
             <DialogDescription>
               Preencha os detalhes do novo produto ou serviço que deseja adicionar à sua loja.
             </DialogDescription>
@@ -468,4 +468,3 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
     </>
   );
 }
-
