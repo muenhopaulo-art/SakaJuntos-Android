@@ -6,13 +6,18 @@ import { useState, useEffect, useTransition, useCallback, useRef, useMemo } from
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/product-card';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, ListFilter, MapPin } from 'lucide-react';
 import type { Product, User } from '@/lib/types';
 import Link from 'next/link';
 import { useDebounce } from 'use-debounce';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { getUser } from '@/services/user-service';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { productCategories, provinces } from '@/lib/categories';
 
 interface ProductListProps {
     allProducts: Product[];
@@ -41,6 +46,8 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
   const q = searchParams.get('q') || initialSearchTerm;
   
   const [searchTerm, setSearchTerm] = useState(q);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
@@ -54,15 +61,17 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
   }, [user]);
 
   const filteredProducts = useMemo(() => {
-    // 1. Filter by search term first
-    let products = allProducts;
-    if (debouncedSearchTerm) {
-      const lowercasedTerm = debouncedSearchTerm.toLowerCase();
-      products = allProducts.filter(p => 
-        p.name.toLowerCase().includes(lowercasedTerm) ||
-        p.category.toLowerCase().includes(lowercasedTerm)
-      );
-    }
+    // 1. Filter by search term, category, and province
+    let products = allProducts.filter(p => {
+        const lojista = p.lojistaId ? lojistasMap.get(p.lojistaId) : null;
+        const matchesSearch = debouncedSearchTerm 
+            ? p.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || p.category.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+            : true;
+        const matchesCategory = selectedCategories.length > 0 ? selectedCategories.includes(p.category) : true;
+        const matchesProvince = selectedProvinces.length > 0 ? (lojista && lojista.province && selectedProvinces.includes(lojista.province)) : true;
+        
+        return matchesSearch && matchesCategory && matchesProvince;
+    });
 
     // 2. Separate into categories
     const promoted = products.filter(p => p.isPromoted === 'active');
@@ -107,8 +116,10 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
       finalFeed.push(baseFeed[i]);
       // After every N items, insert a promoted item
       if ((i + 1) % PROMOTED_INTERVAL === 0) {
-        finalFeed.push(shuffledPromoted[promotedIndex % shuffledPromoted.length]);
-        promotedIndex++;
+        if (promotedIndex < shuffledPromoted.length) {
+            finalFeed.push(shuffledPromoted[promotedIndex]);
+            promotedIndex++;
+        }
       }
     }
     
@@ -118,10 +129,9 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
        promotedIndex++;
     }
 
-
     return finalFeed;
 
-  }, [allProducts, lojistasMap, debouncedSearchTerm, appUser]);
+  }, [allProducts, lojistasMap, debouncedSearchTerm, selectedCategories, selectedProvinces, appUser]);
   
   const [displayedProducts, setDisplayedProducts] = useState(filteredProducts.slice(0, ITEMS_PER_PAGE));
   const [offset, setOffset] = useState(ITEMS_PER_PAGE);
@@ -155,6 +165,22 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
     setOffset(ITEMS_PER_PAGE);
     setHasMore(filteredProducts.length > ITEMS_PER_PAGE);
   }, [filteredProducts]);
+  
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategories(prev => 
+        prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const handleProvinceChange = (province: string) => {
+    setSelectedProvinces(prev => 
+        prev.includes(province) 
+        ? prev.filter(p => p !== province)
+        : [...prev, province]
+    );
+  };
 
   const loadMoreProducts = useCallback(() => {
     if (isFetchingMore || !hasMore) return;
@@ -204,7 +230,7 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
   return (
     <>
       <div className="sticky top-16 md:top-20 z-40 bg-background/95 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-lg mx-auto">
+        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-lg mx-auto mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
                 type="search"
@@ -215,6 +241,58 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
                 onChange={(e) => setSearchTerm(e.target.value)}
             />
         </form>
+         <div className="flex flex-col sm:flex-row gap-2 max-w-lg mx-auto">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                        <ListFilter className="mr-2 h-4 w-4"/> 
+                        Categorias {selectedCategories.length > 0 && `(${selectedCategories.length})`}
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                    <DropdownMenuLabel>Filtrar por Categoria</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <ScrollArea className="h-48">
+                        {productCategories.map(category => (
+                            <DropdownMenuItem key={category} onSelect={(e) => e.preventDefault()}>
+                                <Checkbox 
+                                    id={`cat-${category}`}
+                                    checked={selectedCategories.includes(category)}
+                                    onCheckedChange={() => handleCategoryChange(category)}
+                                    className="mr-2"
+                                />
+                                <label htmlFor={`cat-${category}`} className="w-full cursor-pointer">{category}</label>
+                            </DropdownMenuItem>
+                        ))}
+                    </ScrollArea>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                        <MapPin className="mr-2 h-4 w-4"/> 
+                        Províncias {selectedProvinces.length > 0 && `(${selectedProvinces.length})`}
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                    <DropdownMenuLabel>Filtrar por Província</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <ScrollArea className="h-48">
+                        {provinces.map(province => (
+                            <DropdownMenuItem key={province} onSelect={(e) => e.preventDefault()}>
+                                <Checkbox 
+                                    id={`prov-${province}`}
+                                    checked={selectedProvinces.includes(province)}
+                                    onCheckedChange={() => handleProvinceChange(province)}
+                                    className="mr-2"
+                                />
+                                <label htmlFor={`prov-${province}`} className="w-full cursor-pointer">{province}</label>
+                            </DropdownMenuItem>
+                        ))}
+                    </ScrollArea>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
       </div>
       
       {isPending ? (
@@ -224,8 +302,8 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
       ) : displayedProducts.length === 0 ? (
         <div className="text-center py-10 border-2 border-dashed rounded-lg">
           <p className="text-lg font-semibold text-muted-foreground">
-            {debouncedSearchTerm 
-              ? `Nenhum produto encontrado para "${debouncedSearchTerm}".`
+            {debouncedSearchTerm || selectedCategories.length > 0 || selectedProvinces.length > 0
+              ? `Nenhum produto encontrado para os filtros selecionados.`
               : "Nenhum produto encontrado."
             }
           </p>

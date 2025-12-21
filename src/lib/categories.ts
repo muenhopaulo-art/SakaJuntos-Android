@@ -1,4 +1,5 @@
 
+
 export const productCategories = [
     "Mercearia",
     "Bebidas",
@@ -13,4 +14,10 @@ export const productCategories = [
     "Snacks",
     "Serviços",
     "Outros"
+];
+
+export const provinces = [
+    "Bengo", "Benguela", "Bié", "Cabinda", "Quando Cubango", "Cuanza Norte",
+    "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte",
+    "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"
 ];
