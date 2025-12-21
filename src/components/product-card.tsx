@@ -51,9 +51,9 @@ export function ProductCard({ product, lojistasMap, onAddToCart }: ProductCardPr
 
   const cardContent = (
     <Card className={cn("flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out group-hover:shadow-xl group-hover:-translate-y-1 bg-card", isOwner && "bg-muted/30")}>
-    <CardHeader className="flex-row items-center gap-3 p-4">
+    <CardHeader className="p-4">
         {lojista && (
-            <>
+            <Link href={`/vendedores/${lojista.uid}`} className="flex items-center gap-3 hover:bg-muted/50 rounded-md p-1 -m-1 transition-colors">
                 <Avatar className="h-10 w-10 border">
                     <AvatarImage src={lojista.photoURL} alt={lojista.name} />
                     <AvatarFallback>{getInitials(lojista.name)}</AvatarFallback>
@@ -62,30 +62,34 @@ export function ProductCard({ product, lojistasMap, onAddToCart }: ProductCardPr
                     <p className="font-semibold text-sm truncate">{lojista.name}</p>
                     {lojista.province && <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{lojista.province}</p>}
                 </div>
-            </>
+            </Link>
         )}
     </CardHeader>
-    <CardContent className="p-4 pt-0 flex-grow flex flex-col">
-        <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4 bg-muted flex items-center justify-center">
-            {imageUrl ? (
-                <Image src={imageUrl} alt={product.name} fill className="object-cover" />
-            ) : (
-                <Package className="w-16 h-16 text-muted-foreground"/>
-            )}
-             {isOwner && (
-                <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">Seu Item</div>
-            )}
-        </div>
-        <div className="flex-grow">
-          <p className="text-xs text-muted-foreground capitalize">{product.category}</p>
-          <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>
-        </div>
-        <p className="text-lg font-bold text-foreground mb-4">
-        {product.price > 0 
-            ? new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)
-            : 'Preço sob consulta'
-        }
-        </p>
+    <Link href={`/produto/${product.id}`} className="flex-grow flex flex-col p-4 pt-0">
+        <CardContent className="p-0 flex-grow flex flex-col">
+            <div className="relative aspect-square w-full overflow-hidden rounded-lg mb-4 bg-muted flex items-center justify-center">
+                {imageUrl ? (
+                    <Image src={imageUrl} alt={product.name} fill className="object-cover" />
+                ) : (
+                    <Package className="w-16 h-16 text-muted-foreground"/>
+                )}
+                 {isOwner && (
+                    <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">Seu Item</div>
+                )}
+            </div>
+            <div className="flex-grow">
+              <p className="text-xs text-muted-foreground capitalize">{product.category}</p>
+              <h3 className="font-semibold text-base line-clamp-2 mb-2">{product.name}</h3>
+            </div>
+            <p className="text-lg font-bold text-foreground mb-4">
+            {product.price > 0 
+                ? new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(product.price)
+                : 'Preço sob consulta'
+            }
+            </p>
+        </CardContent>
+    </Link>
+     <div className="p-4 pt-0">
         {isService ? (
             <ScheduleServiceDialog product={product}>
               <Button className="w-full mt-auto" disabled={isOwner}>
@@ -99,13 +103,13 @@ export function ProductCard({ product, lojistasMap, onAddToCart }: ProductCardPr
                  {isOwner ? 'Este é seu produto' : product.stock === 0 ? 'Indisponível' : 'Adicionar'}
             </Button>
         )}
-    </CardContent>
+     </div>
     </Card>
   );
 
   return (
-    <Link href={`/produto/${product.id}`} className="block h-full group">
+    <div className="h-full group">
        {cardContent}
-    </Link>
+    </div>
   );
 }
