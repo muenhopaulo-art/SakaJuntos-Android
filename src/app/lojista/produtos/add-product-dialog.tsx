@@ -27,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, Star, Trophy } from 'lucide-react';
+import { Loader2, Upload, Star, Trophy, X } from 'lucide-react';
 import { addProduct } from './actions';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,13 +47,17 @@ import { PROMOTION_COST, PROMOTION_PLANS } from '@/lib/config';
 
 const phoneRegex = /^9\d{8}$/;
 
+const MAX_FILES = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
 const productSchema = z.object({
   name: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
   price: z.coerce.number().min(0, { message: 'O preço deve ser um número positivo.' }),
   stock: z.coerce.number().optional(),
   category: z.string({ required_error: "Por favor, selecione uma categoria." }),
-  imageFile: z.any().optional(),
+  imageFiles: z.array(z.string()).min(1, "Por favor, carregue pelo menos uma imagem.").max(MAX_FILES, `Pode carregar no máximo ${MAX_FILES} imagens.`),
   promote: z.boolean().default(false),
   productType: z.enum(['product', 'service']).default('product'),
   serviceContactPhone: z.string().optional(),
@@ -112,7 +116,7 @@ const resizeAndCompressImage = (file: File, maxWidth: number, quality: number): 
 export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [paymentDetails, setPaymentDetails] = useState<PromotionPayment | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -130,6 +134,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       productType: 'product',
       serviceContactPhone: '',
       promotionTier: 'tier1',
+      imageFiles: [],
     },
   });
 
@@ -143,30 +148,58 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
       price: 0,
       stock: 0,
       category: '',
-      imageFile: undefined,
+      imageFiles: [],
       promote: false,
       productType: 'product',
       serviceContactPhone: '',
       promotionTier: 'tier1',
     });
-    setImagePreview(null);
+    setImagePreviews([]);
   }, [form]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (!files) return;
+
+    const currentFiles = form.getValues('imageFiles') || [];
+    if (files.length + currentFiles.length > MAX_FILES) {
+        toast({
+            variant: "destructive",
+            title: "Limite de Imagens Excedido",
+            description: `Você só pode carregar no máximo ${MAX_FILES} imagens.`,
+        });
+        return;
+    }
+    
+    const newPreviews: string[] = [...imagePreviews];
+    const newFileStrings: string[] = [...currentFiles];
+
+    for (const file of Array.from(files)) {
         try {
             const compressedBase64 = await resizeAndCompressImage(file, 1024, 0.7);
-            form.setValue('imageFile', compressedBase64, { shouldValidate: true });
-            setImagePreview(compressedBase64);
-            form.clearErrors("imageFile");
-
+            newPreviews.push(compressedBase64);
+            newFileStrings.push(compressedBase64);
         } catch (error) {
-            console.error("Image processing error:", error);
-            toast({variant: "destructive", title: "Erro ao Processar Imagem", description: "Não foi possível otimizar a imagem selecionada."})
+             console.error("Image processing error:", error);
+             toast({variant: "destructive", title: "Erro ao Processar Imagem", description: "Não foi possível otimizar a imagem selecionada."})
         }
     }
+    
+    setImagePreviews(newPreviews);
+    form.setValue('imageFiles', newFileStrings, { shouldValidate: true });
+    form.clearErrors("imageFiles");
   };
+
+  const removeImage = (index: number) => {
+    const newPreviews = [...imagePreviews];
+    const newFileStrings = [...(form.getValues('imageFiles') || [])];
+    
+    newPreviews.splice(index, 1);
+    newFileStrings.splice(index, 1);
+
+    setImagePreviews(newPreviews);
+    form.setValue('imageFiles', newFileStrings, { shouldValidate: true });
+  }
   
   const handleClose = useCallback(() => {
     setOpen(false);
@@ -191,11 +224,11 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         const dataToSend = { 
             ...values, 
             lojistaId,
-            imageUrls: values.imageFile ? [values.imageFile] : [],
+            imageUrls: values.imageFiles,
             promotionTier: promotionPlan?.id
         };
         
-        delete (dataToSend as any).imageFile;
+        delete (dataToSend as any).imageFiles;
         if (dataToSend.productType === 'product') {
             delete (dataToSend as any).serviceContactPhone;
         }
@@ -398,12 +431,12 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                       </FormItem>
                     )}
                   />
-                  <FormField
+                   <FormField
                     control={form.control}
-                    name="imageFile"
-                    render={() => (
+                    name="imageFiles"
+                    render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Imagem</FormLabel>
+                        <FormLabel>Imagens ({imagePreviews.length}/{MAX_FILES})</FormLabel>
                         <FormControl>
                           <div>
                             <Input
@@ -411,44 +444,60 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
                               id="image-upload-lojista"
                               className="hidden"
                               accept="image/*"
+                              multiple
                               onChange={handleImageChange}
+                              disabled={imagePreviews.length >= MAX_FILES}
                             />
                             <label
                               htmlFor="image-upload-lojista"
-                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full"
+                              className={`cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full ${imagePreviews.length >= MAX_FILES ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               <Upload className="mr-2 h-4 w-4" />
-                              Carregar Imagem
+                              Carregar Imagens
                             </label>
                           </div>
                         </FormControl>
+                         {imagePreviews.length > 0 && (
+                            <div className="mt-4 grid grid-cols-3 gap-2">
+                                {imagePreviews.map((preview, index) => (
+                                    <div key={index} className="relative aspect-square w-full rounded-md overflow-hidden">
+                                        <Image src={preview} alt={`Pré-visualização ${index + 1}`} fill className="object-cover" />
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="icon"
+                                            className="absolute top-1 right-1 h-6 w-6"
+                                            onClick={() => removeImage(index)}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                         )}
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  {imagePreview && (
-                      <div className="flex justify-center p-2 border rounded-md">
-                          <Image src={imagePreview} alt="Pré-visualização da imagem" width={100} height={100} className="rounded-md object-contain" />
-                      </div>
-                  )}
+
                   <Separator />
                     <FormField
                         control={form.control}
                         name="promote"
                         render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                            <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
-                            </FormControl>
+                        <FormItem className="flex flex-row items-center justify-between rounded-md border p-4">
                             <div className="space-y-1 leading-none">
-                            <FormLabel className='flex items-center gap-2'><Trophy className="text-yellow-500"/> Promover Publicação?</FormLabel>
-                            <FormDescription>
-                                Destaque o seu produto/serviço na página inicial e alcance milhares de potenciais clientes! Mais visibilidade, mais vendas.
-                            </FormDescription>
+                                <FormLabel className='flex items-center gap-2'><Trophy className="text-yellow-500"/> Promover Publicação?</FormLabel>
+                                <FormDescription>
+                                    Destaque o seu produto/serviço na página inicial e alcance milhares de potenciais clientes! Mais visibilidade, mais vendas.
+                                </FormDescription>
                             </div>
+                            <FormControl>
+                                <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
                         </FormItem>
                         )}
                     />
