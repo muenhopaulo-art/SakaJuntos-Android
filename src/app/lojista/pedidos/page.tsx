@@ -190,13 +190,19 @@ export default function LojistaOrdersPage() {
                                             <Separator className="my-4" />
                                             <div className="space-y-2 text-sm">
                                                 <h4 className="font-semibold">Informações de Entrega</h4>
-                                                <div className="flex justify-between">
+                                                <div className="flex justify-between items-center">
                                                     <span className="text-muted-foreground flex items-center gap-1.5"><UserIcon /> Cliente:</span>
                                                     <span>{order.clientName}</span>
                                                 </div>
-                                                <div className="flex justify-between">
+                                                <div className="flex justify-between items-center">
                                                     <span className="text-muted-foreground flex items-center gap-1.5"><Phone /> Telefone:</span>
-                                                    <span>{order.clientPhone || 'N/A'}</span>
+                                                    {order.clientPhone ? (
+                                                        <Button variant="link" size="sm" asChild className="p-0 h-auto">
+                                                            <a href={`tel:${order.clientPhone}`}>{order.clientPhone}</a>
+                                                        </Button>
+                                                    ) : (
+                                                        <span>N/A</span>
+                                                    )}
                                                 </div>
                                                 <div className="flex justify-between items-start">
                                                     <span className="text-muted-foreground flex items-center gap-1.5"><MapPin /> Endereço:</span>

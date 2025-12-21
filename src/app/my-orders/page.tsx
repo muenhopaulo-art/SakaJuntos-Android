@@ -126,6 +126,7 @@ export default function MyOrdersPage() {
                     id: doc.id,
                     clientId: data.clientId,
                     clientName: data.clientName,
+                    clientPhone: data.clientPhone,
                     items: data.items,
                     totalAmount: data.totalAmount,
                     status: data.status,
@@ -293,7 +294,7 @@ export default function MyOrdersPage() {
                                                                         <div className="flex justify-between text-sm items-center">
                                                                             <div>
                                                                                 <span className="text-muted-foreground">Entregador:</span>
-                                                                                <span> {order.courierName}</span>
+                                                                                <span className="font-medium"> {order.courierName}</span>
                                                                             </div>
                                                                             {order.courierPhone ? (
                                                                                 <Button variant="outline" size="sm" asChild>
