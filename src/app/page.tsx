@@ -86,7 +86,7 @@ export default async function HomePage() {
                             Ver Tudo
                         </Link>
                     </div>
-                    <ProductsCarousel products={promotedProducts} />
+                    <ProductsCarousel products={promotedProducts} lojistasMap={lojistasMap} />
                 </section>
             )}
 
