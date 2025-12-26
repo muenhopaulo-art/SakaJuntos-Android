@@ -17,6 +17,7 @@ export const productCategories = [
 ];
 
 export const provinces = [
+    "Todas as Províncias",
     "Bengo", "Benguela", "Bié", "Cabinda", "Quando Cubango", "Cuanza Norte",
     "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Luanda", "Lunda Norte",
     "Lunda Sul", "Malanje", "Moxico", "Namibe", "Uíge", "Zaire"
