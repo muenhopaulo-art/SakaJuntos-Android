@@ -60,9 +60,9 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
     }
   }, [user]);
 
-  const filteredProducts = useMemo(() => {
+  const productBuckets = useMemo(() => {
     // 1. Filter by search term, category, and province
-    let products = allProducts.filter(p => {
+    const filtered = allProducts.filter(p => {
         const lojista = p.lojistaId ? lojistasMap.get(p.lojistaId) : null;
         const matchesSearch = debouncedSearchTerm 
             ? p.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || p.category.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
@@ -74,12 +74,11 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
     });
 
     // 2. Separate into categories
-    const promoted = products.filter(p => p.isPromoted === 'active');
-    const nonPromoted = products.filter(p => p.isPromoted !== 'active');
+    const promoted = filtered.filter(p => p.isPromoted === 'active');
+    const nonPromoted = filtered.filter(p => p.isPromoted !== 'active');
     
     const userProvince = appUser?.province;
     
-    // 3. Create location-based and other lists for non-promoted products
     let localProducts: Product[] = [];
     let otherProducts: Product[] = [];
 
@@ -93,51 +92,21 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
         }
       });
     } else {
-      // If no user or no province, all non-promoted are "other"
       otherProducts = nonPromoted;
     }
-
-    // 4. Shuffle the different buckets
-    const shuffledPromoted = shuffleArray(promoted);
-    const shuffledLocal = shuffleArray(localProducts);
-    const shuffledOthers = shuffleArray(otherProducts);
-
-    // 5. Build the final feed
-    const baseFeed = [...shuffledLocal, ...shuffledOthers];
     
-    if (shuffledPromoted.length === 0) {
-      return baseFeed;
-    }
-
-    // TikTok-like algorithm: Intersperse promoted products
-    const finalFeed: Product[] = [];
-    let promotedIndex = 0;
-    for (let i = 0; i < baseFeed.length; i++) {
-      finalFeed.push(baseFeed[i]);
-      // After every N items, insert a promoted item
-      if ((i + 1) % PROMOTED_INTERVAL === 0) {
-        if (promotedIndex < shuffledPromoted.length) {
-            finalFeed.push(shuffledPromoted[promotedIndex]);
-            promotedIndex++;
-        }
-      }
-    }
-    
-    // Add any remaining promoted products that weren't inserted
-    while(promotedIndex < shuffledPromoted.length) {
-       finalFeed.push(shuffledPromoted[promotedIndex]);
-       promotedIndex++;
-    }
-
-    return finalFeed;
+    // 3. Shuffle the different buckets to create a randomized order for the session
+    return {
+      shuffledPromoted: shuffleArray(promoted),
+      shuffledBase: shuffleArray([...localProducts, ...otherProducts]),
+    };
 
   }, [allProducts, lojistasMap, debouncedSearchTerm, selectedCategories, selectedProvinces, appUser]);
   
-  const [displayedProducts, setDisplayedProducts] = useState(filteredProducts.slice(0, ITEMS_PER_PAGE));
-  const [offset, setOffset] = useState(ITEMS_PER_PAGE);
-  const [hasMore, setHasMore] = useState(filteredProducts.length > ITEMS_PER_PAGE);
+  const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const loaderRef = useRef(null);
+  const pageRef = useRef(0);
   
    // Sync state with URL search params
   useEffect(() => {
@@ -153,18 +122,43 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
       params.delete('q');
     }
     startTransition(() => {
-      // Using replace to not pollute browser history
       router.replace(`${pathname}?${params.toString()}`);
     });
   }, [debouncedSearchTerm, pathname, router, searchParams]);
 
+  const generateFeedPage = useCallback((page: number) => {
+    const { shuffledBase, shuffledPromoted } = productBuckets;
+    const newProducts: Product[] = [];
 
-  // Effect to reset pagination when search term changes
+    if (shuffledBase.length === 0 && shuffledPromoted.length === 0) {
+      return [];
+    }
+
+    const startIndex = page * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+
+    for (let i = startIndex; i < endIndex; i++) {
+        // Calculate the position in the base feed, looping if necessary
+        const baseIndex = i % shuffledBase.length;
+        if(shuffledBase[baseIndex]) {
+            newProducts.push(shuffledBase[baseIndex]);
+        }
+        
+        // Interleave a promoted product
+        if ((i + 1) % PROMOTED_INTERVAL === 0 && shuffledPromoted.length > 0) {
+            const promotedIndex = Math.floor(i / PROMOTED_INTERVAL) % shuffledPromoted.length;
+            newProducts.push(shuffledPromoted[promotedIndex]);
+        }
+    }
+    return newProducts;
+  }, [productBuckets]);
+
+  // Effect to reset pagination when filters change
   useEffect(() => {
-    setDisplayedProducts(filteredProducts.slice(0, ITEMS_PER_PAGE));
-    setOffset(ITEMS_PER_PAGE);
-    setHasMore(filteredProducts.length > ITEMS_PER_PAGE);
-  }, [filteredProducts]);
+    pageRef.current = 0;
+    const initialProducts = generateFeedPage(0);
+    setDisplayedProducts(initialProducts);
+  }, [productBuckets, generateFeedPage]);
   
   const handleCategoryChange = (category: string) => {
     setSelectedCategories(prev => 
@@ -183,25 +177,23 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
   };
 
   const loadMoreProducts = useCallback(() => {
-    if (isFetchingMore || !hasMore) return;
+    if (isFetchingMore) return;
 
     setIsFetchingMore(true);
     // Simulate network delay for loading more items
     setTimeout(() => {
-      const newProducts = filteredProducts.slice(offset, offset + ITEMS_PER_PAGE);
+      pageRef.current++;
+      const newProducts = generateFeedPage(pageRef.current);
       setDisplayedProducts(prev => [...prev, ...newProducts]);
-      const newOffset = offset + ITEMS_PER_PAGE;
-      setOffset(newOffset);
-      setHasMore(filteredProducts.length > newOffset);
       setIsFetchingMore(false);
     }, 500);
-  }, [isFetchingMore, hasMore, offset, filteredProducts]);
+  }, [isFetchingMore, generateFeedPage]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
+        if (entries[0].isIntersecting && !isFetchingMore) {
           loadMoreProducts();
         }
       },
@@ -218,7 +210,7 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
         observer.unobserve(loader);
       }
     };
-  }, [loaderRef, hasMore, isFetchingMore, loadMoreProducts]);
+  }, [loaderRef, isFetchingMore, loadMoreProducts]);
   
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -317,16 +309,14 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
       ) : (
         <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4">
-            {displayedProducts.map(product => (
-                <ProductCard key={product.id} product={product} lojistasMap={lojistasMap} />
+            {displayedProducts.map((product, index) => (
+                <ProductCard key={`${product.id}-${index}`} product={product} lojistasMap={lojistasMap} />
             ))}
             </div>
              {/* Loader ref for infinite scroll */}
-             {hasMore && (
-                <div ref={loaderRef} className="flex justify-center items-center py-8">
-                  {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
-                </div>
-              )}
+            <div ref={loaderRef} className="flex justify-center items-center py-8">
+              {isFetchingMore && <Loader2 className="h-8 w-8 animate-spin text-primary" />}
+            </div>
         </>
       )}
     </>
