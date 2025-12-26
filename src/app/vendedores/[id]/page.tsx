@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -141,10 +142,10 @@ export default function LojistaProfilePage() {
                     <h2 className="text-2xl font-bold font-headline">Publicações</h2>
                      <TabsList>
                         <TabsTrigger value="products">
-                            <ShoppingBag className="mr-2 h-4 w-4"/> Produtos ({normalProducts.length})
+                            <ShoppingBag className="mr-2 h-4 w-4"/> Produtos
                         </TabsTrigger>
                         <TabsTrigger value="services">
-                            <Briefcase className="mr-2 h-4 w-4"/> Serviços ({services.length})
+                            <Briefcase className="mr-2 h-4 w-4"/> Serviços
                         </TabsTrigger>
                     </TabsList>
                 </div>
