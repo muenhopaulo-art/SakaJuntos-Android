@@ -26,7 +26,7 @@ interface ProductListProps {
 }
 
 const ITEMS_PER_PAGE = 8;
-const PROMOTED_INTERVAL = 3; // Insert a promoted product every 3 items
+const PROMOTED_RATIO = 3; // 3 promoted items for every 1 normal item
 
 // Helper function to shuffle an array
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -77,31 +77,13 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
     const promoted = filtered.filter(p => p.isPromoted === 'active');
     const nonPromoted = filtered.filter(p => p.isPromoted !== 'active');
     
-    const userProvince = appUser?.province;
-    
-    let localProducts: Product[] = [];
-    let otherProducts: Product[] = [];
-
-    if(userProvince) {
-      nonPromoted.forEach(p => {
-        const lojista = p.lojistaId ? lojistasMap.get(p.lojistaId) : null;
-        if(lojista && lojista.province === userProvince) {
-          localProducts.push(p);
-        } else {
-          otherProducts.push(p);
-        }
-      });
-    } else {
-      otherProducts = nonPromoted;
-    }
-    
     // 3. Shuffle the different buckets to create a randomized order for the session
     return {
       shuffledPromoted: shuffleArray(promoted),
-      shuffledBase: shuffleArray([...localProducts, ...otherProducts]),
+      shuffledBase: shuffleArray(nonPromoted),
     };
 
-  }, [allProducts, lojistasMap, debouncedSearchTerm, selectedCategories, selectedProvinces, appUser]);
+  }, [allProducts, lojistasMap, debouncedSearchTerm, selectedCategories, selectedProvinces]);
   
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -128,33 +110,50 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
 
   const generateFeedPage = useCallback((page: number) => {
     const { shuffledBase, shuffledPromoted } = productBuckets;
-    const newProducts: Product[] = [];
-
+    
     if (shuffledBase.length === 0 && shuffledPromoted.length === 0) {
       return [];
     }
 
+    const newProducts: Product[] = [];
     const startIndex = page * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
 
-    for (let i = startIndex; i < endIndex; i++) {
-        if(shuffledBase.length > 0) {
-            const baseIndex = i % shuffledBase.length;
-            newProducts.push(shuffledBase[baseIndex]);
+    // Calculate how many "normal" items and "promoted" items we have generated so far.
+    // The ratio is 1 normal to 3 promoted, which is a block of 4.
+    const block_size = PROMOTED_RATIO + 1;
+    const blocks_so_far = Math.floor(startIndex / block_size);
+    const normal_items_so_far = blocks_so_far;
+    const promoted_items_so_far = blocks_so_far * PROMOTED_RATIO;
+    
+    // The position within the current block
+    let position_in_block = startIndex % block_size;
+    let current_normal_index = normal_items_so_far;
+    let current_promoted_index = promoted_items_so_far;
+
+    // Handle the remainder for the start index
+    if (position_in_block > 0) {
+      current_promoted_index += position_in_block -1;
+    }
+    if (position_in_block > 0) {
+      current_normal_index += 1;
+    }
+
+
+    for (let i = 0; i < ITEMS_PER_PAGE; i++) {
+        // Position 0 of the block is for the normal item
+        if (position_in_block === 0) {
+            if (shuffledBase.length > 0) {
+                newProducts.push(shuffledBase[current_normal_index % shuffledBase.length]);
+            }
+            current_normal_index++;
+        } else { // Positions 1, 2, 3 are for promoted items
+            if (shuffledPromoted.length > 0) {
+                newProducts.push(shuffledPromoted[current_promoted_index % shuffledPromoted.length]);
+            }
+            current_promoted_index++;
         }
         
-        // Interleave a promoted product
-        if ((i + 1) % PROMOTED_INTERVAL === 0 && shuffledPromoted.length > 0) {
-            const promotedIndex = Math.floor(i / PROMOTED_INTERVAL) % shuffledPromoted.length;
-            newProducts.push(shuffledPromoted[promotedIndex]);
-        }
-    }
-    // If base is empty but promoted is not, fill with promoted items
-    if(shuffledBase.length === 0 && shuffledPromoted.length > 0) {
-        for (let i = startIndex; i < endIndex; i++) {
-            const promotedIndex = i % shuffledPromoted.length;
-            newProducts.push(shuffledPromoted[promotedIndex]);
-        }
+        position_in_block = (position_in_block + 1) % block_size;
     }
     
     return newProducts;
@@ -317,7 +316,7 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
         <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pt-4">
             {displayedProducts.map((product, index) => (
-                <ProductCard key={`${product.id}-${index}`} product={product} lojistasMap={lojistasMap} />
+                <ProductCard key={`${product.id}-${pageRef.current}-${index}`} product={product} lojistasMap={lojistasMap} />
             ))}
             </div>
              {/* Loader ref for infinite scroll */}
