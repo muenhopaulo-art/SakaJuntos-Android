@@ -26,7 +26,7 @@ interface ProductListProps {
 }
 
 const ITEMS_PER_PAGE = 8;
-const PROMOTED_INTERVAL = 5; // Insert a promoted product every 5 items
+const PROMOTED_INTERVAL = 3; // Insert a promoted product every 3 items
 
 // Helper function to shuffle an array
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -138,9 +138,8 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
     const endIndex = startIndex + ITEMS_PER_PAGE;
 
     for (let i = startIndex; i < endIndex; i++) {
-        // Calculate the position in the base feed, looping if necessary
-        const baseIndex = i % shuffledBase.length;
-        if(shuffledBase[baseIndex]) {
+        if(shuffledBase.length > 0) {
+            const baseIndex = i % shuffledBase.length;
             newProducts.push(shuffledBase[baseIndex]);
         }
         
@@ -150,6 +149,14 @@ export function ProductList({ allProducts, lojistasMap, initialSearchTerm = '' }
             newProducts.push(shuffledPromoted[promotedIndex]);
         }
     }
+    // If base is empty but promoted is not, fill with promoted items
+    if(shuffledBase.length === 0 && shuffledPromoted.length > 0) {
+        for (let i = startIndex; i < endIndex; i++) {
+            const promotedIndex = i % shuffledPromoted.length;
+            newProducts.push(shuffledPromoted[promotedIndex]);
+        }
+    }
+    
     return newProducts;
   }, [productBuckets]);
 
