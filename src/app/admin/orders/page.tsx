@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { getOrders } from '../actions';
 import type { Order, OrderStatus } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -200,12 +202,12 @@ export default function AdminOrdersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useState(() => {
+    useEffect(() => {
         getOrders()
             .then(data => setAllOrders(data))
             .catch(e => setError(getErrorMessage(e)))
             .finally(() => setLoading(false));
-    });
+    }, []);
 
     const { activeOrders, historicalOrders } = useMemo(() => {
         const active: Order[] = [];
