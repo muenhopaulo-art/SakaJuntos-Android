@@ -53,9 +53,10 @@ export async function approvePromotion(paymentId: string, productId: string, loj
             link: '/lojista/produtos'
         });
 
+        // Revalidate paths for server components, though the client will update via snapshot
         revalidatePath('/admin/promotions');
         revalidatePath('/lojista/produtos');
-        revalidatePath('/'); // Revalidate home page for promoted products
+        revalidatePath('/');
         revalidatePath('/minishopping');
 
         return { success: true };
@@ -78,6 +79,7 @@ export async function rejectPromotion(paymentId: string, lojistaId: string, prod
             link: '/lojista/produtos'
         });
         
+        // Revalidate path for server components
         revalidatePath('/admin/promotions');
 
         return { success: true };

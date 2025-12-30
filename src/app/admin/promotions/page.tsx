@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getPromotionRequests, approvePromotion, rejectPromotion } from './actions';
+import { approvePromotion, rejectPromotion } from './actions';
 import type { PromotionPayment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { db } from '@/lib/firebase';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -38,7 +40,7 @@ function PromotionActions({ request }: { request: PromotionPayment }) {
         } else {
             toast({ variant: 'destructive', title: 'Erro!', description: result.message });
         }
-        setLoading(null);
+        // No need to set loading to null, component will be unmounted or re-rendered
     }
     
     if (request.status !== 'pendente') {
@@ -118,17 +120,41 @@ export default function AdminPromotionsPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        const fetchRequests = async () => {
+        const paymentsQuery = query(collection(db, 'promotionPayments'), orderBy('createdAt', 'desc'));
+
+        const unsubscribe = onSnapshot(paymentsQuery, async (snapshot) => {
             try {
-                const requestList = await getPromotionRequests();
+                const requestList = await Promise.all(snapshot.docs.map(async (doc) => {
+                    const data = doc.data();
+                    const lojista = await getDocs(query(collection(db, 'users'), where('uid', '==', data.lojistaId)));
+                    const lojistaData = lojista.docs[0]?.data();
+                    
+                    return {
+                        id: doc.id,
+                        lojistaId: data.lojistaId,
+                        lojistaName: lojistaData?.name || 'Desconhecido',
+                        productId: data.productId,
+                        productName: data.productName,
+                        tier: data.tier,
+                        amount: data.amount,
+                        referenceCode: data.referenceCode,
+                        status: data.status,
+                        createdAt: data.createdAt?.toMillis() || Date.now(),
+                    } as PromotionPayment;
+                }));
                 setRequests(requestList);
             } catch (e) {
-                setError(getErrorMessage(e));
+                 setError(getErrorMessage(e));
             } finally {
                 setLoading(false);
             }
-        };
-        fetchRequests();
+        }, (err) => {
+            console.error("Error listening to promotion payments:", err);
+            setError(getErrorMessage(err));
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const filteredRequests = useMemo(() => {
