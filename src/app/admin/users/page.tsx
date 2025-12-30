@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="space-y-2 mb-8">
-                <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Utilizadores</h1>
+                <h1 className="text-3xl font-bold tracking-tight font-headline">Gestão de Utilizadores ({users.length})</h1>
                 <p className="text-muted-foreground">Monitorize e gira os utilizadores da plataforma.</p>
             </div>
              <Card>
