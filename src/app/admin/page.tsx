@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, Package, Users, Hourglass, Bike, AlertTriangle } from 'lucide-react';
+import { DollarSign, Package, Users, Hourglass, UserPlus, AlertTriangle } from 'lucide-react';
 import { getDashboardAnalytics } from './actions';
 import type { User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -11,7 +11,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { formatDistanceToNow } from 'date-fns';
+import { pt } from 'date-fns/locale';
 
 
 function getErrorMessage(error: any): string {
@@ -32,7 +34,7 @@ const getInitials = (name: string) => {
 export default function AdminPage() {
     
     const [analyticsData, setAnalyticsData] = useState<any>(null);
-    const [onlineDrivers, setOnlineDrivers] = useState<User[]>([]);
+    const [recentUsers, setRecentUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -50,9 +52,9 @@ export default function AdminPage() {
 
       fetchAnalytics();
 
-      const driversQuery = query(collection(db, 'users'), where('online', '==', true), where('role', '==', 'courier'));
-      const unsubscribe = onSnapshot(driversQuery, (snapshot) => {
-        const drivers: User[] = snapshot.docs.map(doc => {
+      const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(5));
+      const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
+        const users: User[] = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 uid: doc.id,
@@ -64,10 +66,10 @@ export default function AdminPage() {
                 online: data.online,
             }
         });
-        setOnlineDrivers(drivers);
+        setRecentUsers(users);
       }, (err) => {
-        console.error("Error listening for online drivers:", err);
-        setError("Não foi possível carregar os entregadores em tempo real.");
+        console.error("Error listening for recent users:", err);
+        setError("Não foi possível carregar os utilizadores em tempo real.");
       });
 
       return () => unsubscribe();
@@ -175,32 +177,34 @@ export default function AdminPage() {
                 </Card>
                 <Card className="col-span-3">
                     <CardHeader>
-                        <CardTitle>Entregadores Online</CardTitle>
+                        <CardTitle>Status de Utilizador</CardTitle>
                         <CardDescription>
-                            Acompanhe os entregadores disponíveis em tempo real.
+                            Acompanhe os novos utilizadores a aderir à plataforma em tempo real.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {onlineDrivers.length > 0 ? (
+                        {recentUsers.length > 0 ? (
                              <div className="space-y-4">
-                                {onlineDrivers.map(driver => (
-                                    <div key={driver.uid} className="flex items-center gap-3">
+                                {recentUsers.map(user => (
+                                    <div key={user.uid} className="flex items-center gap-3">
                                         <Avatar>
-                                            <AvatarFallback>{getInitials(driver.name)}</AvatarFallback>
+                                            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1">
-                                            <p className="font-medium text-sm">{driver.name}</p>
-                                            <p className="text-xs text-muted-foreground">{driver.phone}</p>
+                                            <p className="font-medium text-sm">{user.name}</p>
+                                            <p className="text-xs text-muted-foreground">{user.email}</p>
                                         </div>
-                                         <Badge variant="secondary" className="bg-green-500/20 text-green-700">Online</Badge>
+                                         <Badge variant="secondary" className="bg-blue-500/10 text-blue-700">
+                                            {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true, locale: pt })}
+                                         </Badge>
                                     </div>
                                 ))}
                             </div>
                         ) : (
                              <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center space-y-2">
-                                <Bike className="h-10 w-10" />
-                                <p className="font-medium">Nenhum entregador online.</p>
-                                <p className="text-sm">Os entregadores online aparecerão aqui.</p>
+                                <UserPlus className="h-10 w-10" />
+                                <p className="font-medium">Nenhum utilizador recente.</p>
+                                <p className="text-sm">Novos utilizadores aparecerão aqui.</p>
                             </div>
                         )}
                     </CardContent>
