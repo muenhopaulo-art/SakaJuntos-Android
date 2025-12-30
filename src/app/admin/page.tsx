@@ -3,18 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { DollarSign, Package, Users, Hourglass, UserPlus, AlertTriangle } from 'lucide-react';
+import { DollarSign, Package, Users, UserPlus, AlertTriangle } from 'lucide-react';
 import { getDashboardAnalytics } from './actions';
-import type { User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
-import { formatDistanceToNow } from 'date-fns';
-import { pt } from 'date-fns/locale';
-
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -23,18 +15,8 @@ function getErrorMessage(error: any): string {
     return "Ocorreu um erro desconhecido ao buscar os dados.";
 }
 
-const getInitials = (name: string) => {
-    if (!name) return '?';
-    const names = name.split(' ');
-    const initials = names.map(n => n[0]).join('');
-    return initials.substring(0, 2).toUpperCase();
-}
-
-
 export default function AdminPage() {
-    
     const [analyticsData, setAnalyticsData] = useState<any>(null);
-    const [recentUsers, setRecentUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -51,28 +33,6 @@ export default function AdminPage() {
       };
 
       fetchAnalytics();
-
-      const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(5));
-      const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
-        const users: User[] = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                uid: doc.id,
-                name: data.name,
-                phone: data.phone,
-                email: data.email,
-                role: data.role,
-                createdAt: data.createdAt?.toMillis() || Date.now(),
-                online: data.online,
-            }
-        });
-        setRecentUsers(users);
-      }, (err) => {
-        console.error("Error listening for recent users:", err);
-        setError("Não foi possível carregar os utilizadores em tempo real.");
-      });
-
-      return () => unsubscribe();
     }, []);
     
     const analyticsCards = [
@@ -177,36 +137,33 @@ export default function AdminPage() {
                 </Card>
                 <Card className="col-span-3">
                     <CardHeader>
-                        <CardTitle>Status de Utilizador</CardTitle>
+                        <CardTitle>Adesão de Utilizadores</CardTitle>
                         <CardDescription>
-                            Acompanhe os novos utilizadores a aderir à plataforma em tempo real.
+                            Novos utilizadores que aderiram à plataforma.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        {recentUsers.length > 0 ? (
-                             <div className="space-y-4">
-                                {recentUsers.map(user => (
-                                    <div key={user.uid} className="flex items-center gap-3">
-                                        <Avatar>
-                                            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1">
-                                            <p className="font-medium text-sm">{user.name}</p>
-                                            <p className="text-xs text-muted-foreground">{user.email}</p>
-                                        </div>
-                                         <Badge variant="secondary" className="bg-blue-500/10 text-blue-700">
-                                            {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true, locale: pt })}
-                                         </Badge>
-                                    </div>
-                                ))}
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center">
+                            <UserPlus className="h-6 w-6 mr-4 text-muted-foreground"/>
+                            <div className="flex-1">
+                                <p className="text-sm text-muted-foreground">Novos em 24h</p>
+                                <p className="text-2xl font-bold">{analyticsData?.newUsers24h ?? 0}</p>
                             </div>
-                        ) : (
-                             <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center space-y-2">
-                                <UserPlus className="h-10 w-10" />
-                                <p className="font-medium">Nenhum utilizador recente.</p>
-                                <p className="text-sm">Novos utilizadores aparecerão aqui.</p>
+                        </div>
+                         <div className="flex items-center">
+                            <UserPlus className="h-6 w-6 mr-4 text-muted-foreground"/>
+                            <div className="flex-1">
+                                <p className="text-sm text-muted-foreground">Esta Semana</p>
+                                <p className="text-2xl font-bold">{analyticsData?.newUsers7d ?? 0}</p>
                             </div>
-                        )}
+                        </div>
+                         <div className="flex items-center">
+                            <UserPlus className="h-6 w-6 mr-4 text-muted-foreground"/>
+                            <div className="flex-1">
+                                <p className="text-sm text-muted-foreground">Este Mês</p>
+                                <p className="text-2xl font-bold">{analyticsData?.newUsers30d ?? 0}</p>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

@@ -160,12 +160,24 @@ export async function getDashboardAnalytics() {
         const ordersCol = collection(db, 'orders');
         const usersCol = collection(db, 'users');
 
+        // Timestamps for date ranges
+        const now = Date.now();
+        const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
         const [
             ordersSnapshot, 
-            usersCountSnapshot
+            usersCountSnapshot,
+            newUsers24hSnapshot,
+            newUsers7dSnapshot,
+            newUsers30dSnapshot
         ] = await Promise.all([
             getDocs(query(ordersCol)),
-            getCountFromServer(usersCol)
+            getCountFromServer(usersCol),
+            getCountFromServer(query(usersCol, where('createdAt', '>', Timestamp.fromDate(oneDayAgo)))),
+            getCountFromServer(query(usersCol, where('createdAt', '>', Timestamp.fromDate(sevenDaysAgo)))),
+            getCountFromServer(query(usersCol, where('createdAt', '>', Timestamp.fromDate(thirtyDaysAgo))))
         ]);
         
         const orders = ordersSnapshot.docs.map(doc => doc.data() as Order);
@@ -184,6 +196,9 @@ export async function getDashboardAnalytics() {
             totalRevenue,
             totalOrders,
             usersCount,
+            newUsers24h: newUsers24hSnapshot.data().count,
+            newUsers7d: newUsers7dSnapshot.data().count,
+            newUsers30d: newUsers30dSnapshot.data().count,
         };
 
     } catch (error) {
