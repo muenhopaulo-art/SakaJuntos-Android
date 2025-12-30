@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -176,15 +175,13 @@ export async function getDashboardAnalytics() {
             .filter(order => order.status === 'entregue')
             .reduce((sum, order) => sum + order.totalAmount, 0);
 
-        const pendingSales = orders
-            .filter(order => order.status !== 'entregue' && order.status !== 'cancelado')
-            .reduce((sum, order) => sum + order.totalAmount, 0);
-        
+        const platformRevenue = totalRevenue * 0.05; // Example: 5% platform fee
+
         const totalOrders = orders.length;
 
         return {
+            platformRevenue,
             totalRevenue,
-            pendingSales,
             totalOrders,
             usersCount,
         };

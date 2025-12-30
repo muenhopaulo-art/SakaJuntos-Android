@@ -1,16 +1,70 @@
 
-'use client'
+'use client';
 
-import { Home, Package, LogOut, Users, Megaphone } from 'lucide-react';
 import Link from 'next/link';
+import {
+  Bell,
+  CircleUser,
+  Home,
+  LineChart,
+  Menu,
+  Package,
+  ShoppingCart,
+  Users,
+  Briefcase,
+  Bike,
+  User,
+  LogOut,
+  ShoppingBag,
+  ShieldCheck,
+  CreditCard,
+  AlertOctagon,
+  CheckCircle,
+  Headset,
+  Settings,
+  MoreVertical,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { auth, db } from '@/lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { doc, updateDoc } from 'firebase/firestore';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { NotificationsSheet } from '@/components/notifications-sheet';
 import { Logo } from '@/components/Logo';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useEffect, useState } from 'react';
+import { getUser, type User as AppUser } from '@/services/user-service';
 
+function getInitials(name: string) {
+    if (!name) return '?';
+    const names = name.split(' ');
+    const initials = names.map(n => n[0]).join('');
+    return initials.substring(0, 2).toUpperCase();
+}
+
+
+const navLinks = [
+    { href: '/admin', label: 'Dashboard', icon: Home },
+    { href: '/admin/orders', label: 'Pedidos', icon: Package },
+    { href: '/admin/products', label: 'Produtos', icon: ShoppingBag },
+    { href: '/admin/promotions', label: 'Aprovações', icon: ShieldCheck },
+    { href: '/admin/users', label: 'Utilizadores', icon: Users },
+    { href: '/admin/payments', label: 'Pagamentos', icon: CreditCard, disabled: true },
+    { href: '/admin/reports', label: 'Denúncias', icon: AlertOctagon, disabled: true },
+    { href: '/admin/validations', label: 'Validação', icon: CheckCircle, badge: 1, disabled: true },
+    { href: '/admin/support', label: 'Suporte', icon: Headset, badge: 2, disabled: true },
+    { href: '/admin/settings', label: 'Configurações', icon: Settings, disabled: true },
+];
 
 export default function AdminLayout({
   children,
@@ -19,64 +73,122 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user] = useAuthState(auth);
+  const [user, loading] = useAuthState(auth);
+  const [appUser, setAppUser] = useState<AppUser | null>(null);
 
-  const menuItems = [
-    { href: '/admin', label: 'Dashboard', icon: Home },
-    { href: '/admin/orders', label: 'Pedidos', icon: Package },
-    { href: '/admin/products', label: 'Produtos', icon: Package },
-    { href: '/admin/users', label: 'Utilizadores', icon: Users },
-    { href: '/admin/promotions', label: 'Promoções', icon: Megaphone },
-  ];
-  
+  useEffect(() => {
+    if (user) {
+      getUser(user.uid).then(setAppUser);
+    }
+  }, [user]);
+
   const handleLogout = async () => {
     if (user) {
         await updateDoc(doc(db, "users", user.uid), { online: false });
     }
     await auth.signOut();
     router.push('/login');
-  }
+  };
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-      <div className="hidden border-r bg-muted/40 md:block">
-        <div className="flex h-full max-h-screen flex-col gap-2">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <Logo />
+    <div className="flex min-h-screen w-full flex-col">
+      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-50">
+        <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
+            <Link
+                href="/admin"
+                className="flex items-center gap-2 text-lg font-semibold md:text-base mr-4"
+            >
+                <Logo />
             </Link>
-          </div>
-          <div className="flex-1">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              {menuItems.map(item => (
+            {navLinks.map((link) => (
+            <Link
+                key={link.href}
+                href={link.disabled ? '#' : link.href}
+                className={cn(
+                'transition-colors hover:text-foreground relative',
+                pathname === link.href ? 'text-foreground font-semibold' : 'text-muted-foreground',
+                link.disabled && 'cursor-not-allowed opacity-50'
+                )}
+            >
+                {link.label}
+                 {link.badge && (
+                    <span className="absolute -top-2 -right-3 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">{link.badge}</span>
+                 )}
+            </Link>
+            ))}
+        </nav>
+        
+        {/* Mobile Header */}
+        <Sheet>
+            <SheetTrigger asChild>
+            <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 md:hidden"
+            >
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle navigation menu</span>
+            </Button>
+            </SheetTrigger>
+            <SheetContent side="left">
+            <nav className="grid gap-6 text-lg font-medium">
                 <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                    pathname === item.href && "bg-muted text-primary"
-                  )}
+                href="#"
+                className="flex items-center gap-2 text-lg font-semibold"
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
+                    <Logo />
                 </Link>
-              ))}
+                 {navLinks.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.disabled ? '#' : link.href}
+                        className={cn(
+                        'transition-colors hover:text-foreground flex items-center gap-2',
+                        pathname === link.href ? 'text-foreground font-semibold' : 'text-muted-foreground',
+                        link.disabled && 'cursor-not-allowed opacity-50'
+                        )}
+                    >
+                       <link.icon className="h-5 w-5"/>
+                        {link.label}
+                         {link.badge && (
+                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">{link.badge}</span>
+                        )}
+                    </Link>
+                ))}
             </nav>
-          </div>
-          <div className="mt-auto p-4">
-             <Button onClick={handleLogout} variant="ghost" className="w-full justify-start">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-             </Button>
-          </div>
+            </SheetContent>
+        </Sheet>
+        
+        <div className="flex w-full items-center justify-end gap-4 md:ml-auto md:gap-2 lg:gap-4">
+            <NotificationsSheet />
+            <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="icon" className="rounded-full">
+                    {appUser ? (
+                        <Avatar className="h-8 w-8">
+                             <AvatarImage src={appUser.photoURL} alt={appUser.name} />
+                             <AvatarFallback>{getInitials(appUser.name)}</AvatarFallback>
+                        </Avatar>
+                    ) : (
+                        <CircleUser className="h-5 w-5" />
+                    )}
+                    <span className="sr-only">Toggle user menu</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Configurações</DropdownMenuItem>
+                <DropdownMenuItem>Suporte</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>Sair</DropdownMenuItem>
+            </DropdownMenuContent>
+            </DropdownMenu>
         </div>
-      </div>
-      <div className="flex flex-col">
-        {/* Adicionar um cabeçalho móvel aqui se necessário no futuro */}
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-          {children}
-        </main>
-      </div>
+      </header>
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 bg-muted/40">
+        {children}
+      </main>
     </div>
-  )
+  );
 }

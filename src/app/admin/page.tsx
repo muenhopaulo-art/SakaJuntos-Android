@@ -50,7 +50,7 @@ export default function AdminPage() {
 
       fetchAnalytics();
 
-      const driversQuery = query(collection(db, 'users'), where('online', '==', true));
+      const driversQuery = query(collection(db, 'users'), where('online', '==', true), where('role', '==', 'courier'));
       const unsubscribe = onSnapshot(driversQuery, (snapshot) => {
         const drivers: User[] = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -75,18 +75,18 @@ export default function AdminPage() {
     
     const analyticsCards = [
         {
-            title: "Receita Total",
+            title: "Receita (Plataforma)",
+            value: analyticsData?.platformRevenue,
+            isCurrency: true,
+            icon: DollarSign,
+            description: "Total de ganhos da plataforma."
+        },
+        {
+            title: "Volume Total de Vendas",
             value: analyticsData?.totalRevenue,
             isCurrency: true,
             icon: DollarSign,
-            description: "Total de vendas de encomendas entregues."
-        },
-        {
-            title: "Vendas Pendentes",
-            value: analyticsData?.pendingSales,
-            isCurrency: true,
-            icon: Hourglass,
-            description: "Valor total de encomendas pendentes."
+            description: "Valor total pago pelos clientes."
         },
         {
             title: "Total de Pedidos",
@@ -106,15 +106,15 @@ export default function AdminPage() {
 
     if (loading) {
         return (
-             <div className="container mx-auto px-4 py-8">
-                <div className="space-y-2 mb-8">
+             <div className="space-y-8">
+                <div className="space-y-2">
                     <Skeleton className="h-10 w-1/3" />
                     <Skeleton className="h-6 w-1/2" />
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)}
+                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32" />)}
                 </div>
-                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-8">
+                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                     <Skeleton className="col-span-4 h-96" />
                     <Skeleton className="col-span-3 h-96" />
                 </div>
@@ -135,8 +135,8 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="space-y-2 mb-8">
+        <div className="space-y-8">
+            <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
                 <p className="text-muted-foreground">Uma visão geral do desempenho da sua aplicação.</p>
             </div>
@@ -165,6 +165,7 @@ export default function AdminPage() {
                 <Card className="col-span-4">
                     <CardHeader>
                         <CardTitle>Visão Geral das Vendas</CardTitle>
+                        <CardDescription>Receita total de encomendas entregues por mês.</CardDescription>
                     </CardHeader>
                     <CardContent className="pl-2">
                         <div className="h-80 flex items-center justify-center text-muted-foreground">
