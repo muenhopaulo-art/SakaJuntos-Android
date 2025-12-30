@@ -1,18 +1,20 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getPromotionRequests, approvePromotion, rejectPromotion } from './actions';
 import type { PromotionPayment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, Check, X, Copy } from 'lucide-react';
+import { AlertTriangle, Loader2, Check, X, Copy, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 
 function getErrorMessage(error: any): string {
     if (error && typeof error.message === 'string') {
@@ -55,11 +57,65 @@ function PromotionActions({ request }: { request: PromotionPayment }) {
     )
 }
 
+function PromotionsTable({ requests }: { requests: PromotionPayment[] }) {
+    const { toast } = useToast();
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: "Copiado!", description: "O código de referência foi copiado." });
+    };
+
+     if (requests.length === 0) {
+        return <div className="text-center h-48 flex items-center justify-center text-muted-foreground">Nenhum pedido encontrado.</div>
+    }
+
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Lojista</TableHead>
+                    <TableHead>Produto</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Código Ref.</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {requests.map(req => (
+                    <TableRow key={req.id}>
+                        <TableCell className="font-medium">{req.lojistaName}</TableCell>
+                        <TableCell>{req.productName}</TableCell>
+                        <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(req.amount)}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2 font-mono text-xs">
+                                <span>{req.referenceCode}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(req.referenceCode)}>
+                                    <Copy className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        </TableCell>
+                        <TableCell>{req.createdAt ? format(new Date(req.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
+                        <TableCell className="capitalize">
+                            <Badge variant={req.status === 'aprovado' ? 'default' : req.status === 'rejeitado' ? 'destructive' : 'secondary'}>
+                                {req.status}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                            <PromotionActions request={req} />
+                        </TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    )
+}
+
 export default function AdminPromotionsPage() {
     const [requests, setRequests] = useState<PromotionPayment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { toast } = useToast();
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const fetchRequests = async () => {
@@ -75,10 +131,13 @@ export default function AdminPromotionsPage() {
         fetchRequests();
     }, []);
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast({ title: "Copiado!", description: "O código de referência foi copiado." });
-    };
+    const filteredRequests = useMemo(() => {
+        if (!searchTerm) return requests;
+        return requests.filter(req => req.referenceCode.toLowerCase().includes(searchTerm.toLowerCase()));
+    }, [requests, searchTerm]);
+
+    const pendingRequests = useMemo(() => filteredRequests.filter(r => r.status === 'pendente'), [filteredRequests]);
+    const historicalRequests = useMemo(() => filteredRequests.filter(r => r.status !== 'pendente'), [filteredRequests]);
 
     if (loading) {
         return (
@@ -107,52 +166,30 @@ export default function AdminPromotionsPage() {
                 <p className="text-muted-foreground">Aprove ou rejeite os pedidos de promoção de produtos.</p>
             </div>
              <Card>
+                <CardHeader>
+                   <div className="relative w-full max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input
+                            placeholder="Procurar por código de referência..."
+                            className="pl-10"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                   </div>
+                </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Lojista</TableHead>
-                                <TableHead>Produto</TableHead>
-                                <TableHead>Valor</TableHead>
-                                <TableHead>Código Ref.</TableHead>
-                                <TableHead>Data</TableHead>
-                                <TableHead>Estado</TableHead>
-                                <TableHead className="text-right">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {requests.length > 0 ? (
-                                requests.map(req => (
-                                    <TableRow key={req.id}>
-                                        <TableCell className="font-medium">{req.lojistaName}</TableCell>
-                                        <TableCell>{req.productName}</TableCell>
-                                        <TableCell>{new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(req.amount)}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2 font-mono text-xs">
-                                                <span>{req.referenceCode}</span>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(req.referenceCode)}>
-                                                    <Copy className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{req.createdAt ? format(new Date(req.createdAt), "d MMM, yyyy", { locale: pt }) : 'N/A'}</TableCell>
-                                        <TableCell className="capitalize">
-                                            <Badge variant={req.status === 'aprovado' ? 'default' : req.status === 'rejeitado' ? 'destructive' : 'secondary'}>
-                                                {req.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <PromotionActions request={req} />
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center h-24">Nenhum pedido de promoção encontrado.</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                    <Tabs defaultValue="pendentes">
+                        <TabsList className="px-6 border-b w-full justify-start rounded-none">
+                            <TabsTrigger value="pendentes">Pendentes ({pendingRequests.length})</TabsTrigger>
+                            <TabsTrigger value="historico">Histórico ({historicalRequests.length})</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="pendentes" className="mt-0">
+                           <PromotionsTable requests={pendingRequests} />
+                        </TabsContent>
+                        <TabsContent value="historico" className="mt-0">
+                            <PromotionsTable requests={historicalRequests} />
+                        </TabsContent>
+                    </Tabs>
                 </CardContent>
             </Card>
         </div>
