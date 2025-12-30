@@ -59,11 +59,6 @@ const navLinks = [
     { href: '/admin/products', label: 'Produtos', icon: ShoppingBag },
     { href: '/admin/promotions', label: 'Aprovações', icon: ShieldCheck },
     { href: '/admin/users', label: 'Utilizadores', icon: Users },
-    { href: '/admin/payments', label: 'Pagamentos', icon: CreditCard, disabled: true },
-    { href: '/admin/reports', label: 'Denúncias', icon: AlertOctagon, disabled: true },
-    { href: '/admin/validations', label: 'Validação', icon: CheckCircle, badge: 1, disabled: true },
-    { href: '/admin/support', label: 'Suporte', icon: Headset, badge: 2, disabled: true },
-    { href: '/admin/settings', label: 'Configurações', icon: Settings, disabled: true },
 ];
 
 export default function AdminLayout({
