@@ -33,7 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { auth, db } from '@/lib/firebase';
@@ -98,17 +98,13 @@ export default function AdminLayout({
             {navLinks.map((link) => (
             <Link
                 key={link.href}
-                href={link.disabled ? '#' : link.href}
+                href={link.href}
                 className={cn(
                 'transition-colors hover:text-foreground relative',
-                pathname === link.href ? 'text-foreground font-semibold' : 'text-muted-foreground',
-                link.disabled && 'cursor-not-allowed opacity-50'
+                pathname === link.href ? 'text-foreground font-semibold' : 'text-muted-foreground'
                 )}
             >
                 {link.label}
-                 {link.badge && (
-                    <span className="absolute -top-2 -right-3 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">{link.badge}</span>
-                 )}
             </Link>
             ))}
         </nav>
@@ -126,6 +122,9 @@ export default function AdminLayout({
             </Button>
             </SheetTrigger>
             <SheetContent side="left">
+            <SheetHeader>
+                <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
+            </SheetHeader>
             <nav className="grid gap-6 text-lg font-medium">
                 <Link
                 href="#"
@@ -136,18 +135,14 @@ export default function AdminLayout({
                  {navLinks.map((link) => (
                     <Link
                         key={link.href}
-                        href={link.disabled ? '#' : link.href}
+                        href={link.href}
                         className={cn(
                         'transition-colors hover:text-foreground flex items-center gap-2',
-                        pathname === link.href ? 'text-foreground font-semibold' : 'text-muted-foreground',
-                        link.disabled && 'cursor-not-allowed opacity-50'
+                        pathname === link.href ? 'text-foreground font-semibold' : 'text-muted-foreground'
                         )}
                     >
                        <link.icon className="h-5 w-5"/>
                         {link.label}
-                         {link.badge && (
-                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">{link.badge}</span>
-                        )}
                     </Link>
                 ))}
             </nav>
