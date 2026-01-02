@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -225,7 +226,8 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
             ...values, 
             lojistaId,
             imageUrls: values.imageFiles,
-            promotionTier: promotionPlan?.id
+            promotionTier: promotionPlan?.id,
+            isPromoted: values.promote ? ('pending' as const) : ('inactive' as const),
         };
         
         delete (dataToSend as any).imageFiles;
