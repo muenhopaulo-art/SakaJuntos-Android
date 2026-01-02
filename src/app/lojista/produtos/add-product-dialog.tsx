@@ -224,6 +224,7 @@ export function AddProductDialog({ lojistaId }: { lojistaId: string }) {
         
         const dataToSend = { 
             ...values, 
+            stock: values.stock ?? 0, // Ensure stock is a number
             lojistaId,
             imageUrls: values.imageFiles,
             promotionTier: promotionPlan?.id,
